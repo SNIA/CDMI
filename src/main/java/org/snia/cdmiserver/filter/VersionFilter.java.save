@@ -1,0 +1,94 @@
+/*
+ * Copyright (c) 2010, Sun Microsystems, Inc.
+ * Copyright (c) 2010, The Storage Networking Industry Association.
+ *  
+ * Redistribution and use in source and binary forms, with or without 
+ * modification, are permitted provided that the following conditions are met:
+ *  
+ * Redistributions of source code must retain the above copyright notice, 
+ * this list of conditions and the following disclaimer.
+ *  
+ * Redistributions in binary form must reproduce the above copyright notice, 
+ * this list of conditions and the following disclaimer in the documentation 
+ * and/or other materials provided with the distribution.
+ *  
+ * Neither the name of The Storage Networking Industry Association (SNIA) nor 
+ * the names of its contributors may be used to endorse or promote products 
+ * derived from this software without specific prior written permission.
+ *  
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF 
+ *  THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package org.snia.cdmiserver.filter;
+
+import com.sun.jersey.api.container.MappableContainerException;
+import com.sun.jersey.spi.container.ContainerRequest;
+import com.sun.jersey.spi.container.ContainerRequestFilter;
+import java.util.StringTokenizer;
+import org.snia.cdmiserver.exception.BadRequestException;
+
+/**
+ * <p>Ensure that if the client included an HTTP header named
+ * <code>X-CDMI-Specification-Version</code>, then at least one of the
+ * specified values is one that this server instance supports.  If not,
+ * return an HTTP <em>Bad Request</em> (status 400) response with an
+ * appropriate error message.</p>
+ */
+public class VersionFilter implements ContainerRequestFilter {
+
+    /**
+     * <p>HTTP header containing the client's specification version requirement
+     * (if present in the request.</p>
+     */
+    public static final String SPECIFCIATION_HEADER =
+            "X-CDMI-Specification-Version";
+
+    /**
+     * <p>Specification version identifiers supported by this server instance.</p>
+     */
+    public static final String[] SPECIFICATION_VERSIONS = {
+        "1.0.2",
+    };
+
+    /**
+     * <p>Validate that this server instance supports at least one of the
+     * specification versions specified by the client, and return the
+     * specified request unmodified.  If no match is found, return a
+     * <code>Bad Request</code> (HTTP status 400) response with an appropriate
+     * message.</p>
+     * 
+     * @param request Incoming request to be analyzed
+     */
+    public ContainerRequest filter(ContainerRequest request) {
+        // Extract the requested specification version(s)
+        String specificationValues = request.getHeaderValue(SPECIFCIATION_HEADER);
+        if (specificationValues == null) {
+            throw new MappableContainerException(
+                    new BadRequestException("Header X-CDMI-Specification-Version is required"));
+        }
+        // Verify a match against at least one requested specification version
+        StringTokenizer st = new StringTokenizer(specificationValues, ",");
+        while (st.hasMoreTokens()) {
+            String specificationValue = st.nextToken().trim();
+            for (String specificationVersion : SPECIFICATION_VERSIONS) {
+                if (specificationValue.equals(specificationVersion)) {
+                    return request;
+                }
+            }
+        }
+        // Return an error indicating we do not support this request
+        throw new MappableContainerException(
+                new BadRequestException("Unsupported X-CDMI-Specification-Version value specified"));
+    }
+
+}

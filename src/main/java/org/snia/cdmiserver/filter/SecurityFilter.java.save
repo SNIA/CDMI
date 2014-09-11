@@ -1,0 +1,225 @@
+/*
+ * Copyright (c) 2010, Sun Microsystems, Inc.
+ * Copyright (c) 2010, The Storage Networking Industry Association.
+ *  
+ * Redistribution and use in source and binary forms, with or without 
+ * modification, are permitted provided that the following conditions are met:
+ *  
+ * Redistributions of source code must retain the above copyright notice, 
+ * this list of conditions and the following disclaimer.
+ *  
+ * Redistributions in binary form must reproduce the above copyright notice, 
+ * this list of conditions and the following disclaimer in the documentation 
+ * and/or other materials provided with the distribution.
+ *  
+ * Neither the name of The Storage Networking Industry Association (SNIA) nor 
+ * the names of its contributors may be used to endorse or promote products 
+ * derived from this software without specific prior written permission.
+ *  
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF 
+ *  THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package org.snia.cdmiserver.filter;
+
+import com.sun.jersey.api.container.MappableContainerException;
+import com.sun.jersey.spi.container.ContainerRequest;
+import com.sun.jersey.spi.container.ContainerRequestFilter;
+import java.security.Principal;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriInfo;
+import org.snia.cdmiserver.exception.UnauthorizedException;
+
+/**
+ * <p>A Jersey <code>ContainerRequestFilter} that provides a <code>SecurityContext</code>
+ * for all requests processed by this application.</p>
+ *
+ * <p><strong>IMPLEMENTATION NOTE</strong> - The implementation provided
+ * here is a skeleton for what would be provided in a real application, with
+ * the following limitations:</p>
+ * <ul>
+ * <li>It recognizes only the credentials username <code>admin</code> and
+ *     password <code>adminadmin</code>.</li>
+ * <li>It assumes that this user has all possible roles</li>
+ * </ul>
+ *
+ * <p>To flesh out more useful functionality, you will need to replace the
+ * implementations of the following methods:</p>
+ * <ul>
+ * <li><code>authenticate()</code> - Evaluate the specified credentials and
+ *     return an appropriate <code>Principal</code> if the credentials are
+ *     correct, or <code>null</code> if they are incorrect (or missing)
+ * <li><code>isUserInRole()</code> - Evaluate the specified role name in
+ *     association with the identified <code>Principal</code>, and return
+ *     <code>true</code> if this principal has the requested role.  Note that
+ *     this decision can be based on characteristics of the current request,
+ *     which will have been injected into the <code>uriInfo</code> instance
+ *     variable.</p>
+ * </ul>
+ */
+public class SecurityFilter implements ContainerRequestFilter {
+
+
+    // ------------------------------------------------------ Manifest Constants
+
+
+    /**
+     * <p>The realm name to use in authentication challenges.</p>
+     */
+    private static final String REALM = "CDMI Service";
+
+
+    // ------------------------------------------------------ Instance Variables
+
+
+    /**
+     * <p>The URI information for this request.  This information may be
+     * accessed from an <code>Authorizer</code> to make request specific
+     * role determinations.</p>
+     */
+    @Context
+    UriInfo uriInfo = null;
+
+
+    // ------------------------------------------ ContainerRequestFilter Methods
+
+
+    /**
+     * <p>Authenticate the user for this request, and add a security context
+     * so that role checking can be performed.</p>
+     *
+     * @param request The request we re processing
+     * @return the decorated request
+     * @exception WebApplicationException if authentication credentials
+     *  are missing or invalid
+     */
+    @Override
+    public ContainerRequest filter(ContainerRequest request) {
+        Principal principal = authenticate(request);
+        request.setSecurityContext(new Authorizer(principal));
+        return request;
+    }
+
+
+    // --------------------------------------------------------- Private Methods
+
+
+    /**
+     * <p>Perform the required authentication checks, and return the
+     * {@link Principal} instance for the authenticated user.</p>
+     *
+     * @exception WebAookucationException if authentication fails
+     */
+    private Principal authenticate(ContainerRequest request) {
+
+        // Extract authentication credentials
+        String authentication = request.getHeaderValue(ContainerRequest.AUTHORIZATION);
+        if (authentication == null) {
+            throw new MappableContainerException(
+                    new UnauthorizedException("Authentication credentials are required", REALM));
+        }
+        if (!authentication.startsWith("Basic ")) {
+            throw new MappableContainerException(
+                    new UnauthorizedException("Only HTTP Basic authentication is supported", REALM));
+        }
+        authentication = authentication.substring("Basic ".length());
+        String[] values = new String(Base64.base64Decode(authentication)).split(":");
+        if (values.length < 2) {
+            throw new MappableContainerException(
+                    new UnauthorizedException("Invalid syntax for username and password", REALM));
+        }
+        String username = values[0];
+        String password = values[1];
+        if ((username == null) || (password == null)) {
+            throw new MappableContainerException(
+                    new UnauthorizedException("Missing username or password", REALM));
+        }
+
+        // Validate the extracted credentials
+        if (!username.equals("admin") || !password.equals("adminadmin")) {
+            throw new MappableContainerException(
+                    new UnauthorizedException("Invalid username or password", REALM));
+        }
+
+        // Return the validated user
+        return new User(username);
+
+    }
+
+
+    // --------------------------------------------------------- Support Classes
+
+
+    /**
+     * <p>SecurityContext used to perform authorization checks.</p>
+     */
+    public class Authorizer implements SecurityContext {
+
+        public Authorizer(final Principal principal) {
+            this.principal = principal;
+        }
+
+        private final Principal principal;
+
+        @Override
+        public Principal getUserPrincipal() {
+            return this.principal;
+        }
+
+        /**
+         * <p>Determine whether the authenticated principal possesses the
+         * requested role.  This is a dummy implementation that returns
+         * <code>true</code> for all role requests.  It should be replaced
+         * by a concrete implementation that implements the desired
+         * authorization policies, which may be request dependent by
+         * referencing the <code>uriInfo</code> field in our containing class.</p>
+         *
+         * @param role Role to be checked
+         */
+        @Override
+        public boolean isUserInRole(String role) {
+            return true; // FIXME - implement isUserInRole()
+        }
+
+        @Override
+        public boolean isSecure() {
+            return "https".equals(uriInfo.getRequestUri().getScheme());
+        }
+
+        @Override
+        public String getAuthenticationScheme() {
+            return SecurityContext.BASIC_AUTH;
+        }
+    }
+
+
+    /**
+     * <p>Principal used to represent an authenticated user.</p>
+     */
+    class User implements Principal {
+
+        public User(String name) {
+            this.name = name;
+        }
+
+        private final String name;
+
+        @Override
+        public String getName() {
+            return this.name;
+        }
+
+    }
+
+
+}

@@ -1,0 +1,124 @@
+<!--
+ * Copyright (c) 2010, Sun Microsystems, Inc.
+ * Copyright (c) 2010, The Storage Networking Industry Association.
+ *  
+ * Redistribution and use in source and binary forms, with or without 
+ * modification, are permitted provided that the following conditions are met:
+ *  
+ * Redistributions of source code must retain the above copyright notice, 
+ * this list of conditions and the following disclaimer.
+ *  
+ * Redistributions in binary form must reproduce the above copyright notice, 
+ * this list of conditions and the following disclaimer in the documentation 
+ * and/or other materials provided with the distribution.
+ *  
+ * Neither the name of The Storage Networking Industry Association (SNIA) nor 
+ * the names of its contributors may be used to endorse or promote products 
+ * derived from this software without specific prior written permission.
+ *  
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF 
+ *  THE POSSIBILITY OF SUCH DAMAGE.
+-->
+
+<beans         xmlns="http://www.springframework.org/schema/beans"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+         xmlns:jaxrs="http://cxf.apache.org/jaxrs"
+  xsi:schemaLocation="
+    http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+    http://www.springframework.org/schema/context
+    http://www.springframework.org/schema/context/spring-context-2.5.xsd
+    http://cxf.apache.org/jaxrs
+    http://cxf.apache.org/schemas/jaxrs.xsd">
+
+    <!-- Postprocessor for standard Spring configuration annotations -->
+
+    <context:annotation-config/>
+
+    <!-- Register autowired components -->
+
+    <context:component-scan base-package="org.snia.cdmiserver"/>
+
+    <!-- Apache CXF Core Configuration -->
+
+    <import resource="classpath:META-INF/cxf/cxf.xml"/>
+    <import resource="classpath:META-INF/cxf/cxf-extension-jaxrs-binding.xml"/>
+    <import resource="classpath:META-INF/cxf/cxf-servlet.xml"/>
+
+    <!-- Apache CXF Server Configuration -->
+
+    <jaxrs:server id="cdmiService" address="/"
+                  beanNames="objectIdResource pathResource">
+        <jaxrs:providers>
+            <ref bean="badRequestExceptionMapper"/>
+            <ref bean="conflictExceptionMapper"/>
+            <ref bean="containerProvider"/>
+            <ref bean="capabilityProvider"/>
+            <ref bean="forbiddenExceptionMapper"/>
+            <ref bean="notFoundExceptionMapper"/>
+            <ref bean="unauthorizedExceptionMapper"/>
+            <ref bean="unsupportedOperationExceptionMapper"/>
+        </jaxrs:providers>
+        <jaxrs:serviceBeans>
+            <ref bean="objectIdResource"/>
+            <ref bean="pathResource"/>
+            <ref bean="capabilityResource"/>
+        </jaxrs:serviceBeans>
+    </jaxrs:server>
+
+    <!-- Application JAX-RS Resources -->
+
+    <bean id="objectIdResource"              class="org.snia.cdmiserver.resource.ObjectIdResource"
+                                             scope="prototype">
+        <property name="dataObjectDao" ref="dataObjectDao"/>
+    </bean>
+
+    <bean id="capabilityResource"              class="org.snia.cdmiserver.resource.CapabilityResource"
+                                             scope="prototype">
+         <property name="capabilityDao" ref="capabilityDao"/>
+    </bean>											 
+    <bean id="pathResource"                  class="org.snia.cdmiserver.resource.PathResource"
+                                             scope="prototype">
+        <property name="containerDao" ref="containerDao"/>
+        <property name="dataObjectDao" ref="dataObjectDao"/>
+    </bean>
+
+    <!-- Application JAX-RS Providers -->
+
+    <bean id="badRequestExceptionMapper"     class="org.snia.cdmiserver.provider.BadRequestExceptionMapper"/>
+    <bean id="conflictExceptionMapper"       class="org.snia.cdmiserver.provider.ConflictExceptionMapper"/>
+    <bean id="containerProvider"             class="org.snia.cdmiserver.provider.ContainerProvider"/>
+    <bean id="capabilityProvider"            class="org.snia.cdmiserver.provider.CapabilityProvider"/>
+    <bean id="forbiddenExceptionMapper"      class="org.snia.cdmiserver.provider.ForbiddenExceptionMapper"/>
+    <bean id="notFoundExceptionMapper"       class="org.snia.cdmiserver.provider.NotFoundExceptionMapper"/>
+    <bean id="unauthorizedExceptionMapper"   class="org.snia.cdmiserver.provider.UnauthorizedExceptionMapper"/>
+    <bean id="unsupportedOperationExceptionMapper"
+                                             class="org.snia.cdmiserver.provider.UnsupportedOperationExceptionMapper"/>
+
+    <!-- Application Objects -->
+
+    <bean id="containerDao" class="org.snia.cdmiserver.dao.filesystem.ContainerDaoImpl">
+        <property name="baseDirectoryName" value="/data"/>
+        <property name="recreate" value="false"/>
+    </bean>
+
+    <bean id="dataObjectDao" class="org.snia.cdmiserver.dao.filesystem.DataObjectDaoImpl">
+        <property name="baseDirectoryName" value="/data"/>
+        <property name="containerDao" ref="containerDao"/>
+    </bean>
+
+    <bean id="capabilityDao" class="org.snia.cdmiserver.dao.filesystem.CapabilityDaoImpl">
+       
+    </bean>
+
+</beans>
