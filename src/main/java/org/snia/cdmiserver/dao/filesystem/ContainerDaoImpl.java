@@ -1,31 +1,31 @@
 /*
  * Copyright (c) 2010, Sun Microsystems, Inc.
  * Copyright (c) 2010, The Storage Networking Industry Association.
- *  
- * Redistribution and use in source and binary forms, with or without 
+ *
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *  
- * Redistributions of source code must retain the above copyright notice, 
+ *
+ * Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimer.
- *  
- * Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimer in the documentation 
+ *
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
  * and/or other materials provided with the distribution.
- *  
- * Neither the name of The Storage Networking Industry Association (SNIA) nor 
- * the names of its contributors may be used to endorse or promote products 
+ *
+ * Neither the name of The Storage Networking Industry Association (SNIA) nor
+ * the names of its contributors may be used to endorse or promote products
  * derived from this software without specific prior written permission.
- *  
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF 
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *  THE POSSIBILITY OF SUCH DAMAGE.
  */
 package org.snia.cdmiserver.dao.filesystem;
@@ -44,6 +44,8 @@ import org.snia.cdmiserver.exception.BadRequestException;
 import org.snia.cdmiserver.exception.NotFoundException;
 import org.snia.cdmiserver.model.Container;
 import org.snia.cdmiserver.util.ObjectID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -51,6 +53,8 @@ import org.snia.cdmiserver.util.ObjectID;
  * </p>
  */
 public class ContainerDaoImpl implements ContainerDao {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ContainerDaoImpl.class);
 
     //
     // Properties and Dependency Injection Methods
@@ -61,7 +65,7 @@ public class ContainerDaoImpl implements ContainerDao {
      * <p>
      * Set the base directory name for our local storage.
      * </p>
-     * 
+     *
      * @param baseDirectory
      *            The new base directory name
      */
@@ -77,7 +81,7 @@ public class ContainerDaoImpl implements ContainerDao {
      * base directory to be erased on first access. Default value for this flag is
      * <code>false</code>.
      * </p>
-     * 
+     *
      * @param recreate
      *            The new recreate flag value
      */
@@ -196,8 +200,7 @@ public class ContainerDaoImpl implements ContainerDao {
                 out.write(containerRequest.toJson(true)); // Save it
                 out.close();
             } catch (Exception ex) {
-                ex.printStackTrace();
-                System.out.println("Exception while writing: " + ex);
+                LOG.error("Exception while writing", ex);
                 throw new IllegalArgumentException("Cannot write container fields file @"
                                                    + path
                                                    + " error : "
@@ -288,8 +291,7 @@ public class ContainerDaoImpl implements ContainerDao {
                     out.write(containerRequest.toJson(true)); // Save it
                     out.close();
                 } catch (Exception ex) {
-                    ex.printStackTrace();
-                    System.out.println("Exception while writing: " + ex);
+                    LOG.error("Exception while writing", ex);
                     throw new IllegalArgumentException("Cannot write container fields file @"
                                                        + path
                                                        + " error : "
@@ -352,10 +354,10 @@ public class ContainerDaoImpl implements ContainerDao {
     @Override
     public Container findByPath(String path) {
 
-        System.out.println("In ContainerDAO.findByPath : " + path);
-        
+        LOG.trace("In ContainerDAO.findByPath : {}", path);
+
         File directory = absoluteFile(path);
-        
+
         if (!directory.exists()) {
             throw new NotFoundException("Path '"
                                         + directory.getAbsolutePath()
@@ -397,7 +399,7 @@ public class ContainerDaoImpl implements ContainerDao {
      * <p>
      * Return a {@link File} instance for the container fields file object.
      * </p>
-     * 
+     *
      * @param path
      *            Path of the requested container.
      */
@@ -415,30 +417,26 @@ public class ContainerDaoImpl implements ContainerDao {
         for (int i = 0; i <= tokens.length - 2; i++) {
             parentContainerName += tokens[i] + "/";
         }
-        System.out.println("Path = " + path);
-        System.out.println("Parent Container Name = "
-                           + parentContainerName
-                           + " Container Name == "
-                           + containerName);
+        LOG.trace("Path = {}", path);
+        LOG.trace("Parent Container Name = {} Container Name == {}",
+                           parentContainerName, containerName);
 
 
         File baseDirectory1, parentContainerDirectory, containerFieldsFile;
         try {
-            System.out.println("baseDirectory = " + baseDirectoryName);
+            LOG.trace("baseDirectory = {}", baseDirectoryName);
             baseDirectory1 = new File(baseDirectoryName + "/");
-            System.out
-                    .println("Base Directory Absolute Path = " + baseDirectory1.getAbsolutePath());
+            LOG.trace("Base Directory Absolute Path = {}", baseDirectory1.getAbsolutePath());
             parentContainerDirectory = new File(baseDirectory1, parentContainerName);
             //
-            System.out.println("Parent Container Absolute Path = "
-                               + parentContainerDirectory.getAbsolutePath());
+            LOG.trace("Parent Container Absolute Path = {}",
+                               parentContainerDirectory.getAbsolutePath());
             //
             containerFieldsFile = new File(parentContainerDirectory, containerFieldsFileName);
-            System.out.println("Container Metadata File Path = "
-                               + containerFieldsFile.getAbsolutePath());
+            LOG.trace("Container Metadata File Path = {}",
+                               containerFieldsFile.getAbsolutePath());
         } catch (Exception ex) {
-            ex.printStackTrace();
-            System.out.println("Exception while building File objects: " + ex);
+            LOG.error("Exception while building File objects: ", ex);
             throw new IllegalArgumentException("Cannot build Object @" + path + " error : " + ex);
         }
         return containerFieldsFile;
@@ -448,7 +446,7 @@ public class ContainerDaoImpl implements ContainerDao {
      * <p>
      * Return a {@link Container} instance for the container fields.
      * </p>
-     * 
+     *
      * @param containerFieldsFile
      *            File object for the container fields file.
      */
@@ -457,20 +455,19 @@ public class ContainerDaoImpl implements ContainerDao {
         try {
             FileInputStream in = new FileInputStream(containerFieldsFile.getAbsolutePath());
             int inpSize = in.available();
-            System.out.println("Container fields file size:" + inpSize);
+            LOG.trace("Container fields file size: {}", inpSize);
 
             byte[] inBytes = new byte[inpSize];
             in.read(inBytes);
 
             containerFields.fromJson(inBytes, true);
             String mds = new String(inBytes);
-            System.out.println("Container fields read were:" + mds);
+            LOG.trace("Container fields read were: {}", mds);
 
             // Close the output stream
             in.close();
         } catch (Exception ex) {
-            ex.printStackTrace();
-            System.out.println("Exception while reading: " + ex);
+            LOG.error("Exception while reading: ", ex);
             throw new IllegalArgumentException("Cannot read container fields file error : " + ex);
         }
         return containerFields;
@@ -481,7 +478,7 @@ public class ContainerDaoImpl implements ContainerDao {
      * Return a {@link File} instance for the file or directory at the specified path from our base
      * directory.
      * </p>
-     * 
+     *
      * @param path
      *            Path of the requested file or directory.
      */
@@ -500,7 +497,7 @@ public class ContainerDaoImpl implements ContainerDao {
      * Return a {@link File} instance for the base directory, erasing any previous content on first
      * use if the <code>recreate</code> flag has been set.
      * </p>
-     * 
+     *
      * @exception IllegalArgumentException
      *                if we cannot create the base directory
      */
@@ -523,29 +520,29 @@ public class ContainerDaoImpl implements ContainerDao {
      * <p>
      * Return the {@link Container} identified by the specified <code>path</code>.
      * </p>
-     * 
+     *
      * @param container
      *            The requested container with persisted fields
      * @param directory
      *            Directory of the requested container
      * @param path
      *            Path of the requested container
-     * 
+     *
      * @exception NotFoundException
      *                if the specified path does not identify a valid resource
      * @exception IllegalArgumentException
      *                if the specified path identifies a data object instead of a container
      */
     private Container completeContainer(Container container, File directory, String path) {
-        System.out.println("In ContainerDaoImpl.Container, path is: " + path);
+        LOG.trace("In ContainerDaoImpl.Container, path is: {}", path);
 
-        System.out.println("In ContainerDaoImpl.Container, absolute path is: "
-                           + directory.getAbsolutePath());
+        LOG.trace("In ContainerDaoImpl.Container, absolute path is: {}",
+                           directory.getAbsolutePath());
 
-        
+
         container.setObjectType("application/cdmi-container");
-        
-        
+
+
 
         //
         // Derive ParentURI
@@ -560,10 +557,8 @@ public class ContainerDaoImpl implements ContainerDao {
             for (int i = 0; i <= tokens.length - 2; i++) {
                 parentURI += tokens[i] + "/";
             }
-            System.out.println("In ContainerDaoImpl.Container, ParentURI = "
-                               + parentURI
-                               + " Container Name = "
-                               + containerName);
+            LOG.trace("In ContainerDaoImpl.Container, ParentURI = {}"
+                               + " Container Name = {}", parentURI, containerName);
             // Check for illegal top level container names
             if (parentURI.matches("/") && containerName.startsWith("cdmi")) {
                 throw new BadRequestException("Root container names must not start with cdmi");
@@ -596,7 +591,7 @@ public class ContainerDaoImpl implements ContainerDao {
             String childrange = "0-" + lastindex;
             container.setChildrenrange(childrange);
         }
-        
+
         return container;
     }
 
@@ -604,7 +599,7 @@ public class ContainerDaoImpl implements ContainerDao {
      * <p>
      * Delete the specified directory, after first recursively deleting any contents within it.
      * </p>
-     * 
+     *
      * @param directory
      *            {@link File} identifying the directory to be deleted
      */

@@ -1,31 +1,31 @@
     /*
  * Copyright (c) 2010, Sun Microsystems, Inc.
  * Copyright (c) 2010, The Storage Networking Industry Association.
- *  
- * Redistribution and use in source and binary forms, with or without 
+ *
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *  
- * Redistributions of source code must retain the above copyright notice, 
+ *
+ * Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimer.
- *  
- * Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimer in the documentation 
+ *
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
  * and/or other materials provided with the distribution.
- *  
- * Neither the name of The Storage Networking Industry Association (SNIA) nor 
- * the names of its contributors may be used to endorse or promote products 
+ *
+ * Neither the name of The Storage Networking Industry Association (SNIA) nor
+ * the names of its contributors may be used to endorse or promote products
  * derived from this software without specific prior written permission.
- *  
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF 
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *  THE POSSIBILITY OF SUCH DAMAGE.
  */
 package org.snia.cdmiserver.dao.filesystem;
@@ -33,6 +33,8 @@ package org.snia.cdmiserver.dao.filesystem;
 import org.snia.cdmiserver.dao.CapabilityDao;
 import org.snia.cdmiserver.model.Capability;
 import org.snia.cdmiserver.util.ObjectID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -41,6 +43,8 @@ import org.snia.cdmiserver.util.ObjectID;
  * </p>
  */
 public class CapabilityDaoImpl implements CapabilityDao {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CapabilityDaoImpl.class);
 
     // -------------------------------------------------------------- Properties
     /**
@@ -68,10 +72,9 @@ public class CapabilityDaoImpl implements CapabilityDao {
     public Capability findByPath(String path) {
         Capability capability = new Capability();
 
-        System.out.print("In Capability.findByPath, path is: ");
-        System.out.println(path);
+        LOG.trace("In Capability.findByPath, path is: {}", path);
         if (path.equals("container/")) {
-            System.out.println("Container Capabilities");
+            LOG.trace("Container Capabilities");
             // Container Capabilities
             // cdmi_list_children = true
             // cdmi_list_children_range = unset until implemented
@@ -94,7 +97,7 @@ public class CapabilityDaoImpl implements CapabilityDao {
             capability.setParentURI("cdmi_capabilities/");
             capability.setParentID(ROOTobjectID);
         } else if (path.equals("container/default/")) {
-            System.out.println("Default Container Capabilities");
+            LOG.trace("Default Container Capabilities");
             capability.getMetadata().put("cdmi_list_children", "true");
             capability.getMetadata().put("cdmi_read_metadata", "true");
             capability.getMetadata().put("cdmi_modify_metadata", "true");
@@ -108,7 +111,7 @@ public class CapabilityDaoImpl implements CapabilityDao {
 
         } else if (path.equals("dataobject/")) {
             // Data Object Capabilities
-            System.out.println("Data Object Capabilities");
+            LOG.trace("Data Object Capabilities");
             // cdmi_read_value = true
             // cdmi_read_value_range = unset initially, then true when implemented
             // cdmi_read_metadata = true
@@ -128,7 +131,7 @@ public class CapabilityDaoImpl implements CapabilityDao {
             capability.setParentID(ROOTobjectID);
         } else {
             // System Capabilities
-            System.out.println("System Capabilities");
+            LOG.trace("System Capabilities");
             // cdmi_domains = later version true
             // cdmi_export_occi_iscsi = true for demo?
             // cdmi_metadata_maxitems, cdmi_metadata_maxsize = TBD based on our limits

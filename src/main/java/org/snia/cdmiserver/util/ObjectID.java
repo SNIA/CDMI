@@ -30,11 +30,15 @@
 
 package org.snia.cdmiserver.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
- * 
+ *
  * @author ksankar May 29,2010
  */
 public class ObjectID {
+    private static final Logger LOG = LoggerFactory.getLogger(ObjectID.class);
 
     public static String getObjectID(int eNum) {
         byte objBytes[] = new byte[24];
@@ -76,7 +80,9 @@ public class ObjectID {
         for (int i = 0; i < objBytes.length; i++) {
             crc.update(objBytes[i]);
         }
-        System.out.println("CRC=" + Integer.toHexString(crc.value));
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("CRC={}", Integer.toHexString(crc.value));
+        }
         objBytes[6] = (byte) (crc.value >> 8);
         objBytes[7] = (byte) crc.value;
         //

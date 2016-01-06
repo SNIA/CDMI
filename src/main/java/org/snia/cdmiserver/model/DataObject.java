@@ -1,31 +1,31 @@
 /*
  * Copyright (c) 2010, Sun Microsystems, Inc.
  * Copyright (c) 2010, The Storage Networking Industry Association.
- *  
- * Redistribution and use in source and binary forms, with or without 
+ *
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *  
- * Redistributions of source code must retain the above copyright notice, 
+ *
+ * Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimer.
- *  
- * Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimer in the documentation 
+ *
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
  * and/or other materials provided with the distribution.
- *  
- * Neither the name of The Storage Networking Industry Association (SNIA) nor 
- * the names of its contributors may be used to endorse or promote products 
+ *
+ * Neither the name of The Storage Networking Industry Association (SNIA) nor
+ * the names of its contributors may be used to endorse or promote products
  * derived from this software without specific prior written permission.
- *  
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF 
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *  THE POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -41,6 +41,8 @@ import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 import org.snia.cdmiserver.exception.BadRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * <p>
@@ -48,6 +50,7 @@ import org.snia.cdmiserver.exception.BadRequestException;
  * </p>
  */
 public class DataObject {
+    private static final Logger LOG = LoggerFactory.getLogger(DataObject.class);
 
     // DataObject creation fields
     private String mimetype;
@@ -299,54 +302,54 @@ public class DataObject {
                     key = jp.getCurrentName();
                     tolkein = jp.nextToken();
                     String value = jp.getText();
-                    System.out.println("   Key = " + key + " : Value = " + value);
+                    LOG.trace("   Key = {} : Value = {}", key, value);
                     this.setMetadata(key, value);
                     // jp.nextToken();
                 }// while
             } else if ("value".equals(key)) { // process value
                 jp.nextToken();
                 String value1 = jp.getText();
-                System.out.println("Key : " + key + " Val : " + value1);
+                LOG.trace("Key : {} Val : {}", key, value1);
                 this.setValue(value1);
             } else if ("mimetype".equals(key)) { // process mimetype
                 jp.nextToken();
                 String value2 = jp.getText();
-                System.out.println("Key : " + key + " Val : " + value2);
+                LOG.trace("Key : {} Val : {}", key, value2);
                 this.setMimetype(value2);
             } else {
                 if (fromFile) { // accept rest of key-values
                     if ("objectType".equals(key)) {
                         jp.nextToken();
                         String value2 = jp.getText();
-                        System.out.println("Key : " + key + " Val : " + value2);
+                        LOG.trace("Key : {} Val : {}", key, value2);
                         this.setObjectType(value2);
                     } else if ("capabilitiesURI".equals(key)) {
                         jp.nextToken();
                         String value2 = jp.getText();
-                        System.out.println("Key : " + key + " Val : " + value2);
+                        LOG.trace("Key : {} Val : {}", key, value2);
                         this.setCapabilitiesURI(value2);
                     } else if ("objectID".equals(key)) { // process value
                         jp.nextToken();
                         String value2 = jp.getText();
-                        System.out.println("Key : " + key + " Val : " + value2);
+                        LOG.trace("Key : {} Val : {}", key, value2);
                         this.setObjectID(value2);
                     } else if ("valueRange".equals(key)) { // process value
                         jp.nextToken();
                         String value2 = jp.getText();
-                        System.out.println("Key : " + key + " Val : " + value2);
+                        LOG.trace("Key : {} Val : {}", key, value2);
                         this.setValuerange(value2);
                     } else {
-                        System.out.println("Invalid Key : " + key);
+                        LOG.warn("Invalid Key : {}", key);
                         throw new BadRequestException("Invalid Key : " + key);
                     } // inner if
                 } else {
-                    System.out.println("Invalid Key : " + key);
+                    LOG.warn("Invalid Key : {}", key);
                     throw new BadRequestException("Invalid Key : " + key);
                 }
             }
         }
     }
-    
+
 
     public void setValue(byte[] bytes) {
         this.value = new String(bytes);

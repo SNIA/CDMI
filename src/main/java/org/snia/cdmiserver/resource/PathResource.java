@@ -30,10 +30,14 @@
  */
 package org.snia.cdmiserver.resource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.net.URI;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
@@ -63,6 +67,7 @@ import org.snia.cdmiserver.util.ObjectID;
  * </p>
  */
 public class PathResource {
+    private static final Logger LOG = LoggerFactory.getLogger(PathResource.class);
 
     //
     // Properties and Dependency Injection Methods
@@ -113,8 +118,7 @@ public class PathResource {
             return Response.ok().header(
                     "X-CDMI-Specification-Version", "1.0.2").build();
         } catch (Exception ex) {
-            System.out.println(ex);
-            ex.printStackTrace();
+            LOG.error("Delete error", ex);
             return Response.status(Response.Status.BAD_REQUEST).tag(
                     "Object Delete Error : " + ex.toString()).build();
         }
@@ -152,13 +156,13 @@ public class PathResource {
             @PathParam("path") String path,
             @Context HttpHeaders headers) {
 
-        System.out.println("In PathResource.getContainerOrObject, path=" +
-                path);
+        LOG.trace("In PathResource.getContainerOrObject, path={}", path);
 
         //print headers for debug
-        for (String hdr : headers.getRequestHeaders().keySet()) {
-          System.out.println("Hdr: "+ hdr + " - " +
-                  headers.getRequestHeader(hdr));
+        if (LOG.isDebugEnabled()) {
+            for (String hdr : headers.getRequestHeaders().keySet()) {
+                LOG.debug("Hdr: {} - {}", hdr, headers.getRequestHeader(hdr));
+            }
         }
 
         if (headers.getRequestHeader(HttpHeaders.CONTENT_TYPE).isEmpty()) {
@@ -178,8 +182,7 @@ public class PathResource {
                       "X-CDMI-Specification-Version", "1.0.2").build();
             }
           } catch (Exception ex) {
-            System.out.println(ex);
-            ex.printStackTrace();
+            LOG.error("Failed to find container", ex);
             return Response.status(Response.Status.NOT_FOUND).tag(
                     "Container Read Error : " + ex.toString()).build();
           }
@@ -197,8 +200,7 @@ public class PathResource {
                     "X-CDMI-Specification-Version", "1.0.2").build();
           } // if/else
         } catch (Exception ex) {
-          System.out.println(ex);
-          ex.printStackTrace();
+            LOG.error("Failed to find data object", ex);
           return Response.status(Response.Status.BAD_REQUEST).tag(
                   "Object Fetch Error : " + ex.toString()).build();
         }
@@ -220,7 +222,7 @@ public class PathResource {
             @PathParam("path") String path,
             @Context HttpHeaders headers) {
 
-        System.out.print("In PathResource.getRootContainer");
+        LOG.trace("In PathResource.getRootContainer");
         return getContainerOrDataObject(path, headers);
 
     }
@@ -252,8 +254,7 @@ public class PathResource {
             @PathParam("path") String path,
             @Context HttpHeaders headers) {
 
-        System.out.print("In PathResource.getDataObjectOrContainer, path: " +
-                path);
+        LOG.trace("In PathResource.getDataObjectOrContainer, path: {}", path);
 
         boolean NonCDMI = true;
 
@@ -262,8 +263,7 @@ public class PathResource {
             if (hdr.equals("x-cdmi-specification-version")) {
                 NonCDMI = false;
             }
-            System.out.println("Hdr: " + hdr + " - " +
-                    headers.getRequestHeader(hdr));
+            LOG.debug("Hdr: {} - {}", hdr, headers.getRequestHeader(hdr));
         }
         if (path == null && NonCDMI) {
             path = new String("/index.html");
@@ -281,8 +281,7 @@ public class PathResource {
                             "X-CDMI-Specification-Version", "1.0.2").build();
                 }
             } catch (Exception ex) {
-                System.out.println(ex);
-                ex.printStackTrace();
+                LOG.error("Failed to find container", ex);
                 return Response.status(Response.Status.NOT_FOUND)
                         .tag("Container Read Error : " + ex.toString()).build();
             }
@@ -296,13 +295,12 @@ public class PathResource {
                     // make http response
                     // build a JSON representation
                     String respStr = dObj.getValue();// dObj.toJson();
-                    System.out.println("MimeType = " + dObj.getMimetype());
+                    LOG.trace("MimeType = {}", dObj.getMimetype());
                     return Response.ok(respStr).type(dObj.getMimetype()).header(
                             "X-CDMI-Specification-Version", "1.0.2").build();
                 } // if/else
             } catch (Exception ex) {
-                System.out.println(ex);
-                ex.printStackTrace();
+                LOG.error("Failed to find data object", ex);
                 return Response.status(Response.Status.BAD_REQUEST)
                         .tag("Object Fetch Error : " + ex.toString()).build();
             }
@@ -332,10 +330,12 @@ public class PathResource {
             @HeaderParam("X-CDMI-MustExist") @DefaultValue("false") String mustExist,
             byte[] bytes) {
 
-        System.out.println("In PathResource.putContainer, path is: " + path);
+        LOG.trace("In PathResource.putContainer, path is: {}", path);
 
-        String inBuffer = new String(bytes);
-        System.out.println("Request = " + inBuffer);
+        if (LOG.isTraceEnabled()) {
+            String inBuffer = new String(bytes);
+            LOG.trace("Request = {}", inBuffer);
+        }
 
         Container containerRequest = new Container();
 
@@ -357,8 +357,7 @@ public class PathResource {
                         "X-CDMI-Specification-Version", "1.0.2").build(); */
             } // if/else
         } catch (Exception ex) {
-            System.out.println(ex);
-            ex.printStackTrace();
+            LOG.error("Failed to find container", ex);
             return Response.status(Response.Status.BAD_REQUEST)
                     .tag("Object Creation Error : " + ex.toString()).build();
         }
@@ -386,13 +385,15 @@ public class PathResource {
             @PathParam("path") String path,
             byte[] bytes) {
 
-        System.out.println("putDataObject(): ");
-        // print headers for debug
-        for (String hdr : headers.getRequestHeaders().keySet()) {
-            System.out.println(hdr + " - " + headers.getRequestHeader(hdr));
+        LOG.trace("putDataObject(): ");
+        if (LOG.isTraceEnabled()) {
+            // print headers for debug
+            for (String hdr : headers.getRequestHeaders().keySet()) {
+                LOG.trace("{} - {}", hdr, headers.getRequestHeader(hdr));
+            }
+            String inBuffer = new String(bytes);
+            LOG.trace("Path = {} {}", path, inBuffer);
         }
-        String inBuffer = new String(bytes);
-        System.out.println("Path = " + path + "\n" + inBuffer);
 
         try {
             DataObject dObj = dataObjectDao.findByPath(path);
@@ -416,8 +417,7 @@ public class PathResource {
             dObj.fromJson(bytes,false);
             return Response.ok().build();
         } catch (Exception ex) {
-            System.out.println(ex);
-            ex.printStackTrace();
+            LOG.error("Failed to find the data object", ex);
             return Response.status(Response.Status.BAD_REQUEST).tag(
                   "Object PUT Error : " + ex.toString()).build();
         }
@@ -442,13 +442,8 @@ public class PathResource {
             @PathParam("path") String path,
             @HeaderParam("Content-Type") String contentType,
             byte[] bytes) {
-        System.out.println("Non-CDMI putDataObject(): ");
-        System.out.println("Content Type: " + contentType);
-        System.out.println("Size:" + bytes.length);
-        File objFile;
-        String inBuffer = new String(bytes);
-        System.out.println("Path = " + path + "\n");
-
+        LOG.trace("Non-CDMI putDataObject(): type={}, size={}, path={}",
+                contentType, bytes.length, path);
 
         try {
             DataObject dObj = dataObjectDao.findByPath(path);
@@ -461,7 +456,7 @@ public class PathResource {
                 if (dObj.getValue() == null) {
                     dObj.setValue(bytes);
                 }
-                System.out.println("Calling createNonCDMIByPath");
+                LOG.trace("Calling createNonCDMIByPath");
                 dObj = dataObjectDao.createNonCDMIByPath(path, contentType, dObj);
                 // return representation
                 //String respStr = dObj.toJson();
@@ -471,8 +466,7 @@ public class PathResource {
             //dObj.fromJson(bytes,false);
             return Response.created(URI.create(path)).build();
         } catch (Exception ex) {
-            System.out.println(ex);
-            ex.printStackTrace();
+            LOG.error("Failed to find data object", ex);
             return Response.status(Response.Status.BAD_REQUEST).tag(
                   "Object PUT Error : " + ex.toString()).build();
         }
@@ -497,7 +491,7 @@ public class PathResource {
             byte[] bytes) {
 
         String inBuffer = new String(bytes);
-        System.out.println("Path = " + path + "\n" + inBuffer);
+        LOG.trace("Path = {} {}", path, inBuffer);
 
         boolean containerRequest = false;
         if (containerDao.isContainer(path)) {
@@ -513,7 +507,7 @@ public class PathResource {
             dObj.setObjectType(objectPath);
             dObj.setValue(inBuffer);
 
-            System.out.println("objectId = " + objectId + " objecctPath = " +
+            LOG.trace("objectId = {}, objecctPath = {}", objectId,
                     objectPath);
 
             dObj = dataObjectDao.createByPath(objectPath, dObj);
@@ -524,8 +518,7 @@ public class PathResource {
             }
             return Response.created(URI.create(path)).build();
         } catch (Exception ex) {
-            System.out.println(ex);
-            ex.printStackTrace();
+            LOG.error("Failed to create data object", ex);
             return Response.status(Response.Status.BAD_REQUEST).
               tag("Object Creation Error : " + ex.toString()).build();
         }
