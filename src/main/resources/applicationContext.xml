@@ -45,6 +45,12 @@
 
     <context:annotation-config/>
 
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location">
+           <value>cdmi.properties</value>
+        </property>
+    </bean>
+
     <!-- Register autowired components -->
 
     <context:component-scan base-package="org.snia.cdmiserver"/>
@@ -108,12 +114,12 @@
     <!-- Application Objects -->
 
     <bean id="containerDao" class="org.snia.cdmiserver.dao.filesystem.ContainerDaoImpl">
-        <property name="baseDirectoryName" value="/data"/>
+        <property name="baseDirectoryName" value="${cdmi.base-directory}"/>
         <property name="recreate" value="false"/>
     </bean>
 
     <bean id="dataObjectDao" class="org.snia.cdmiserver.dao.filesystem.DataObjectDaoImpl">
-        <property name="baseDirectoryName" value="/data"/>
+        <property name="baseDirectoryName" value="${cdmi.base-directory}"/>
         <property name="containerDao" ref="containerDao"/>
     </bean>
 
