@@ -41,272 +41,323 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.util.EntityUtils;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.assertThat;
+
 /**
- * 
+ *
  * @author Mark A. Carlson
  */
-public class CDMItest {
+public class CDMItest
+{
+    private HttpClient httpclient;
 
-    @Test
-    public void testCapabilities() throws Exception {
-        HttpClient httpclient = new DefaultHttpClient();
-
-        try {
-            // Create the request
-            HttpResponse response = null;
-            HttpGet httpget = new HttpGet("http://localhost:8080/cdmi-server/cdmi_capabilities");
-            httpget.setHeader("Accept", "application/cdmi-capability");
-            httpget.setHeader("X-CDMI-Specification-Version", "1.0.2");
-            response = httpclient.execute(httpget);
-
-            Header[] hdr = response.getAllHeaders();
-            System.out.println("Headers : " + hdr.length);
-            for (int i = 0; i < hdr.length; i++) {
-                System.out.println(hdr[i]);
-            }
-            System.out.println("---------");
-            System.out.println(response.getProtocolVersion());
-            System.out.println(response.getStatusLine().getStatusCode());
-            Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-
-            System.out.println(response.getStatusLine().getReasonPhrase());
-            System.out.println(response.getStatusLine().toString());
-            System.out.println("---------");
-            HttpEntity entity = response.getEntity();
-            if (entity != null) {
-                long len = entity.getContentLength();
-                if (len != -1 && len < 2048) {
-                    System.out.println(EntityUtils.toString(entity));
-                }
-            }
-
-        } catch (Exception ex) {
-            System.out.println(ex);
-        }// exception
-    }
-    @Test
-    public void testContainerCreate() throws Exception {
-        HttpClient httpclient = new DefaultHttpClient();
-
-        try {
-            // Create the request
-            HttpResponse response = null;
-            HttpPut httpput = new HttpPut("http://localhost:8080/cdmi-server/TestContainer");
-            httpput.setHeader("Content-Type", "application/cdmi-container");
-            httpput.setHeader("X-CDMI-Specification-Version", "1.0.2");
-            httpput.setEntity(new StringEntity("{ \"metadata\" : { } }"));
-            response = httpclient.execute(httpput);
-
-            Header[] hdr = response.getAllHeaders();
-            System.out.println("Headers : " + hdr.length);
-            for (int i = 0; i < hdr.length; i++) {
-                System.out.println(hdr[i]);
-            }
-            System.out.println("---------");
-            System.out.println(response.getProtocolVersion());
-            System.out.println(response.getStatusLine().getStatusCode());
-            Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-
-            System.out.println(response.getStatusLine().getReasonPhrase());
-            System.out.println(response.getStatusLine().toString());
-            System.out.println("---------");
-            HttpEntity entity = response.getEntity();
-            if (entity != null) {
-                long len = entity.getContentLength();
-                if (len != -1 && len < 2048) {
-                    System.out.println(EntityUtils.toString(entity));
-                }
-            }
-
-        } catch (Exception ex) {
-            System.out.println(ex);
-        }// exception
+    @Before
+    public void setup()
+    {
+        httpclient = new DefaultHttpClient();
     }
 
     @Test
-    public void testContainerUpdate() throws Exception {
-        HttpClient httpclient = new DefaultHttpClient();
+    public void testCapabilities() throws Exception
+    {
+        // Create the request
+        HttpResponse response = null;
+        HttpGet httpget = new HttpGet("http://localhost:8080/cdmi_capabilities");
+        httpget.setHeader("Accept", "application/cdmi-capability");
+        httpget.setHeader("X-CDMI-Specification-Version", "1.0.2");
+        response = httpclient.execute(httpget);
 
-        try {
-            // Create the request
-            HttpResponse response = null;
-            HttpPut httpput = new HttpPut("http://localhost:8080/cdmi-server/TestContainer/");
-            httpput.setHeader("Content-Type", "application/cdmi-container");
-            httpput.setHeader("X-CDMI-Specification-Version", "1.0.2");
-            httpput.setEntity(new StringEntity("{ \"metadata\" : { } }"));
-            response = httpclient.execute(httpput);
+        Header[] hdr = response.getAllHeaders();
+        System.out.println("Headers : " + hdr.length);
+        for (int i = 0; i < hdr.length; i++) {
+            System.out.println(hdr[i]);
+        }
+        System.out.println("---------");
+        System.out.println(response.getProtocolVersion());
+        System.out.println(response.getStatusLine().getStatusCode());
+        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
 
-            Header[] hdr = response.getAllHeaders();
-            System.out.println("Headers : " + hdr.length);
-            for (int i = 0; i < hdr.length; i++) {
-                System.out.println(hdr[i]);
+        System.out.println(response.getStatusLine().getReasonPhrase());
+        System.out.println(response.getStatusLine().toString());
+        System.out.println("---------");
+        HttpEntity entity = response.getEntity();
+        if (entity != null) {
+            long len = entity.getContentLength();
+            if (len != -1 && len < 2048) {
+                System.out.println(EntityUtils.toString(entity));
             }
-            System.out.println("---------");
-            System.out.println(response.getProtocolVersion());
-            System.out.println(response.getStatusLine().getStatusCode());
-            Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-
-            System.out.println(response.getStatusLine().getReasonPhrase());
-            System.out.println(response.getStatusLine().toString());
-            System.out.println("---------");
-            HttpEntity entity = response.getEntity();
-            if (entity != null) {
-                long len = entity.getContentLength();
-                if (len != -1 && len < 2048) {
-                    System.out.println(EntityUtils.toString(entity));
-                }
-            }
-
-        } catch (Exception ex) {
-            System.out.println(ex);
-        }// exception
+        }
     }
 
     @Test
-    public void testObjectCreate() throws Exception {
-        HttpClient httpclient = new DefaultHttpClient();
+    public void testContainerCreate() throws Exception
+    {
+        // Create the request
+        HttpResponse response = null;
+        HttpPut httpput = new HttpPut("http://localhost:8080/TestContainer-a/");
+        httpput.setHeader("Content-Type", "application/cdmi-container");
+        httpput.setHeader("X-CDMI-Specification-Version", "1.0.2");
+        httpput.setEntity(new StringEntity("{ \"metadata\" : { } }"));
+        response = httpclient.execute(httpput);
 
-        try {
-            // Create the request
-            HttpResponse response = null;
+        Header[] hdr = response.getAllHeaders();
+        System.out.println("Headers : " + hdr.length);
+        for (int i = 0; i < hdr.length; i++) {
+            System.out.println(hdr[i]);
+        }
+        System.out.println("---------");
+        System.out.println(response.getProtocolVersion());
+        System.out.println(response.getStatusLine().getStatusCode());
+        Assert.assertEquals(201, response.getStatusLine().getStatusCode());
 
-            HttpPut httpput = new HttpPut(
-                    "http://localhost:8080/cdmi-server/TestContainer/TestObject.txt");
-            httpput.setHeader("Content-Type", "application/cdmi-object");
-            httpput.setHeader("X-CDMI-Specification-Version", "1.0.2");
-            String respStr = "{\n";
-            respStr = respStr + "\"mimetype\" : \"" + "text/plain" + "\",\n";
-            respStr = respStr + "\"value\" : \"" + "This is a test" + "\"\n";
-            respStr = respStr + "}\n";
-            System.out.println(respStr);
-            StringEntity entity = new StringEntity(respStr);
-            httpput.setEntity(entity);
-            response = httpclient.execute(httpput);
-
-            Header[] hdr = response.getAllHeaders();
-            System.out.println("Headers : " + hdr.length);
-            for (int i = 0; i < hdr.length; i++) {
-                System.out.println(hdr[i]);
+        System.out.println(response.getStatusLine().getReasonPhrase());
+        System.out.println(response.getStatusLine().toString());
+        System.out.println("---------");
+        HttpEntity entity = response.getEntity();
+        if (entity != null) {
+            long len = entity.getContentLength();
+            if (len != -1 && len < 2048) {
+                System.out.println(EntityUtils.toString(entity));
             }
-            System.out.println("---------");
-            System.out.println(response.getProtocolVersion());
-            System.out.println(response.getStatusLine().getStatusCode());
-            Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        }
 
-            System.out.println(response.getStatusLine().getReasonPhrase());
-            System.out.println(response.getStatusLine().toString());
-            System.out.println("---------");
-
-        } catch (Exception ex) {
-            System.out.println(ex);
-        }// exception
+        silentlyDeleteContainer("/TestContainer-a");
     }
 
     @Test
-    public void testObjectUpdate() throws Exception {
-        HttpClient httpclient = new DefaultHttpClient();
+    public void testContainerUpdate() throws Exception
+    {
+        createContainer("/TestContainer-b/");
 
-        try {
-            // Create the request
-            HttpResponse response = null;
+        // Create the request
+        HttpResponse response = null;
+        HttpPut httpput = new HttpPut("http://localhost:8080/TestContainer-b/");
+        httpput.setHeader("Content-Type", "application/cdmi-container");
+        httpput.setHeader("X-CDMI-Specification-Version", "1.0.2");
+        httpput.setEntity(new StringEntity("{ \"metadata\" : { } }"));
+        response = httpclient.execute(httpput);
 
-            HttpPut httpput = new HttpPut(
-                    "http://localhost:8080/cdmi-server/TestContainer/TestObject.txt");
-            httpput.setHeader("Content-Type", "application/cdmi-object");
-            httpput.setHeader("X-CDMI-Specification-Version", "1.0.2");
-            String respStr = "{\n";
-            respStr = respStr + "\"mimetype\" : \"" + "text/plain" + "\",\n";
-            respStr = respStr + "\"value\" : \"" + "This is a new test" + "\"\n";
-            respStr = respStr + "}\n";
-            System.out.println(respStr);
-            StringEntity entity = new StringEntity(respStr);
-            httpput.setEntity(entity);
-            response = httpclient.execute(httpput);
+        Header[] hdr = response.getAllHeaders();
+        System.out.println("Headers : " + hdr.length);
+        for (int i = 0; i < hdr.length; i++) {
+            System.out.println(hdr[i]);
+        }
+        System.out.println("---------");
+        System.out.println(response.getProtocolVersion());
+        System.out.println(response.getStatusLine().getStatusCode());
+        Assert.assertEquals(201, response.getStatusLine().getStatusCode());
 
-            Header[] hdr = response.getAllHeaders();
-            System.out.println("Headers : " + hdr.length);
-            for (int i = 0; i < hdr.length; i++) {
-                System.out.println(hdr[i]);
+        System.out.println(response.getStatusLine().getReasonPhrase());
+        System.out.println(response.getStatusLine().toString());
+        System.out.println("---------");
+        HttpEntity entity = response.getEntity();
+        if (entity != null) {
+            long len = entity.getContentLength();
+            if (len != -1 && len < 2048) {
+                System.out.println(EntityUtils.toString(entity));
             }
-            System.out.println("---------");
-            System.out.println(response.getProtocolVersion());
-            System.out.println(response.getStatusLine().getStatusCode());
-            Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        }
 
-            System.out.println(response.getStatusLine().getReasonPhrase());
-            System.out.println(response.getStatusLine().toString());
-            System.out.println("---------");
-
-        } catch (Exception ex) {
-            System.out.println(ex);
-        }// exception
+        silentlyDeleteContainer("/TestContainer-b");
     }
 
     @Test
-    public void testObjectDelete() throws Exception {
-        HttpClient httpclient = new DefaultHttpClient();
+    public void testObjectCreate() throws Exception
+    {
+        createContainer("/TestContainer-c/");
 
-        try {
-            // Create the request
-            HttpResponse response = null;
+        // Create the request
+        HttpResponse response = null;
 
-            HttpDelete httpdelete = new HttpDelete(
-                    "http://localhost:8080/cdmi-server/TestContainer/TestObject.txt");
-            httpdelete.setHeader("Content-Type", "application/cdmi-object");
-            httpdelete.setHeader("X-CDMI-Specification-Version", "1.0.2");
-            response = httpclient.execute(httpdelete);
+        HttpPut httpput = new HttpPut(
+                "http://localhost:8080/TestContainer-c/TestObject.txt");
+        httpput.setHeader("Content-Type", "application/cdmi-object");
+        httpput.setHeader("X-CDMI-Specification-Version", "1.0.2");
+        String respStr = "{\n";
+        respStr = respStr + "\"mimetype\" : \"" + "text/plain" + "\",\n";
+        respStr = respStr + "\"value\" : \"" + "This is a test" + "\"\n";
+        respStr = respStr + "}\n";
+        System.out.println(respStr);
+        StringEntity entity = new StringEntity(respStr);
+        httpput.setEntity(entity);
+        response = httpclient.execute(httpput);
+        response.getEntity().consumeContent();
 
-            Header[] hdr = response.getAllHeaders();
-            System.out.println("Headers : " + hdr.length);
-            for (int i = 0; i < hdr.length; i++) {
-                System.out.println(hdr[i]);
-            }
-            System.out.println("---------");
-            System.out.println(response.getProtocolVersion());
-            System.out.println(response.getStatusLine().getStatusCode());
-            Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+        Header[] hdr = response.getAllHeaders();
+        System.out.println("Headers : " + hdr.length);
+        for (int i = 0; i < hdr.length; i++) {
+            System.out.println(hdr[i]);
+        }
+        System.out.println("---------");
+        System.out.println(response.getProtocolVersion());
+        System.out.println(response.getStatusLine().getStatusCode());
+        Assert.assertEquals(201, response.getStatusLine().getStatusCode());
 
-            System.out.println(response.getStatusLine().getReasonPhrase());
-            System.out.println(response.getStatusLine().toString());
-            System.out.println("---------");
+        System.out.println(response.getStatusLine().getReasonPhrase());
+        System.out.println(response.getStatusLine().toString());
+        System.out.println("---------");
 
-        } catch (Exception ex) {
-            System.out.println(ex);
-        }// exception
+        silentlyDeleteDataObject("/TestContainer-c/TestObject.txt");
+        silentlyDeleteContainer("/TestContainer-c");
     }
 
     @Test
-    public void testContainerDelete() throws Exception {
-        HttpClient httpclient = new DefaultHttpClient();
+    public void testObjectUpdate() throws Exception
+    {
+        createContainer("/TestContainer-d/");
+        createDataObject("/TestContainer-d/TestObject.txt");
 
+        // Create the request
+        HttpResponse response = null;
+
+        HttpPut httpput = new HttpPut(
+                "http://localhost:8080/TestContainer-d/TestObject.txt");
+        httpput.setHeader("Content-Type", "application/cdmi-object");
+        httpput.setHeader("X-CDMI-Specification-Version", "1.0.2");
+        String respStr = "{\n";
+        respStr = respStr + "\"mimetype\" : \"" + "text/plain" + "\",\n";
+        respStr = respStr + "\"value\" : \"" + "This is a new test" + "\"\n";
+        respStr = respStr + "}\n";
+        System.out.println(respStr);
+        StringEntity entity = new StringEntity(respStr);
+        httpput.setEntity(entity);
+        response = httpclient.execute(httpput);
+        response.getEntity().consumeContent();
+
+        Header[] hdr = response.getAllHeaders();
+        System.out.println("Headers : " + hdr.length);
+        for (int i = 0; i < hdr.length; i++) {
+            System.out.println(hdr[i]);
+        }
+        System.out.println("---------");
+        System.out.println(response.getProtocolVersion());
+        System.out.println(response.getStatusLine().getStatusCode());
+        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+
+        System.out.println(response.getStatusLine().getReasonPhrase());
+        System.out.println(response.getStatusLine().toString());
+        System.out.println("---------");
+
+        silentlyDeleteDataObject("/TestContainer-d/TestObject.txt");
+        silentlyDeleteContainer("/TestContainer-d");
+    }
+
+    @Test
+    public void testObjectDelete() throws Exception
+    {
+        createContainer("/TestContainer-e/");
+        createDataObject("/TestContainer-e/TestObject.txt");
+
+        // Create the request
+        HttpResponse response = null;
+
+        HttpDelete httpdelete = new HttpDelete(
+                "http://localhost:8080/TestContainer-e/TestObject.txt");
+        httpdelete.setHeader("Content-Type", "application/cdmi-object");
+        httpdelete.setHeader("X-CDMI-Specification-Version", "1.0.2");
+        response = httpclient.execute(httpdelete);
+        response.getEntity().consumeContent();
+
+        Header[] hdr = response.getAllHeaders();
+        System.out.println("Headers : " + hdr.length);
+        for (int i = 0; i < hdr.length; i++) {
+            System.out.println(hdr[i]);
+        }
+        System.out.println("---------");
+        System.out.println(response.getProtocolVersion());
+        System.out.println(response.getStatusLine().getStatusCode());
+        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+
+        System.out.println(response.getStatusLine().getReasonPhrase());
+        System.out.println(response.getStatusLine().toString());
+        System.out.println("---------");
+
+        silentlyDeleteContainer("/TestContainer-e");
+    }
+
+    @Test
+    public void testContainerDelete() throws Exception
+    {
+        createContainer("/TestContainer-f/");
+
+        // Create the request
+        HttpResponse response = null;
+
+        HttpDelete httpdelete = new HttpDelete(
+                "http://localhost:8080/TestContainer-f");
+        httpdelete.setHeader("Content-Type", "application/cdmi-container");
+        httpdelete.setHeader("X-CDMI-Specification-Version", "1.0.2");
+        response = httpclient.execute(httpdelete);
+
+        Header[] hdr = response.getAllHeaders();
+        System.out.println("Headers : " + hdr.length);
+        for (int i = 0; i < hdr.length; i++) {
+            System.out.println(hdr[i]);
+        }
+        System.out.println("---------");
+        System.out.println(response.getProtocolVersion());
+        System.out.println(response.getStatusLine().getStatusCode());
+        Assert.assertEquals(200, response.getStatusLine().getStatusCode());
+
+        System.out.println(response.getStatusLine().getReasonPhrase());
+        System.out.println(response.getStatusLine().toString());
+        System.out.println("---------");
+    }
+
+    private void createContainer(String path) throws UnsupportedEncodingException, IOException
+    {
+        HttpPut request = new HttpPut("http://localhost:8080" + path);
+        request.setHeader("Content-Type", "application/cdmi-container");
+        request.setHeader("X-CDMI-Specification-Version", "1.0.2");
+        request.setEntity(new StringEntity("{ \"metadata\" : { } }"));
+        HttpResponse createContainerResponse = httpclient.execute(request);
+        createContainerResponse.getEntity().consumeContent();
+
+        assertThat(createContainerResponse.getStatusLine().getStatusCode(), is(equalTo(201)));
+    }
+
+    private void createDataObject(String path) throws UnsupportedEncodingException, IOException
+    {
+        HttpPut request = new HttpPut("http://localhost:8080" + path);
+        request.setHeader("Content-Type", "application/cdmi-object");
+        request.setHeader("X-CDMI-Specification-Version", "1.0.2");
+        request.setEntity(new StringEntity("{\n" +
+                "\"mimetype\" : \"text/plain\",\n" +
+                "\"value\" : \"This is a test\"\n" +
+                "}\n"));
+        HttpResponse createObjectResponse = httpclient.execute(request);
+        createObjectResponse.getEntity().consumeContent();
+
+        assertThat(createObjectResponse.getStatusLine().getStatusCode(), is(equalTo(201)));
+    }
+
+
+    private void silentlyDeleteContainer(String path)
+    {
+        silentlyDelete(path, "application/cdmi-container");
+    }
+
+    private void silentlyDeleteDataObject(String path)
+    {
+        silentlyDelete(path, "application/cdmi-dataobject");
+    }
+
+    private void silentlyDelete(String path, String type)
+    {
+        HttpDelete request = new HttpDelete("http://localhost:8080" + path);
+        request.setHeader("Content-Type", type);
+        request.setHeader("X-CDMI-Specification-Version", "1.0.2");
         try {
-            // Create the request
-            HttpResponse response = null;
-
-            HttpDelete httpdelete = new HttpDelete(
-                    "http://localhost:8080/cdmi-server/TestContainer");
-            httpdelete.setHeader("Content-Type", "application/cdmi-container");
-            httpdelete.setHeader("X-CDMI-Specification-Version", "1.0.2");
-            response = httpclient.execute(httpdelete);
-
-            Header[] hdr = response.getAllHeaders();
-            System.out.println("Headers : " + hdr.length);
-            for (int i = 0; i < hdr.length; i++) {
-                System.out.println(hdr[i]);
-            }
-            System.out.println("---------");
-            System.out.println(response.getProtocolVersion());
-            System.out.println(response.getStatusLine().getStatusCode());
-            Assert.assertEquals(200, response.getStatusLine().getStatusCode());
-
-            System.out.println(response.getStatusLine().getReasonPhrase());
-            System.out.println(response.getStatusLine().toString());
-            System.out.println("---------");
-
-        } catch (Exception ex) {
-            System.out.println(ex);
-        }// exception
+            httpclient.execute(request).getEntity().consumeContent();
+        } catch (IOException e) {
+            // Ignore any problems: this is only best-effort at deleting content.
+        }
     }
 }

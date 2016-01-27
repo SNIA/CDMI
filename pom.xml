@@ -55,33 +55,102 @@
           <target>1.6</target>
         </configuration>
       </plugin>
+
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.18.1</version>
+        <configuration>
+          <excludedGroups>org.snia.cdmiserver.IntegrationTest</excludedGroups>
+        </configuration>
+      </plugin>
+
+      <plugin>
+	<groupId>org.apache.maven.plugins</groupId>
+	<artifactId>maven-failsafe-plugin</artifactId>
+	<version>2.19.1</version>
+        <configuration>
+          <includes>
+	    <include>**/*.java</include>
+	  </includes>
+	  <groups>org.snia.cdmiserver.IntegrationTest</groups>
+        </configuration>
+	<executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+	    </goals>
+          </execution>
+	</executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>create integration test target</id>
+            <phase>pre-integration-test</phase>
+            <configuration>
+              <tasks>
+                <mkdir dir="${integration-test.target-directory}"/>
+		<copy todir="${integration-test.webapp-directory}">
+		  <fileset dir="${project.basedir}/src/main/webapp"/>
+		</copy>
+		<copy todir="${integration-test.webapp-directory}" overwrite="true">
+		  <fileset dir="${project.basedir}/src/test/webapp"/>
+		  <filterset>
+		    <filter token="BASE-DIRECTORY" value="${integration-test.target-directory}"/>
+		  </filterset>
+		</copy>
+              </tasks>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.eclipse.jetty</groupId>
+        <artifactId>jetty-maven-plugin</artifactId>
+        <version>${jetty.version}</version>
+        <configuration>
+          <scanIntervalSeconds>10</scanIntervalSeconds>
+          <stopPort>8800</stopPort>
+          <stopKey>STOP</stopKey>
+	  <baseResource>${integration-test.webapp-directory}</baseResource>
+	  <descriptor>${integration-test.webapp-directory}/WEB-INF/web.xml</descriptor>
+	  <webAppSourceDirectory>${integration-test.webapp-directory}</webAppSourceDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <id>start-jetty</id>
+            <phase>pre-integration-test</phase>
+            <goals>
+              <goal>stop</goal> <!-- stop any previous instance -->
+              <goal>start</goal>
+            </goals>
+            <configuration>
+              <scanIntervalSeconds>0</scanIntervalSeconds>
+              <daemon>true</daemon>
+              <useTestScope>true</useTestScope>
+            </configuration>
+          </execution>
+          <execution>
+            <id>stop-jetty</id>
+            <phase>post-integration-test</phase>
+            <goals>
+              <goal>stop</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
  
   <dependencies>
-
-<!--
-        <dependency>
-            <groupId>com.sun.jersey</groupId>
-            <artifactId>jersey-server</artifactId>
-            <version>1.1.4</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.sun.jersey.contribs</groupId>
-            <artifactId>jersey-spring</artifactId>
-            <version>1.1.4</version>
-        </dependency>
--->
-
-<!--
-        <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>jsr250-api</artifactId>
-            <version>1.0</version>
-        </dependency>
--->
-
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -116,7 +185,15 @@
       <artifactId>httpclient</artifactId>
       <version>4.0.1</version>
       <scope>compile</scope>
-   </dependency>
+    </dependency>
+
+    <!-- Needed by integration tests -->
+    <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-util</artifactId>
+      <version>${jetty.version}</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <pluginRepositories>
@@ -146,7 +223,12 @@
       <layout>default</layout>
     </repository>
   </repositories>
+
   <properties>
     <netbeans.hint.deploy.server>gfv3ee6</netbeans.hint.deploy.server>
+    <integration-test.base-directory>${project.build.directory}/integration-test</integration-test.base-directory>
+    <integration-test.webapp-directory>${integration-test.base-directory}/webapp</integration-test.webapp-directory>
+    <integration-test.target-directory>${integration-test.base-directory}/data</integration-test.target-directory>
+    <jetty.version>9.2.2.v20140723</jetty.version>
   </properties>
 </project>
