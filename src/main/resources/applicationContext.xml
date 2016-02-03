@@ -82,6 +82,12 @@
         </jaxrs:serviceBeans>
     </jaxrs:server>
 
+    <bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+        <property name="location">
+	    <value>cdmi.properties</value>
+        </property>
+    </bean>
+
     <!-- Application JAX-RS Resources -->
 
     <bean id="objectIdResource"              class="org.snia.cdmiserver.resource.ObjectIdResource"

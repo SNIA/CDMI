@@ -1,31 +1,31 @@
 /*
  * Copyright (c) 2010, Sun Microsystems, Inc.
  * Copyright (c) 2010, The Storage Networking Industry Association.
- *  
- * Redistribution and use in source and binary forms, with or without 
+ *
+ * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
- *  
- * Redistributions of source code must retain the above copyright notice, 
+ *
+ * Redistributions of source code must retain the above copyright notice,
  * this list of conditions and the following disclaimer.
- *  
- * Redistributions in binary form must reproduce the above copyright notice, 
- * this list of conditions and the following disclaimer in the documentation 
+ *
+ * Redistributions in binary form must reproduce the above copyright notice,
+ * this list of conditions and the following disclaimer in the documentation
  * and/or other materials provided with the distribution.
- *  
- * Neither the name of The Storage Networking Industry Association (SNIA) nor 
- * the names of its contributors may be used to endorse or promote products 
+ *
+ * Neither the name of The Storage Networking Industry Association (SNIA) nor
+ * the names of its contributors may be used to endorse or promote products
  * derived from this software without specific prior written permission.
- *  
- *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
- *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
- *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
- *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE 
- *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
- *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
- *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
- *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
- *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF 
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *  THE POSSIBILITY OF SUCH DAMAGE.
  */
 package org.snia.cdmiserver.resource;
@@ -124,7 +124,7 @@ public class PathResource {
      * <p>
      * Trap to catch attempts to delete the root container
      * </p>
-     * 
+     *
      * @param path
      *            Path to the existing data object
      */
@@ -140,11 +140,11 @@ public class PathResource {
      * [9.4] Read a Container Object (CDMI Content Type)
      * [8.4] Read a Data Object (CDMI Content Type)
      * </p>
-     * 
+     *
      * @param path
      *            Path to the existing non-root container
      */
-    
+
     @GET
     @Path("/{path:.+}")
     @Consumes(MediaTypes.OBJECT)
@@ -206,10 +206,10 @@ public class PathResource {
 
     /**
      * <p>
-     * [9.4] Read a Container Object (CDMI Content Type). 
+     * [9.4] Read a Container Object (CDMI Content Type).
      *       Catches request routing for root container in spite of CXF bug.
      * </p>
-     * 
+     *
      * @param path
      *            Path to the root container
      */
@@ -227,20 +227,20 @@ public class PathResource {
 
     /**
      * <p>
-     * [8.5] Read a Data Object (Non-CDMI Content Type) 
+     * [8.5] Read a Data Object (Non-CDMI Content Type)
      * [9.5] Read a Container Object (Non-CDMI Content Type)
      * </p>
-     * 
+     *
      * <p>
      * IMPLEMENTATION NOTE - Consult <code>uriInfo.getQueryParameters()</code> to identify
      * restrictions on the returned information.
      * </p>
-     * 
+     *
      * <p>
      * IMPLEMENTATION NOTE - If the path points at a container,
      * the response content type must be"text/json".
      * </p>
-     * 
+     *
      * @param path
      *            Path to the existing data object or container
      * @param range
@@ -254,7 +254,7 @@ public class PathResource {
 
         System.out.print("In PathResource.getDataObjectOrContainer, path: " +
                 path);
-        
+
         boolean NonCDMI = true;
 
         // print headers for debug
@@ -314,7 +314,7 @@ public class PathResource {
      * [9.2] Create a Container (CDMI Content Type) and
      * [9.6] Update a Container (CDMI Content Type)
      * </p>
-     * 
+     *
      * @param path
      *            Path to the new or existing container
      * @param noClobber
@@ -369,7 +369,7 @@ public class PathResource {
      * [8.2] Create a Data Object (CDMI Content Type)
      * [8.6] Update Data Object (CDMI Content Type)
      * </p>
-     * 
+     *
      * @param path
      *            Path to the parent container for the new data object
      * @param mediaType
@@ -398,7 +398,7 @@ public class PathResource {
             DataObject dObj = dataObjectDao.findByPath(path);
             if (dObj == null) {
                 dObj = new DataObject();
-         
+
                 dObj.setObjectType("application/cdmi-object");
                 // parse json
                 dObj.fromJson(bytes, false);
@@ -408,8 +408,10 @@ public class PathResource {
                 dObj = dataObjectDao.createByPath(path, dObj);
                 // return representation
                 String respStr = dObj.toJson();
-                return Response.ok(respStr).header(
-                        "X-CDMI-Specification-Version", "1.0.2").build();
+                return Response.created(URI.create(path)).
+                        header("X-CDMI-Specification-Version", "1.0.2").
+                        entity(respStr).
+                        build();
             }
             dObj.fromJson(bytes,false);
             return Response.ok().build();
@@ -446,13 +448,13 @@ public class PathResource {
         File objFile;
         String inBuffer = new String(bytes);
         System.out.println("Path = " + path + "\n");
-        
- 
+
+
         try {
             DataObject dObj = dataObjectDao.findByPath(path);
             if (dObj == null) {
                 dObj = new DataObject();
-         
+
                 dObj.setObjectType("application/cdmi-object");
                 // parse json
                 //dObj.fromJson(bytes, false);
@@ -467,7 +469,7 @@ public class PathResource {
                  //       "X-CDMI-Specification-Version", "1.0.2").build();
             }
             //dObj.fromJson(bytes,false);
-            return Response.ok().build();
+            return Response.created(URI.create(path)).build();
         } catch (Exception ex) {
             System.out.println(ex);
             ex.printStackTrace();
@@ -517,10 +519,10 @@ public class PathResource {
             dObj = dataObjectDao.createByPath(objectPath, dObj);
 
             if (containerRequest) {
-                return Response.ok().header("Location",
+                return Response.created(URI.create(path)).header("Location",
                         dObj.getObjectType()).build();
             }
-            return Response.ok().build();
+            return Response.created(URI.create(path)).build();
         } catch (Exception ex) {
             System.out.println(ex);
             ex.printStackTrace();
@@ -534,9 +536,9 @@ public class PathResource {
      * <p>
      * [9.3] Create a Container (Non-CDMI Content Type)
      * </p>
-     * 
+     *
      * <p>
-     * FIXME - I do not see how to disambiguate this kind of call from 
+     * FIXME - I do not see how to disambiguate this kind of call from
      *         creating a data object with a non-CDMI Content Type)
      */
 
