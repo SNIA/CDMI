@@ -126,11 +126,8 @@
 
     <bean id="dataObjectDao" class="org.snia.cdmiserver.dao.filesystem.DataObjectDaoImpl">
         <property name="baseDirectoryName" value="${cdmi.base-directory}"/>
-        <property name="containerDao" ref="containerDao"/>
     </bean>
 
-    <bean id="capabilityDao" class="org.snia.cdmiserver.dao.filesystem.CapabilityDaoImpl">
-       
-    </bean>
+    <bean id="capabilityDao" class="org.snia.cdmiserver.dao.filesystem.CapabilityDaoImpl"/>
 
 </beans>

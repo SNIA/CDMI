@@ -52,15 +52,11 @@ public class CapabilityDaoImpl implements CapabilityDao {
      * Injected {@link CapabilityDao} instance.
      * </p>
      */
-    private CapabilityDao capabilityDao;
-    private String ROOTobjectID = ObjectID.getObjectID(8);
-    private String CONTAINERobjectID = ObjectID.getObjectID(8);
-    private String DEFAULTobjectID = ObjectID.getObjectID(8);
-    private String OBJECTobjectID = ObjectID.getObjectID(8);
+    private final String ROOTobjectID = ObjectID.getObjectID(8);
+    private final String CONTAINERobjectID = ObjectID.getObjectID(8);
+    private final String DEFAULTobjectID = ObjectID.getObjectID(8);
+    private final String OBJECTobjectID = ObjectID.getObjectID(8);
 
-    public void setCapabilityDao(CapabilityDao capabilityDao) {
-        this.capabilityDao = capabilityDao;
-    }
 
     // ---------------------------------------------------- ContainerDao Methods
     @Override
@@ -73,30 +69,22 @@ public class CapabilityDaoImpl implements CapabilityDao {
         Capability capability = new Capability();
 
         LOG.trace("In Capability.findByPath, path is: {}", path);
-        if (path.equals("container/")) {
+        switch (path) {
+        case "container/":
             LOG.trace("Container Capabilities");
             // Container Capabilities
-            // cdmi_list_children = true
-            // cdmi_list_children_range = unset until implemented
-            // cdmi_read_metadata = true
-            // cdmi_modify_metadata = true
-            // cdmi_snapshot = unset, stretch goal (filesystem support?)
-            // cdmi_serialize_container = unset until implemented
-            // cdmi_create_dataobject = true
-            // cdmi_post_dataobject = true
-            // cdmi_create_container = true
             capability.getMetadata().put("cdmi_list_children", "true");
             capability.getMetadata().put("cdmi_read_metadata", "true");
             capability.getMetadata().put("cdmi_modify_metadata", "true");
             capability.getMetadata().put("cdmi_create_dataobject", "true");
-            // capability.getMetadata().put("cdmi_post_dataobject", "true");
             capability.getMetadata().put("cdmi_create_container", "true");
             capability.getChildren().add("default");
             capability.setObjectID(CONTAINERobjectID);
             capability.setObjectType("application/cdmi-capability");
             capability.setParentURI("cdmi_capabilities/");
             capability.setParentID(ROOTobjectID);
-        } else if (path.equals("container/default/")) {
+            break;
+        case "container/default/":
             LOG.trace("Default Container Capabilities");
             capability.getMetadata().put("cdmi_list_children", "true");
             capability.getMetadata().put("cdmi_read_metadata", "true");
@@ -108,18 +96,10 @@ public class CapabilityDaoImpl implements CapabilityDao {
             capability.setObjectType("application/cdmi-capability");
             capability.setParentURI("cdmi_capabilities/container");
             capability.setParentID(CONTAINERobjectID);
-
-        } else if (path.equals("dataobject/")) {
+            break;
+        case "dataobject/":
             // Data Object Capabilities
             LOG.trace("Data Object Capabilities");
-            // cdmi_read_value = true
-            // cdmi_read_value_range = unset initially, then true when implemented
-            // cdmi_read_metadata = true
-            // cdmi_modify_value = true
-            // cdmi_modify_value_range = unset until implemented
-            // cdmi_modify_metadata = true
-            // cdmi_serialize_dataobject, cdmi_deserialize_dataobject = unset until implemented
-            // cdmi_delete_dataobject = true
             capability.getMetadata().put("cdmi_read_value", "true");
             capability.getMetadata().put("cdmi_read_metadata", "true");
             capability.getMetadata().put("cdmi_modify_metadata", "true");
@@ -129,33 +109,22 @@ public class CapabilityDaoImpl implements CapabilityDao {
             capability.setObjectType("application/cdmi-capability");
             capability.setParentURI("cdmi_capabilities/");
             capability.setParentID(ROOTobjectID);
-        } else {
+            break;
+        default:
             // System Capabilities
             LOG.trace("System Capabilities");
-            // cdmi_domains = later version true
-            // cdmi_export_occi_iscsi = true for demo?
-            // cdmi_metadata_maxitems, cdmi_metadata_maxsize = TBD based on our limits
-            // cdmi_notification, cdmi_query, cdmi_queues, cdmi_security_audit = exposed as
-            // implementations become available
-            // cdmi_security_data_integrity, cdmi_security_encryption, ditto
-            // cdmi_security_https_transport = present and true
-            // cdmi_security_immutability = as XAM SDK code is integrated
-            // cdmi_security_sanitization = should we implement?
-            // cdmi_serialization_json = propose using this form for RI
             capability.getMetadata().put("domains", "false");
             capability.getMetadata().put("cdmi_export_occi_iscsi", "true");
             capability.getMetadata().put("cdmi_metadata_maxitems", "1024");
             capability.getMetadata().put("cdmi_metadata_maxsize", "4096");
-            // capability.getMetadata().put("cdmi_security_https_transport", "true");
-            // capability.getMetadata().put("cdmi_serialization_json", "true");
             capability.getChildren().add("container");
             capability.getChildren().add("dataobject");
             capability.setObjectID(ROOTobjectID);
             capability.setObjectType("application/cdmi-capability");
             capability.setParentURI("/");
             capability.setParentID(ROOTobjectID);
+            break;
         }
         return (capability);
-        // throw new UnsupportedOperationException("CapabilityDaoImpl.findByPath()");
     }
 }

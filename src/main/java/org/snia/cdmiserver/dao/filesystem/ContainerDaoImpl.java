@@ -172,12 +172,6 @@ public class ContainerDaoImpl implements ContainerDao {
                     if (currentContainer.getExports().containsKey("OCCI/NFS")) {
                         // Do nothing - already exported
                     } else {
-                        // Export this directory (OpenSolaris only so far)
-                        // Runtime runtime = Runtime.getRuntime();
-                        // String exported =
-                        // "pfexec share -f nfs -o rw=10.1.254.117:10.1.254.122:10.1.254.123:10.1.254.124:10.1.254.125:10.1.254.126:10.1.254.127"
-                        // + containerFieldsFile.getAbsolutePath();
-                        // runtime.exec(exported);
                     }
                 }
 
@@ -196,9 +190,9 @@ public class ContainerDaoImpl implements ContainerDao {
 
             try {
                 FileWriter fstream = new FileWriter(containerFieldsFile.getAbsolutePath());
-                BufferedWriter out = new BufferedWriter(fstream);
-                out.write(containerRequest.toJson(true)); // Save it
-                out.close();
+                try (BufferedWriter out = new BufferedWriter(fstream)) {
+                    out.write(containerRequest.toJson(true)); // Save it
+                }
             } catch (Exception ex) {
                 LOG.error("Exception while writing", ex);
                 throw new IllegalArgumentException("Cannot write container fields file @"
@@ -287,9 +281,9 @@ public class ContainerDaoImpl implements ContainerDao {
 
                 try {
                     FileWriter fstream = new FileWriter(containerFieldsFile.getAbsolutePath());
-                    BufferedWriter out = new BufferedWriter(fstream);
-                    out.write(containerRequest.toJson(true)); // Save it
-                    out.close();
+                    try (BufferedWriter out = new BufferedWriter(fstream)) {
+                        out.write(containerRequest.toJson(true)); // Save it
+                    }
                 } catch (Exception ex) {
                     LOG.error("Exception while writing", ex);
                     throw new IllegalArgumentException("Cannot write container fields file @"
@@ -453,19 +447,17 @@ public class ContainerDaoImpl implements ContainerDao {
     private Container getPersistedContainerFields(File containerFieldsFile) {
         Container containerFields = new Container();
         try {
-            FileInputStream in = new FileInputStream(containerFieldsFile.getAbsolutePath());
-            int inpSize = in.available();
-            LOG.trace("Container fields file size: {}", inpSize);
+            try (FileInputStream in = new FileInputStream(containerFieldsFile.getAbsolutePath())) {
+                int inpSize = in.available();
+                LOG.trace("Container fields file size: {}", inpSize);
 
-            byte[] inBytes = new byte[inpSize];
-            in.read(inBytes);
+                byte[] inBytes = new byte[inpSize];
+                in.read(inBytes);
 
-            containerFields.fromJson(inBytes, true);
-            String mds = new String(inBytes);
-            LOG.trace("Container fields read were: {}", mds);
-
-            // Close the output stream
-            in.close();
+                containerFields.fromJson(inBytes, true);
+                String mds = new String(inBytes);
+                LOG.trace("Container fields read were: {}", mds);
+            }
         } catch (Exception ex) {
             LOG.error("Exception while reading: ", ex);
             throw new IllegalArgumentException("Cannot read container fields file error : " + ex);
@@ -619,10 +611,6 @@ public class ContainerDaoImpl implements ContainerDao {
     @Override
     public boolean isContainer(String path) {
         File directoryOrFile = absoluteFile(path);
-        if (directoryOrFile.isDirectory()) {
-            return true;
-        } else {
-            return false;
-        }
+        return directoryOrFile.isDirectory();
     }
 }

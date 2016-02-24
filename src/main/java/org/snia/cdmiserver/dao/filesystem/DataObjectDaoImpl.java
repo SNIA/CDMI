@@ -70,13 +70,6 @@ public class DataObjectDaoImpl implements DataObjectDao {
      * Injected {@link ContainerDao} instance.
      * </p>
      */
-    private ContainerDao containerDao;
-
-    // private Map<String,DataObject> dataDB =
-    // new ConcurrentHashMap<String, DataObject>();
-    public void setContainerDao(ContainerDao containerDao) {
-        this.containerDao = containerDao;
-    }
 
     // ---------------------------------------------------- ContainerDao Methods
     // utility function
@@ -175,19 +168,15 @@ public class DataObjectDaoImpl implements DataObjectDao {
             }
             dObj.setMetadata("mimetype", mimeType);
             //
-            FileWriter fstream = new FileWriter(objFile.getAbsolutePath());
-            BufferedWriter out = new BufferedWriter(fstream);
-            out.write(dObj.getValue()); // Save Only the value
-            // Close the output stream
-            out.close();
+            try (BufferedWriter out = new BufferedWriter(new FileWriter(objFile.getAbsolutePath()))) {
+                out.write(dObj.getValue()); // Save Only the value
+            }
             // write metadata file
             LOG.trace("metadataFile : {}", metadataFileName);
-            fstream = new FileWriter(metadataFile.getAbsolutePath());
-            out = new BufferedWriter(fstream);
-            out.write(dObj.metadataToJson()); // Save it
-            // Close the output stream
-            out.close();
-            //
+
+            try (BufferedWriter out = new BufferedWriter(new FileWriter(metadataFile.getAbsolutePath()))) {
+                out.write(dObj.metadataToJson()); // Save it
+            }
         } catch (Exception ex) {
             LOG.error("Exception while writing: ", ex);
             throw new IllegalArgumentException("Cannot write Object @" + path + " error : " + ex);
@@ -208,13 +197,11 @@ public class DataObjectDaoImpl implements DataObjectDao {
             baseDirectory = new File(baseDirectoryName + "/");
             LOG.trace("createNonCDMIByPath Base Directory Absolute Path = {}", baseDirectory.getAbsolutePath());
             containerDirectory = new File(baseDirectory, containerName);
-            // File directory = absoluteFile(path);
             LOG.trace("createNonCDMIByPath Container Absolute Path = {}", containerDirectory.getAbsolutePath());
             //
             metadataFile = new File(containerDirectory, metadataFileName);
             LOG.trace("createNonCDMIByPath Metadada File Path = {}", metadataFile.getAbsolutePath());
             objFile = new File(baseDirectory, path);
-            // File directory = absoluteFile(path);
             LOG.trace("createNonCDMIByPath Object Absolute Path = {}", objFile.getAbsolutePath());
         } catch (Exception ex) {
             LOG.error("Exception while writing: ", ex);
@@ -230,14 +217,12 @@ public class DataObjectDaoImpl implements DataObjectDao {
             throw new ConflictException("Object File <" + objFile.getAbsolutePath() + "> exists");
         }
         try {
-            // dObj.setObjectURI(path); // TBD Correct
             // Make object ID
             String objectID = dObj.getObjectID();
             if (objectID == null) {
                 objectID = ObjectID.getObjectID(8);//System.nanoTime()+"";
                 dObj.setObjectID(objectID);
             }
-            // dObj.setObjectURI(directory.getAbsolutePath()+"/"+objectID);
             dObj.setCapabilitiesURI("/cdmi_capabilities/dataobject");
             // Add metadata
             String val = "" + dObj.getValue();
@@ -247,8 +232,6 @@ public class DataObjectDaoImpl implements DataObjectDao {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
             dObj.setMetadata("cdmi_ctime", sdf.format(now));
             dObj.setMetadata("cdmi_atime", "never");
-            // dObj.setMetadata("cdmi_acount", "0");
-            // dObj.setMetadata("cdmi_mcount", "0");
             // Create file
             dObj.setMetadata("fileName", objFile.getAbsolutePath());
             dObj.setMetadata("metadataFileName", metadataFile.getAbsolutePath());
@@ -332,35 +315,31 @@ public class DataObjectDaoImpl implements DataObjectDao {
         DataObject dObj = new DataObject();
         try {
             // Read metadata
-            FileInputStream in = new FileInputStream(metadataFile.getAbsolutePath());
-            int inpSize = in.available();
-            byte[] inBytes = new byte[inpSize];
-            in.read(inBytes);
-            dObj.fromJson(inBytes, true);
-            // Close the output stream
-            in.close();
+            try (FileInputStream in = new FileInputStream(metadataFile.getAbsolutePath())) {
+                int inpSize = in.available();
+                byte[] inBytes = new byte[inpSize];
+                in.read(inBytes);
+                dObj.fromJson(inBytes, true);
+                // Close the output stream
+            }
             // Read object from file
-            in = new FileInputStream(objFile.getAbsolutePath());
-            inpSize = in.available();
-            inBytes = new byte[inpSize];
-            in.read(inBytes);
-            dObj.setValue(new String(inBytes));
-            // Close the output stream
-            in.close();
+            try (FileInputStream in = new FileInputStream(objFile.getAbsolutePath())) {
+                int inpSize = in.available();
+                byte[] inBytes = new byte[inpSize];
+                in.read(inBytes);
+                dObj.setValue(new String(inBytes));
+            }
         } catch (Exception ex) {
             LOG.error("Exception while reading: ", ex);
             throw new IllegalArgumentException("Cannot read Object @" + path + " error : " + ex);
         }
 
-        if (dObj != null) {
-            // change access time
-            Date now = new Date();
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-            dObj.setMetadata("cdmi_atime", sdf.format(now));
-            // need to increment acount dObj.setMetadata("cdmi_acount", "0");
-        }
+        // change access time
+        Date now = new Date();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        dObj.setMetadata("cdmi_atime", sdf.format(now));
+        // need to increment acount dObj.setMetadata("cdmi_acount", "0");
         return dObj;
-        // throw new UnsupportedOperationException("DataObjectDaoImpl.findByPath()");
     }
 
     @Override
