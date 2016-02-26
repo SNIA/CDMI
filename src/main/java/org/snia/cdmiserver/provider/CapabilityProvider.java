@@ -58,95 +58,71 @@ import org.snia.cdmiserver.model.Capability;
  * @author craigmcc
  */
 public class CapabilityProvider extends AbstractProvider
-        implements MessageBodyReader<Capability>, MessageBodyWriter<Capability> {
+		implements MessageBodyReader<Capability>, MessageBodyWriter<Capability> {
 
-    // ----------------------------------------------- MessageBodyReader Methods
+	// ----------------------------------------------- MessageBodyReader Methods
 
-    @Override
-    public boolean isReadable(
-            Class<?> clazz,
-            Type type,
-            Annotation[] annotations,
-            MediaType mediaType) {
-        return Capability.class.isAssignableFrom(clazz);
-    }
+	@Override
+	public boolean isReadable(Class<?> clazz, Type type, Annotation[] annotations, MediaType mediaType) {
+		return Capability.class.isAssignableFrom(clazz);
+	}
 
-    @Override
-    public Capability readFrom(
-            Class<Capability> clazz,
-            Type type,
-            Annotation[] annotations,
-            MediaType mediaType,
-            MultivaluedMap<String, String> headers,
-            InputStream in) throws IOException, WebApplicationException {
-        JSONObject entity = convertJSON(in);
-        Capability capabilty = new Capability();
-        try {
-            Map<String, String> metadata = convertMap(entity.getJSONObject("capabilities"));
-            capabilty.getMetadata().putAll(metadata);
+	@Override
+	public Capability readFrom(Class<Capability> clazz, Type type, Annotation[] annotations, MediaType mediaType,
+			MultivaluedMap<String, String> headers, InputStream in) throws IOException, WebApplicationException {
+		JSONObject entity = convertJSON(in);
+		Capability capabilty = new Capability();
+		try {
+			Map<String, String> metadata = convertMap(entity.getJSONObject("capabilities"));
+			capabilty.getCapabilities().putAll(metadata);
 
-        } catch (JSONException e) {
-            throw new IOException(e);
-        }
-        throw new UnsupportedOperationException("Not supported yet.");
-    }
+		} catch (JSONException e) {
+			throw new IOException(e);
+		}
+		throw new UnsupportedOperationException("Not supported yet.");
+	}
 
-    // ----------------------------------------------- MessageBodyWriter Methods
+	// ----------------------------------------------- MessageBodyWriter Methods
 
-    @Override
-    public boolean isWriteable(
-            Class<?> clazz,
-            Type type,
-            Annotation[] annotations,
-            MediaType mediaType) {
-        return Capability.class.isAssignableFrom(clazz);
-    }
+	@Override
+	public boolean isWriteable(Class<?> clazz, Type type, Annotation[] annotations, MediaType mediaType) {
+		return Capability.class.isAssignableFrom(clazz);
+	}
 
-    @Override
-    public long getSize(
-            Capability entity,
-            Class<?> clazz,
-            Type type,
-            Annotation[] annotations,
-            MediaType mediaTYpe) {
-        return -1;
-    }
+	@Override
+	public long getSize(Capability entity, Class<?> clazz, Type type, Annotation[] annotations, MediaType mediaTYpe) {
+		return -1;
+	}
 
-    @Override
-    public void writeTo(
-            Capability capability,
-            Class<?> clazz,
-            Type type,
-            Annotation[] annotations,
-            MediaType mediaType,
-            MultivaluedMap<String, Object> headers,
-            OutputStream out) throws IOException, WebApplicationException {
-        JSONObject entity = new JSONObject();
-        try {
-            Writer writer = new OutputStreamWriter(out);
-            if (capability.getObjectType() != null) {
-                entity.put("objectType", capability.getObjectType());
-            }
-            if (capability.getObjectID() != null) {
-                entity.put("objectID", capability.getObjectID());
-            }
-            if (capability.getParentURI() != null) {
-                entity.put("parentURI", capability.getParentURI());
-            }
-            if (capability.getParentID() != null) {
-                entity.put("parentID", capability.getParentID());
-            }
-            if (capability.getMetadata().size() > 0) {
-                entity.put("capabilities", capability.getMetadata());
-            }
-            if (capability.getChildren().size() > 0) {
-                entity.put("children", capability.getChildren());
-            }
-            entity.write(writer);
-            writer.flush();
-        } catch (JSONException e) {
-            throw new IOException(e);
-        }
-    }
+	@Override
+	public void writeTo(Capability capability, Class<?> clazz, Type type, Annotation[] annotations, MediaType mediaType,
+			MultivaluedMap<String, Object> headers, OutputStream out) throws IOException, WebApplicationException {
+		JSONObject entity = new JSONObject();
+		try {
+			Writer writer = new OutputStreamWriter(out);
+			if (capability.getObjectType() != null) {
+				entity.put("objectType", capability.getObjectType());
+			}
+			if (capability.getObjectID() != null) {
+				entity.put("objectID", capability.getObjectID());
+			}
+			if (capability.getParentURI() != null) {
+				entity.put("parentURI", capability.getParentURI());
+			}
+			if (capability.getParentID() != null) {
+				entity.put("parentID", capability.getParentID());
+			}
+			if (capability.getCapabilities().size() > 0) {
+				entity.put("capabilities", capability.getCapabilities());
+			}
+			if (capability.getChildren().size() > 0) {
+				entity.put("children", capability.getChildren());
+			}
+			entity.write(writer);
+			writer.flush();
+		} catch (JSONException e) {
+			throw new IOException(e);
+		}
+	}
 
 }

@@ -43,69 +43,77 @@ import java.util.Map;
  */
 public class Capability {
 
-    // Container representation fields
-    private String objectType;
-    private String objectID;
-    private String parentURI;
-    private String parentID;
-    private Map<String, String> metadata = new HashMap<String, String>();
-    private String capabilities;
-    private String childrenrange;
-    private List<String> children = new ArrayList<String>();
+	// Container representation fields
+	private String objectName;
+	private String objectType;
+	private String objectID;
+	private String parentURI;
+	private String parentID;
+	private Map<String, String> capabilities = new HashMap<String, String>();
+	private String childrenrange;
+	private List<String> children = new ArrayList<String>();
 
-    public String getObjectType() {
-        return objectType;
-    }
+	public String getChildrenrange() {
+		return childrenrange;
+	}
 
-    public void setObjectType(String objectURI) {
-        this.objectType = objectType;
-    }
+	public void setChildrenrange(String childrenrange) {
+		this.childrenrange = childrenrange;
+	}
 
-    public String getObjectID() {
-        return objectID;
-    }
+	public String getObjectName() {
+		return objectName;
+	}
 
-    public void setObjectID(String objectID) {
-        this.objectID = objectID;
-    }
+	public void setObjectName(String objectName) {
+		this.objectName = objectName;
+	}
 
-    public String getParentURI() {
-        return parentURI;
-    }
+	public String getObjectType() {
+		return objectType;
+	}
 
-    public void setParentURI(String parentURI) {
-        this.parentURI = parentURI;
-    }
-        
-    public String getParentID() {
-        return parentID;
-    }
+	public void setObjectType(String objectType) {
+		this.objectType = objectType;
+	}
 
-    public void setParentID(String parentID) {
-        this.parentID = parentID;
-    }
+	public String getObjectID() {
+		return objectID;
+	}
 
-    public String getCapabilities() {
-        return capabilities;
-    }
+	public void setObjectID(String objectID) {
+		this.objectID = objectID;
+	}
 
-    public void setCapabilities(String capabilities) {
-        this.capabilities = capabilities;
-    }
+	public String getParentURI() {
+		return parentURI;
+	}
 
-    public Map<String, String> getMetadata() {
-        return metadata;
-    }
+	public void setParentURI(String parentURI) {
+		this.parentURI = parentURI;
+	}
 
-    public List<String> getChildren() {
-        return children;
-    }
+	public String getParentID() {
+		return parentID;
+	}
 
-    public void setChildren(List<String> children) {
-        this.children = children;
-    }
+	public void setParentID(String parentID) {
+		this.parentID = parentID;
+	}
 
-    public Capability getByPath(String path) {
-        return this;
-    }
+	public Map<String, String> getCapabilities() {
+		return capabilities;
+	}
+
+	public List<String> getChildren() {
+		return children;
+	}
+
+	public void setChildren(List<String> children) {
+		this.children = children;
+	}
+
+	public Capability getByPath(String path) {
+		return this;
+	}
 }

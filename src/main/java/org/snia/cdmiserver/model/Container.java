@@ -31,292 +31,255 @@
 
 package org.snia.cdmiserver.model;
 
-import java.io.InputStream;
-import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.snia.cdmiserver.dao.filesystem.ContainerDaoImpl;
-import org.snia.cdmiserver.exception.BadRequestException;
 
 /**
  * <p>
  * Representation of a CDMI <em>Container</em>.
  * </p>
  */
-public class Container {
-    private static final Logger LOG = LoggerFactory.getLogger(Container.class);
+public class Container extends CdmiObject {
+	private static final Logger LOG = LoggerFactory.getLogger(Container.class);
 
-    // Container creation fields
-    private Map<String, String> metadata = new HashMap<String, String>();
-    private Map<String, Object> exports = new HashMap<String, Object>();
-    private String copy;
-    private String move;
-    private String reference;
-    private String snapshot; // To create a snapshot via the "update" operation
+	// Container creation fields
+	private static final String metadata = "metadata";
+	private static final String exports = "exports";
+	private static final String copy = "copy";
+	private static final String move = "move";
+	private static final String reference = "reference";
+	private static final String snapshot = "snapshot";
+	private static final String deserialize = "deserialize";
+	private static final String deserializevalue = "deserializevalue";
 
-    // Container representation fields
-    private String objectType;
-    private String objectID;
-    private String parentURI;
-    private String domainURI;
-    private String capabilitiesURI;
-    private String completionStatus;
-    private Integer percentComplete; // FIXME - Specification says String but that does not make
-                                     // sense
-    private List<String> snapshots = new ArrayList<String>();
-    private String childrenrange;
-    private List<String> children = new ArrayList<String>();
+	// Container representation fields
+	private static final String objectType = "objectType";
+	private static final String objectName = "objectName";
+	private static final String parentURI = "parentURI";
+	private static final String parentID = "parentID";
+	private static final String domainURI = "domainURI";
+	private static final String capabilitiesURI = "capabilitiesURI";
+	private static final String completionStatus = "completionStatus";
+	private static final String percentComplete = "percentComplete";
+	private static final String snapshots = "snapshots";
+	private static final String childrenrange = "childrenrange";
+	private static final String children = "children";
 
-    // Representation also includes "metadata", "exports"
-    // Representation also includes "mimetype", "metadata", and "value" from creation fields
+	private String ObjectURI;
 
-    public Map<String, String> getMetadata() {
-        return metadata;
-    }
+	public Container() {
+		super();
+	}
 
-    public Map<String, Object> getExports() {
-        return exports;
-    }
+	public Container(JSONObject json) {
+		super(json);
+	}
 
-    public String getCopy() {
-        return copy;
-    }
+	public Container(Map<String, Object> attributeMap) {
+		super(attributeMap);
+	}
 
-    public void setCopy(String copy) {
-        this.copy = copy;
-    }
+	public Map<String, Object> getMetadata() {
+		JSONObject json = (JSONObject) getAttributeMap().get(metadata);
+		HashMap<String, Object> map = new HashMap<>();
+		for (Object key : json.keySet()) {
+			map.put((String) key, json.get((String) key));
+		}
+		return map;
+	}
 
-    public String getMove() {
-        return move;
-    }
+	public void setMetadata(Map<String, Object> metadata) {
+		getAttributeMap().put(Container.metadata, metadata);
+	}
 
-    public void setMove(String move) {
-        this.move = move;
-    }
+	public Map<String, Object> getExports() {
+		JSONObject json = (JSONObject) getAttributeMap().get(exports);
+		HashMap<String, Object> map = new HashMap<>();
+		for (Object key : json.keySet()) {
+			map.put((String) key, json.get((String) key));
+		}
+		return map;
+	}
 
-    public String getReference() {
-        return reference;
-    }
+	public void setExports(Map<String, Object> exports) {
+		getAttributeMap().put(Container.exports, exports);
+	}
 
-    public void setReference(String reference) {
-        this.reference = reference;
-    }
+	public String getCopy() {
+		return (String) getAttributeMap().get(copy);
+	}
 
-    public String getSnapshot() {
-        return snapshot;
-    }
+	public void setCopy(String copy) {
+		getAttributeMap().put(Container.copy, copy);
+	}
 
-    public void setSnapshot(String snapshot) {
-        this.snapshot = snapshot;
-    }
+	public String getMove() {
+		return (String) getAttributeMap().get(move);
+	}
 
-    public String getObjectType() {
-        return objectType;
-    }
+	public void setMove(String move) {
+		getAttributeMap().put(Container.move, move);
+	}
 
-    public void setObjectType(String objectURI) {
-        this.objectType = objectURI;
-    }
+	public String getReference() {
+		return (String) getAttributeMap().get(reference);
+	}
 
-    public String getObjectID() {
-        return objectID;
-    }
+	public void setReference(String reference) {
+		getAttributeMap().put(Container.reference, reference);
+	}
 
-    public void setObjectID(String objectID) {
-        this.objectID = objectID;
-    }
+	public String getSnapshot() {
+		return (String) getAttributeMap().get(snapshot);
+	}
 
-    public String getParentURI() {
-        return parentURI;
-    }
+	public void setSnapshot(String snapshot) {
+		getAttributeMap().put(Container.snapshot, snapshot);
+	}
 
-    public void setParentURI(String parentURI) {
-        this.parentURI = parentURI;
-    }
+	public String getDeserialize() {
+		return (String) getAttributeMap().get(deserialize);
+	}
 
-    public String getDomainURI() {
-        return domainURI;
-    }
+	public void setDeserialize(String deserialize) {
+		getAttributeMap().put(Container.deserialize, deserialize);
+	}
 
-    public void setDomainURI(String domainURI) {
-        this.domainURI = domainURI;
-    }
+	public String getDeserializevalue() {
+		return (String) getAttributeMap().get(deserializevalue);
+	}
 
-    public String getCapabilitiesURI() {
-        return capabilitiesURI;
-    }
+	public void setDeserializevalue(String deserializevalue) {
+		getAttributeMap().put(Container.deserializevalue, deserializevalue);
+	}
 
-    public void setCapabilitiesURI(String capabilitiesURI) {
-        this.capabilitiesURI = capabilitiesURI;
-    }
+	public String getObjectType() {
+		return (String) getAttributeMap().get(objectType);
+	}
 
-    public String getCompletionStatus() {
-        return completionStatus;
-    }
+	public void setObjectType(String objectType) {
+		getAttributeMap().put(Container.objectType, objectType);
+	}
 
-    public void setCompletionStatus(String completionStatus) {
-        this.completionStatus = completionStatus;
-    }
+	public String getObjectID() {
+		return super.getObjectId();
+	}
 
-    public Integer getPercentComplete() {
-        return percentComplete;
-    }
+	public void setObjectID(String objectID) {
+		super.setObjectId(objectID);
+	}
 
-    public void setPercentComplete(Integer percentComplete) {
-        this.percentComplete = percentComplete;
-    }
+	public String getObjectName() {
+		return (String) getAttributeMap().get(objectName);
+	}
 
-    public List<String> getSnapshots() {
-        return snapshots;
-    }
+	public void setObjectName(String objectName) {
+		getAttributeMap().put(Container.objectName, objectName);
+	}
 
-    public String getChildrenrange() {
-        return childrenrange;
-    }
+	public String getParentURI() {
+		return (String) getAttributeMap().get(parentURI);
+	}
 
-    public void setChildrenrange(String childrenrange) {
-        this.childrenrange = childrenrange;
-    }
+	public void setParentURI(String parentURI) {
+		getAttributeMap().put(Container.parentURI, parentURI);
+	}
 
-    public List<String> getChildren() {
-        return children;
-    }
+	public String getParentID() {
+		return (String) getAttributeMap().get(Container.parentID);
+	}
 
-    public void setMetaData(Map<String, String> metadata) {
-        this.metadata = metadata;
-    }
+	public void setParentID(String parentID) {
+		getAttributeMap().put(Container.parentID, parentID);
+	}
 
-    public String toJson(boolean toFile) {
-        //
-        StringWriter outBuffer = new StringWriter();
-        try {
-            JsonFactory f = new JsonFactory();
-            JsonGenerator g = f.createJsonGenerator(outBuffer);
-            g.useDefaultPrettyPrinter();
-            g.writeStartObject();
+	public String getDomainURI() {
+		return (String) getAttributeMap().get(domainURI);
+	}
 
-            g.writeStringField("objectID", objectID);
+	public void setDomainURI(String domainURI) {
+		getAttributeMap().put(Container.domainURI, domainURI);
+	}
 
-            g.writeStringField("capabilitiesURI", capabilitiesURI);
-            g.writeStringField("domainURI", domainURI);
+	public String getCapabilitiesURI() {
+		return (String) getAttributeMap().get(capabilitiesURI);
+	}
 
-            g.writeObjectFieldStart("metadata");
-            for (Map.Entry<String, String> entry : metadata.entrySet()) {
-                g.writeStringField(entry.getKey(), entry.getValue());
-            }
-            g.writeEndObject();
+	public void setCapabilitiesURI(String capabilitiesURI) {
+		getAttributeMap().put(Container.capabilitiesURI, capabilitiesURI);
+	}
 
-            g.writeObjectFieldStart("exports");
-            for (Map.Entry<String, Object> entry : exports.entrySet()) {
-                g.writeObjectFieldStart(entry.getKey());
-                g.writeEndObject();
-            }
-            g.writeEndObject();
+	public String getCompletionStatus() {
+		return (String) getAttributeMap().get(completionStatus);
+	}
 
-            if (!toFile) {
-                g.writeStringField("objectType", objectType);
-                g.writeStringField("parentURI", parentURI);
-                g.writeArrayFieldStart("children");
-                ListIterator<String> it = children.listIterator();
-                while (it.hasNext()) {
-                    g.writeString((String) it.next());
-                }
-                g.writeEndArray();
-                g.writeStringField("childrenrange", childrenrange);
-                if (completionStatus != null)
-                    g.writeStringField("completionStatus", completionStatus);
-            }
+	public void setCompletionStatus(String completionStatus) {
+		getAttributeMap().put(Container.completionStatus, completionStatus);
+	}
 
-            g.writeEndObject();
-            g.flush();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            return ("Error : " + ex);
-        }
-        //
-        return outBuffer.toString();
-    }
+	public String getPercentComplete() {
+		return (String) getAttributeMap().get(percentComplete);
+	}
 
-    public void fromJson(InputStream jsonIs, boolean fromFile) throws Exception {
-        JsonFactory f = new JsonFactory();
-        JsonParser jp = f.createJsonParser(jsonIs);
-        fromJson(jp, fromFile);
-    }
+	public void setPercentComplete(String percentComplete) {
+		getAttributeMap().put(Container.percentComplete, percentComplete);
+	}
 
-    public void fromJson(byte[] jsonBytes, boolean fromFile) throws Exception {
-        JsonFactory f = new JsonFactory();
-        JsonParser jp = f.createJsonParser(jsonBytes);
-        fromJson(jp, fromFile);
-    }
+	public List<Object> getSnapshots() {
+		JSONObject json = (JSONObject) getAttributeMap().get(snapshots);
+		ArrayList<Object> list = new ArrayList<>();
+		for (Object key : json.keySet()) {
+			list.add(json.get((String) key));
+		}
+		return list;
+	}
 
-    private void fromJson(JsonParser jp, boolean fromFile) throws Exception {
-        JsonToken tolkein;
-        tolkein = jp.nextToken();// START_OBJECT
-        while ((tolkein = jp.nextToken()) != JsonToken.END_OBJECT) {
-            String key = jp.getCurrentName();
-            if ("metadata".equals(key)) {// process metadata
-                tolkein = jp.nextToken();
-                while ((tolkein = jp.nextToken()) != JsonToken.END_OBJECT) {
-                    key = jp.getCurrentName();
-                    tolkein = jp.nextToken();
-                    String value = jp.getText();
-                    LOG.trace("   Key = {} : Value = {}", key, value);
-                    this.getMetadata().put(key, value);
-                    // jp.nextToken();
-                }// while
-            } else if ("exports".equals(key)) {// process exports
-                tolkein = jp.nextToken();
-                while ((tolkein = jp.nextToken()) != JsonToken.END_OBJECT) {
-                    key = jp.getCurrentName();
-                    tolkein = jp.nextToken(); // Start
-                    tolkein = jp.nextToken(); // End
-                    this.getExports().put(key, null); // jp.nextToken();
-                }// while
-            } else if ("capabilitiesURI".equals(key)) {// process capabilitiesURI
-                jp.nextToken();
-                String value2 = jp.getText();
-                LOG.trace("Key : {} Val : {}", key, value2);
-                this.setCapabilitiesURI(value2);
-            } else if ("domainURI".equals(key)) {// process domainURI
-                jp.nextToken();
-                String value2 = jp.getText();
-                LOG.trace("Key : {} Val : {}", key, value2);
-                this.setDomainURI(value2);
-            } else if ("move".equals(key)) {// process move
-                jp.nextToken();
-                String value2 = jp.getText();
-                LOG.trace("Key : {} Val : {}", key, value2);
-                this.setMove(value2);
-            } else {
-                if (fromFile) { // accept rest of key-values
-                    if ("objectID".equals(key)) { // process value
-                        jp.nextToken();
-                        String value2 = jp.getText();
-                        LOG.trace("Key : {} Val : {}", key, value2);
-                        this.setObjectID(value2);
-                    } else {
-                        LOG.warn("Invalid Key : {}", key);
-                        throw new BadRequestException("Invalid Key : " + key);
-                    } // inner if
-                } else {
-                    LOG.warn("Invalid Key : {}", key);
-                    throw new BadRequestException("Invalid Key : " + key);
-                }
-            }
-        }
-    }
+	public void setSnapshots(List<Object> snapshots) {
+		getAttributeMap().put(Container.snapshots, snapshots);
+	}
 
-    public Object getObjectURI() {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
+	public String getChildrenrange() {
+		return (String) getAttributeMap().get(childrenrange);
+	}
+
+	public void setChildrenrange(String childrenrange) {
+		getAttributeMap().put(Container.childrenrange, childrenrange);
+	}
+
+	public List<Object> getChildren() {
+		JSONObject json = (JSONObject) getAttributeMap().get(children);
+		ArrayList<Object> list = new ArrayList<>();
+		for (Object key : json.keySet()) {
+			list.add(json.get((String) key));
+		}
+		return list;
+	}
+
+	public void setChildren(List<Object> children) {
+		getAttributeMap().put(Container.children, children);
+	}
+
+	public String getObjectURI() {
+		return ObjectURI;
+	}
+
+	public void setObjectURI(String objectURI) {
+		ObjectURI = objectURI;
+	}
+
+	@Deprecated
+	public void fromJson(byte[] bytes, boolean bool) {
+
+	}
+
+	@Deprecated
+	public String toJson(boolean bool) {
+		return null;
+	}
 }

@@ -32,6 +32,7 @@ package org.snia.cdmiserver.dao;
 
 import org.snia.cdmiserver.exception.ConflictException;
 import org.snia.cdmiserver.exception.NotFoundException;
+import org.snia.cdmiserver.model.CdmiObject;
 import org.snia.cdmiserver.model.Container;
 
 /**
@@ -41,63 +42,68 @@ import org.snia.cdmiserver.model.Container;
  */
 public interface ContainerDao {
 
-    /**
-     * <p>
-     * Create a container at the specified path. All intermediate containers must already exist.
-     * </p>
-     * 
-     * @param path
-     *            Path to the new {@link Container}
-     * 
-     * @exception ConflictException
-     *                if a container or data object at the specified path already exists
-     * @exception IllegalArgumentException
-     *                if an intermediate container does not exist
-     */
-    public Container createByPath(String path, Container containerRequest);
+	/**
+	 * <p>
+	 * Create a container at the specified path. All intermediate containers
+	 * must already exist.
+	 * </p>
+	 * 
+	 * @param path
+	 *            Path to the new {@link Container}
+	 * 
+	 * @exception ConflictException
+	 *                if a container or data object at the specified path
+	 *                already exists
+	 * @exception IllegalArgumentException
+	 *                if an intermediate container does not exist
+	 */
+	public CdmiObject createByPath(String path, Container containerRequest);
 
-    /**
-     * <p>
-     * Delete the container at the specified path.
-     * </p>
-     * 
-     * @param path
-     *            Path to the requested {@link Container}
-     * 
-     * @exception NotFoundException
-     *                if the specified path does not identify a valid resource
-     * @exception IllegalArgumentException
-     *                if the specified path identifies a data object instead of a container
-     */
-    public void deleteByPath(String path);
+	/**
+	 * <p>
+	 * Delete the container at the specified path.
+	 * </p>
+	 * 
+	 * @param path
+	 *            Path to the requested {@link Container}
+	 * 
+	 * @exception NotFoundException
+	 *                if the specified path does not identify a valid resource
+	 * @exception IllegalArgumentException
+	 *                if the specified path identifies a data object instead of
+	 *                a container
+	 */
+	public void deleteByPath(String path);
 
-    /**
-     * <p>
-     * Find and return a {@link Container} by object id, if any; otherwise, return <code>null</code>
-     * .
-     * </p>
-     * 
-     * @param objectId
-     *            Object ID of the requested {@link Container}
-     */
-    public Container findByObjectId(String objectId);
+	/**
+	 * <p>
+	 * Find and return a {@link Container} by object id, if any; otherwise,
+	 * return <code>null</code> .
+	 * </p>
+	 * 
+	 * @param objectId
+	 *            Object ID of the requested {@link Container}
+	 */
+	public CdmiObject findByObjectId(String objectId);
 
-    /**
-     * <p>
-     * Find and return a {@link Container} by path, if any; otherwise, return <code>null</code>.
-     * </p>
-     * 
-     * @param path
-     *            Path to the requested {@link Container}
-     * 
-     * @exception NotFoundException
-     *                if the specified path does not identify a valid resource
-     * @exception IllegalArgumentException
-     *                if the specified path identifies a data object instead of a container
-     */
-    public Container findByPath(String path);
+	/**
+	 * <p>
+	 * Find and return a {@link Container} by path, if any; otherwise, return
+	 * <code>null</code>.
+	 * </p>
+	 * 
+	 * @param path
+	 *            Path to the requested {@link Container}
+	 * 
+	 * @exception NotFoundException
+	 *                if the specified path does not identify a valid resource
+	 * @exception IllegalArgumentException
+	 *                if the specified path identifies a data object instead of
+	 *                a container
+	 */
+	public CdmiObject findByPath(String path);
 
-    //
-    public boolean isContainer(String path);
-    //
+	//
+	public boolean isContainer(String path);
+	//
 }

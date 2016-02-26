@@ -31,16 +31,9 @@
 
 package org.snia.cdmiserver.model;
 
-import java.io.InputStream;
-import java.io.StringWriter;
-import java.util.HashMap;
 import java.util.Map;
 
-import org.codehaus.jackson.JsonFactory;
-import org.codehaus.jackson.JsonGenerator;
-import org.codehaus.jackson.JsonParser;
-import org.codehaus.jackson.JsonToken;
-import org.snia.cdmiserver.exception.BadRequestException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,309 +42,189 @@ import org.slf4j.LoggerFactory;
  * Representation of a CDMI <em>DataObject</em>.
  * </p>
  */
-public class DataObject {
-    private static final Logger LOG = LoggerFactory.getLogger(DataObject.class);
+public class DataObject extends CdmiObject {
+	private static final Logger LOG = LoggerFactory.getLogger(DataObject.class);
 
-    // DataObject creation fields
-    private String mimetype;
-    private Map<String, String> metadata = new HashMap<String, String>();
-    private String deserialize;
-    private String serialize;
-    private String copy;
-    private String move;
-    private String reference;
-    private String value;
-    private byte[] binaryValue;
-    // DataObject representation fields
-    private String objectType;
-    private String objectID;
-    private String parentURI;
-    private String accountURI;
-    private String capabilitiesURI;
-    private String completionStatus;
-    private Integer percentComplete; // FIXME - Specification says String but that does not make
-                                     // sense
-    private String valuerange;
+	// DataObject creation fields
+	private static final String mimetype = "mimetype";
+	private static final String metadata = "metadata";
+	private static final String deserialize = "deserialize";
+	private static final String serialize = "serialize";
+	private static final String copy = "copy";
+	private static final String move = "move";
+	private static final String reference = "reference";
+	private static final String deserializevalue = "deserializevalue";
+	private static final String valuetransferencoding = "valuetransferencoding";
+	private static final String value = "value";
 
-    // Representation also includes "mimetype", "metadata", and "value" from creation fields
-    //
+	// DataObject representation fields
+	private static final String objectType = "objectType";
+	private static final String parentURI = "parentURI";
+	private static final String parentID = "parentID";
+	private static final String domainURI = "domainURI";
+	private static final String capabilitiesURI = "capabilitiesURI";
+	private static final String completionStatus = "completionStatus";
+	private static final String percentComplete = "percentComplete";
 
-    public String getMimetype() {
-        return mimetype;
-    }
+	public DataObject() {
+		super();
+	}
 
-    public void setMimetype(String mimetype) {
-        this.mimetype = mimetype;
-    }
+	public DataObject(JSONObject json) {
+		super(json);
+	}
 
-    public Map<String, String> getMetadata() {
-        return metadata;
-    }
+	public String getDeserializevalue() {
+		return (String) getAttributeMap().get(deserializevalue);
+	}
 
-    public void setMetadata(String key, String val) {
-        metadata.put(key, val);
-    }
+	public void setDeserializevalue(String deserializevalue) {
+		getAttributeMap().put(DataObject.deserializevalue, deserializevalue);
+	}
 
-    public String getDeserialize() {
-        return deserialize;
-    }
+	public String getValuetransferencoding() {
+		return (String) getAttributeMap().get(valuetransferencoding);
+	}
 
-    public void setDeserialize(String deserialize) {
-        this.deserialize = deserialize;
-    }
+	public void setValuetransferencoding(String valuetransferencoding) {
+		getAttributeMap().put(DataObject.valuetransferencoding, valuetransferencoding);
+	}
 
-    public String getSerialize() {
-        return serialize;
-    }
+	public String getParentID() {
+		return (String) getAttributeMap().get(parentID);
+	}
 
-    public void setSerialize(String serialize) {
-        this.serialize = serialize;
-    }
+	public void setParentID(String parentID) {
+		getAttributeMap().put(DataObject.parentID, parentID);
+	}
 
-    public String getCopy() {
-        return copy;
-    }
+	public String getDomainURI() {
+		return (String) getAttributeMap().get(domainURI);
+	}
 
-    public void setCopy(String copy) {
-        this.copy = copy;
-    }
+	public void setDomainURI(String domainURI) {
+		getAttributeMap().put(DataObject.domainURI, domainURI);
+	}
 
-    public String getMove() {
-        return move;
-    }
+	public String getMimetype() {
+		return (String) getAttributeMap().get(mimetype);
+	}
 
-    public void setMove(String move) {
-        this.move = move;
-    }
+	public void setMimetype(String mimetype) {
+		getAttributeMap().put(DataObject.mimetype, mimetype);
+	}
 
-    public String getReference() {
-        return reference;
-    }
+	public Map<String, String> getMetadata() {
+		return (Map<String, String>) getAttributeMap().get(metadata);
+	}
 
-    public void setReference(String reference) {
-        this.reference = reference;
-    }
+	public void setMetadata(Map<String, String> metadata) {
+		getAttributeMap().put(DataObject.metadata, metadata);
+	}
 
-    public String getValue() {
-        return value;
-    }
+	public String getDeserialize() {
+		return (String) getAttributeMap().get(deserialize);
+	}
 
-    public void setValue(String value) {
-        this.value = value;
-    }
+	public void setDeserialize(String deserialize) {
+		getAttributeMap().put(DataObject.deserialize, deserialize);
+	}
 
-    public String getObjectType() {
-        return objectType;
-    }
+	public String getSerialize() {
+		return (String) getAttributeMap().get(serialize);
+	}
 
-    public void setObjectType(String objectURI) {
-        this.objectType = objectURI;
-    }
+	public void setSerialize(String serialize) {
+		getAttributeMap().put(DataObject.serialize, serialize);
+	}
 
-    public String getObjectID() {
-        return objectID;
-    }
+	public String getCopy() {
+		return (String) getAttributeMap().get(copy);
+	}
 
-    public void setObjectID(String objectID) {
-        this.objectID = objectID;
-    }
+	public void setCopy(String copy) {
+		getAttributeMap().put(DataObject.copy, copy);
+	}
 
-    public String getParentURI() {
-        return parentURI;
-    }
+	public String getMove() {
+		return (String) getAttributeMap().get(move);
+	}
 
-    public void setParentURI(String parentURI) {
-        this.parentURI = parentURI;
-    }
+	public void setMove(String move) {
+		getAttributeMap().put(DataObject.move, move);
+	}
 
-    public String getAccountURI() {
-        return accountURI;
-    }
+	public String getReference() {
+		return (String) getAttributeMap().get(reference);
+	}
 
-    public void setAccountURI(String accountURI) {
-        this.accountURI = accountURI;
-    }
+	public void setReference(String reference) {
+		getAttributeMap().put(DataObject.reference, reference);
+	}
 
-    public String getCapabilitiesURI() {
-        return capabilitiesURI;
-    }
+	public String getValue() {
+		return (String) getAttributeMap().get(value);
+	}
 
-    public void setCapabilitiesURI(String capabilitiesURI) {
-        this.capabilitiesURI = capabilitiesURI;
-    }
+	public void setValue(String value) {
+		getAttributeMap().put(DataObject.value, value);
+	}
 
-    public String getCompletionStatus() {
-        return completionStatus;
-    }
+	public String getObjectType() {
+		return (String) getAttributeMap().get(objectType);
+	}
 
-    public void setCompletionStatus(String completionStatus) {
-        this.completionStatus = completionStatus;
-    }
+	public void setObjectType(String objectType) {
+		getAttributeMap().put(DataObject.objectType, objectType);
+	}
 
-    public Integer getPercentComplete() {
-        return percentComplete;
-    }
+	public String getObjectID() {
+		return super.getObjectId();
+	}
 
-    public void setPercentComplete(Integer percentComplete) {
-        this.percentComplete = percentComplete;
-    }
+	public void setObjectID(String objectID) {
+		super.setObjectId(objectID);
+	}
 
-    public String getValuerange() {
-        return valuerange;
-    }
+	public String getParentURI() {
+		return (String) getAttributeMap().get(parentURI);
+	}
 
-    public void setValuerange(String valuerange) {
-        this.valuerange = valuerange;
-    }
+	public void setParentURI(String parentURI) {
+		getAttributeMap().put(DataObject.parentURI, parentURI);
+	}
 
-    public String toJson() throws Exception {
-        //
-        StringWriter outBuffer = new StringWriter();
-        try {
-            JsonFactory f = new JsonFactory();
-            JsonGenerator g = f.createJsonGenerator(outBuffer);
-            g.useDefaultPrettyPrinter();
-            g.writeStartObject();
-            //
-            if (objectType != null)
-                g.writeStringField("objectType", objectType);
-            if (capabilitiesURI != null)
-                g.writeStringField("capabilitiesURI", capabilitiesURI);
-            if (objectID != null)
-                g.writeStringField("objectID", objectID);
-            if (mimetype != null)
-                g.writeStringField("mimetype", mimetype);
-            //
-            g.writeObjectFieldStart("metadata");
-            for (Map.Entry<String, String> entry : metadata.entrySet()) {
-                g.writeStringField(entry.getKey(), entry.getValue());
-            }
-            g.writeEndObject();
-            //
-            if (value != null)
-                g.writeStringField("valueRange", value.length() + "");
-            if (value != null)
-                g.writeStringField("value", value);
-            //
-            g.writeEndObject();
-            g.flush();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            throw ex;
-            // return ("Error : " + ex);
-        }
-        //
-        return outBuffer.toString();
-    }
+	public String getCapabilitiesURI() {
+		return (String) getAttributeMap().get(capabilitiesURI);
+	}
 
-    public String metadataToJson() throws Exception {
-        //
-        StringWriter outBuffer = new StringWriter();
-        try {
-            JsonFactory f = new JsonFactory();
-            JsonGenerator g = f.createJsonGenerator(outBuffer);
-            g.useDefaultPrettyPrinter();
-            g.writeStartObject();
-            // get top level metadata
-            if (objectType != null)
-                g.writeStringField("objectType", objectType);
-            if (capabilitiesURI != null)
-                g.writeStringField("capabilitiesURI", capabilitiesURI);
-            if (objectID != null)
-                g.writeStringField("objectID", objectID);
-            if (mimetype != null)
-                g.writeStringField("mimetype", mimetype);
-            //
-            g.writeObjectFieldStart("metadata");
-            for (Map.Entry<String, String> entry : metadata.entrySet()) {
-                g.writeStringField(entry.getKey(), entry.getValue());
-            }
-            g.writeEndObject();
-            //
-            g.writeEndObject();
-            g.flush();
-        } catch (Exception ex) {
-            ex.printStackTrace();
-            throw ex;
-            // return ("Error : " + ex);
-        }
-        //
-        return outBuffer.toString();
-    }
+	public void setCapabilitiesURI(String capabilitiesURI) {
+		getAttributeMap().put(DataObject.capabilitiesURI, capabilitiesURI);
+	}
 
-    public void fromJson(InputStream jsonIs, boolean fromFile) throws Exception {
-        JsonFactory f = new JsonFactory();
-        JsonParser jp = f.createJsonParser(jsonIs);
-        fromJson(jp, fromFile);
-    }
+	public String getCompletionStatus() {
+		return (String) getAttributeMap().get(completionStatus);
+	}
 
-    public void fromJson(byte[] jsonBytes, boolean fromFile) throws Exception {
-        JsonFactory f = new JsonFactory();
-        JsonParser jp = f.createJsonParser(jsonBytes);
-        fromJson(jp, fromFile);
-    }
+	public void setCompletionStatus(String completionStatus) {
+		getAttributeMap().put(DataObject.completionStatus, completionStatus);
+	}
 
-    private void fromJson(JsonParser jp, boolean fromFile) throws Exception {
-        JsonToken tolkein;
-        tolkein = jp.nextToken();// START_OBJECT
-        while ((tolkein = jp.nextToken()) != JsonToken.END_OBJECT) {
-            String key = jp.getCurrentName();
-            if ("metadata".equals(key)) {// process metadata
-                tolkein = jp.nextToken();
-                while ((tolkein = jp.nextToken()) != JsonToken.END_OBJECT) {
-                    key = jp.getCurrentName();
-                    tolkein = jp.nextToken();
-                    String value = jp.getText();
-                    LOG.trace("   Key = {} : Value = {}", key, value);
-                    this.setMetadata(key, value);
-                    // jp.nextToken();
-                }// while
-            } else if ("value".equals(key)) { // process value
-                jp.nextToken();
-                String value1 = jp.getText();
-                LOG.trace("Key : {} Val : {}", key, value1);
-                this.setValue(value1);
-            } else if ("mimetype".equals(key)) { // process mimetype
-                jp.nextToken();
-                String value2 = jp.getText();
-                LOG.trace("Key : {} Val : {}", key, value2);
-                this.setMimetype(value2);
-            } else {
-                if (fromFile) { // accept rest of key-values
-                    if ("objectType".equals(key)) {
-                        jp.nextToken();
-                        String value2 = jp.getText();
-                        LOG.trace("Key : {} Val : {}", key, value2);
-                        this.setObjectType(value2);
-                    } else if ("capabilitiesURI".equals(key)) {
-                        jp.nextToken();
-                        String value2 = jp.getText();
-                        LOG.trace("Key : {} Val : {}", key, value2);
-                        this.setCapabilitiesURI(value2);
-                    } else if ("objectID".equals(key)) { // process value
-                        jp.nextToken();
-                        String value2 = jp.getText();
-                        LOG.trace("Key : {} Val : {}", key, value2);
-                        this.setObjectID(value2);
-                    } else if ("valueRange".equals(key)) { // process value
-                        jp.nextToken();
-                        String value2 = jp.getText();
-                        LOG.trace("Key : {} Val : {}", key, value2);
-                        this.setValuerange(value2);
-                    } else {
-                        LOG.warn("Invalid Key : {}", key);
-                        throw new BadRequestException("Invalid Key : " + key);
-                    } // inner if
-                } else {
-                    LOG.warn("Invalid Key : {}", key);
-                    throw new BadRequestException("Invalid Key : " + key);
-                }
-            }
-        }
-    }
+	public String getPercentComplete() {
+		return (String) getAttributeMap().get(percentComplete);
+	}
 
+	public void setPercentComplete(String percentComplete) {
+		getAttributeMap().put(DataObject.percentComplete, percentComplete);
+	}
 
-    public void setValue(byte[] bytes) {
-        this.value = new String(bytes);
-    }
+	@Deprecated
+	public void fromJson(byte[] bytes, boolean bool) {
+
+	}
+
+	@Deprecated
+	public String toJson(boolean bool) {
+		return null;
+	}
 }

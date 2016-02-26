@@ -28,601 +28,156 @@
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
  *  THE POSSIBILITY OF SUCH DAMAGE.
  */
+/*   Copyright 2016 Karlsruhe Institute of Technology (KIT)
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+ */
 package org.snia.cdmiserver.dao.filesystem;
 
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Map;
+import java.io.IOException;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-import org.snia.cdmiserver.dao.ContainerDao;
-import org.snia.cdmiserver.exception.BadRequestException;
-import org.snia.cdmiserver.exception.NotFoundException;
-import org.snia.cdmiserver.model.Container;
-import org.snia.cdmiserver.util.ObjectID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.snia.cdmiserver.dao.ContainerDao;
+import org.snia.cdmiserver.exception.ConflictException;
+import org.snia.cdmiserver.exception.NotFoundException;
+import org.snia.cdmiserver.model.CdmiObject;
+import org.snia.cdmiserver.model.Container;
+import org.snia.cdmiserver.util.MediaTypes;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 /**
  * <p>
- * Concrete implementation of {@link ContainerDao} using the local filesystem as the backing store.
+ * Concrete implementation of {@link ContainerDao} using the local filesystem as
+ * the backing store.
  * </p>
  */
+@Component
 public class ContainerDaoImpl implements ContainerDao {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ContainerDaoImpl.class);
-
-    //
-    // Properties and Dependency Injection Methods
-    //
-    private String baseDirectoryName = null;
-
-    /**
-     * <p>
-     * Set the base directory name for our local storage.
-     * </p>
-     *
-     * @param baseDirectory
-     *            The new base directory name
-     */
-    public void setBaseDirectoryName(String baseDirectoryName) {
-        this.baseDirectoryName = baseDirectoryName;
-    }
-
-    private boolean recreate = false;
-
-    /**
-     * <p>
-     * Set the "recreate on first use" flag that (if set) will cause any previous contents of the
-     * base directory to be erased on first access. Default value for this flag is
-     * <code>false</code>.
-     * </p>
-     *
-     * @param recreate
-     *            The new recreate flag value
-     */
-    public void setRecreate(boolean recreate) {
-        this.recreate = recreate;
-    }
-
-    //
-    // ContainerDao Methods invoked from PathResource
-    //
-    @Override
-    public Container createByPath(String path, Container containerRequest) {
-
-        //
-        // The User metadata and exports have already been de-serialized into the
-        // passed Container in PathResource.putContainer()
-        //
-
-        File directory = absoluteFile(path);
-
-        File containerFieldsFile = getContainerFieldsFile(path);
-
-        if (containerRequest.getMove() == null) { // This is a normal Create or Update
-
-            //
-            // Setup ISO-8601 Date
-            //
-            Date now = new Date();
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-
-            //
-            // Underlying Directory existence determines whether this is a Create or
-            // Update.
-            //
-
-            if (!directory.exists()) { // Creating Container
-
-                if (!directory.mkdir()) {
-                    throw new IllegalArgumentException("Cannot create container '" + path + "'");
-                }
-
-                String objectID = ObjectID.getObjectID(9);// System.nanoTime()+"";
-                containerRequest.setObjectID(objectID);
-
-                //
-                // TODO: Use Parent capabiltiesURI if not specified in create body
-                //
-
-                containerRequest.setCapabilitiesURI("/cdmi_capabilities/container/default");
-
-                //
-                // TODO: Use Parent Domain if not specified in create body
-                //
-                if (containerRequest.getDomainURI() == null)
-                    containerRequest.setDomainURI("/cdmi_domains/default_domain");
-
-                Map<String, Object> exports = containerRequest.getExports();
-                if (exports.containsKey("OCCI/NFS")) {
-                    // Export this directory (OpenSolaris only so far)
-                    // Runtime runtime = Runtime.getRuntime();
-                    // String exported =
-                    // "pfexec share -f nfs -o rw=10.1.254.117:10.1.254.122:10.1.254.123:10.1.254.124:10.1.254.125:10.1.254.126:10.1.254.127 "
-                    // + containerFieldsFile.getAbsolutePath();
-                    // runtime.exec(exported);
-                }
-
-                containerRequest.getMetadata().put("cdmi_ctime", sdf.format(now));
-                containerRequest.getMetadata().put("cdmi_mtime", "never");
-                containerRequest.getMetadata().put("cdmi_atime", "never");
-                containerRequest.getMetadata().put("cdmi_acount", "0");
-                containerRequest.getMetadata().put("cdmi_mcount", "0");
-
-            } else { // Updating Container
-
-                //
-                // Read the persistent metatdata from the "." file
-                //
-                Container currentContainer = getPersistedContainerFields(containerFieldsFile);
-
-                containerRequest.setObjectID(currentContainer.getObjectID());
-
-                //
-                // TODO: Need to handle update of Domain
-                //
-
-                Map<String, Object> exports = containerRequest.getExports();
-                if (exports.containsKey("OCCI/NFS")) {
-                    if (currentContainer.getExports().containsKey("OCCI/NFS")) {
-                        // Do nothing - already exported
-                    } else {
-                        // Export this directory (OpenSolaris only so far)
-                        // Runtime runtime = Runtime.getRuntime();
-                        // String exported =
-                        // "pfexec share -f nfs -o rw=10.1.254.117:10.1.254.122:10.1.254.123:10.1.254.124:10.1.254.125:10.1.254.126:10.1.254.127"
-                        // + containerFieldsFile.getAbsolutePath();
-                        // runtime.exec(exported);
-                    }
-                }
-
-                containerRequest.getMetadata().put(
-                        "cdmi_ctime",
-                        currentContainer.getMetadata().get("cdmi_ctime"));
-                containerRequest.getMetadata().put(
-                        "cdmi_atime",
-                        currentContainer.getMetadata().get("cdmi_atime"));
-                containerRequest.getMetadata().put("cdmi_mtime", sdf.format(now));
-            }
-
-            //
-            // Write created or updated persisted fields out to the "." file
-            //
-
-            try {
-                FileWriter fstream = new FileWriter(containerFieldsFile.getAbsolutePath());
-                BufferedWriter out = new BufferedWriter(fstream);
-                out.write(containerRequest.toJson(true)); // Save it
-                out.close();
-            } catch (Exception ex) {
-                LOG.error("Exception while writing", ex);
-                throw new IllegalArgumentException("Cannot write container fields file @"
-                                                   + path
-                                                   + " error : "
-                                                   + ex);
-            }
-
-            //
-            // Transient fields
-            //
-            containerRequest.setCompletionStatus("Complete");
-
-            //
-            // Complete response with fields dynamically generated from directory info.
-            //
-
-            return completeContainer(containerRequest, directory, path);
-
-        } else { // Moving a Container
-
-            if (directory.exists()) {
-                throw new IllegalArgumentException("Cannot move container '"
-                                                   + containerRequest.getMove()
-                                                   + "' to '"
-                                                   + path
-                                                   + "'; Destination already exists");
-            }
-
-            File sourceContainerFile = absoluteFile(containerRequest.getMove());
-
-            if (!sourceContainerFile.exists()) {
-                throw new NotFoundException("Path '"
-                                            + directory.getAbsolutePath()
-                                            + "' does not identify an existing container");
-            }
-            if (!sourceContainerFile.isDirectory()) {
-                throw new IllegalArgumentException("Path '"
-                                                   + directory.getAbsolutePath()
-                                                   + "' does not identify a container");
-            }
-
-            //
-            // Move Container directory
-            //
-
-            sourceContainerFile.renameTo(directory);
-
-            //
-            // Move Container's Metadata .file
-            //
-
-            File sourceContainerFieldsFile = getContainerFieldsFile(containerRequest.getMove());
-
-            sourceContainerFieldsFile.renameTo(containerFieldsFile);
-
-            //
-            // Get the containers field's to return in response
-            //
-
-            Container movedContainer = getPersistedContainerFields(containerFieldsFile);
-
-            //
-            // If the request has a metadata field, replace any metadata filed in the source
-            // Container
-            //
-
-            if (!containerRequest.getMetadata().isEmpty()) {
-                String cdmi_ctime = movedContainer.getMetadata().get("cdmi_ctime");
-                String cdmi_mtime = movedContainer.getMetadata().get("cdmi_mtime");
-                String cdmi_atime = movedContainer.getMetadata().get("cdmi_atime");
-                String cdmi_acount = movedContainer.getMetadata().get("cdmi_acount");
-                String cdmi_mcount = movedContainer.getMetadata().get("cdmi_mcount");
-
-                movedContainer.setMetaData(containerRequest.getMetadata());
-
-                movedContainer.getMetadata().put("cdmi_ctime", cdmi_ctime);
-                movedContainer.getMetadata().put("cdmi_mtime", cdmi_mtime);
-                movedContainer.getMetadata().put("cdmi_atime", cdmi_atime);
-                movedContainer.getMetadata().put("cdmi_acount", cdmi_acount);
-                movedContainer.getMetadata().put("cdmi_mcount", cdmi_mcount);
-
-                //
-                // Write created or updated persisted fields out to the "." file
-                //
-
-                try {
-                    FileWriter fstream = new FileWriter(containerFieldsFile.getAbsolutePath());
-                    BufferedWriter out = new BufferedWriter(fstream);
-                    out.write(containerRequest.toJson(true)); // Save it
-                    out.close();
-                } catch (Exception ex) {
-                    LOG.error("Exception while writing", ex);
-                    throw new IllegalArgumentException("Cannot write container fields file @"
-                                                       + path
-                                                       + " error : "
-                                                       + ex);
-                }
-
-            }
-
-            //
-            // Transient fields
-            //
-
-            movedContainer.setCompletionStatus("Complete");
-
-            //
-            // Complete response with fields dynamically generated from directory info.
-            //
-
-            return completeContainer(movedContainer, directory, path);
-        }
-
-    }
-
-    //
-    // For now this method supports both Container and Object delete.
-    //
-    // Improper requests directed at the root container are not routed here by
-    // PathResource.
-    //
-    @Override
-    public void deleteByPath(String path) {
-        File directoryOrFile = absoluteFile(path);
-
-        //
-
-        if (directoryOrFile.isDirectory()) {
-            recursivelyDelete(directoryOrFile);
-        } else {
-            directoryOrFile.delete();
-        }
-
-        //
-        // remove the "." file that contains the Container or Object's JSON-encoded
-        // metadata
-        //
-        getContainerFieldsFile(path).delete();
-    }
-
-    //
-    // Not Implemented
-    //
-    @Override
-    public Container findByObjectId(String objectId) {
-        throw new UnsupportedOperationException("ContainerDaoImpl.findByObjectId()");
-    }
-
-    //
-    //
-    //
-    @Override
-    public Container findByPath(String path) {
-
-        LOG.trace("In ContainerDAO.findByPath : {}", path);
-
-        File directory = absoluteFile(path);
-
-        if (!directory.exists()) {
-            throw new NotFoundException("Path '"
-                                        + directory.getAbsolutePath()
-                                        + "' does not identify an existing container");
-        }
-        if (!directory.isDirectory()) {
-            throw new IllegalArgumentException("Path '"
-                                               + directory.getAbsolutePath()
-                                               + "' does not identify a container");
-        }
-
-        Container requestedContainer = new Container();
-
-        if (path != null) {
-
-            //
-            // Read the persisted container fields from the "." file
-            //
-            requestedContainer = getPersistedContainerFields(getContainerFieldsFile(path));
-
-        } else {
-
-            //
-            // if this is the root container there is no "." metadata file up one level.
-            // Dynamically generate the default values
-            //
-
-            requestedContainer.setCapabilitiesURI("/cdmi_capabilities/container/default");
-            requestedContainer.setDomainURI("/cdmi_domains/default_domain");
-        }
-
-        return completeContainer(requestedContainer, directory, path);
-    }
-
-    //
-    // Private Helper Methods
-    //
-    /**
-     * <p>
-     * Return a {@link File} instance for the container fields file object.
-     * </p>
-     *
-     * @param path
-     *            Path of the requested container.
-     */
-    private File getContainerFieldsFile(String path) {
-        // path should be /<parent container name>/<container name>
-        String[] tokens = path.split("[/]+");
-        if (tokens.length < 1) {
-            throw new BadRequestException("No object name in path <" + path + ">");
-        }
-        String containerName = tokens[tokens.length - 1];
-        String containerFieldsFileName = "." + containerName;
-        // piece together parent container name
-        // FIXME : This is the kludge way !
-        String parentContainerName = "";
-        for (int i = 0; i <= tokens.length - 2; i++) {
-            parentContainerName += tokens[i] + "/";
-        }
-        LOG.trace("Path = {}", path);
-        LOG.trace("Parent Container Name = {} Container Name == {}",
-                           parentContainerName, containerName);
-
-
-        File baseDirectory1, parentContainerDirectory, containerFieldsFile;
-        try {
-            LOG.trace("baseDirectory = {}", baseDirectoryName);
-            baseDirectory1 = new File(baseDirectoryName + "/");
-            LOG.trace("Base Directory Absolute Path = {}", baseDirectory1.getAbsolutePath());
-            parentContainerDirectory = new File(baseDirectory1, parentContainerName);
-            //
-            LOG.trace("Parent Container Absolute Path = {}",
-                               parentContainerDirectory.getAbsolutePath());
-            //
-            containerFieldsFile = new File(parentContainerDirectory, containerFieldsFileName);
-            LOG.trace("Container Metadata File Path = {}",
-                               containerFieldsFile.getAbsolutePath());
-        } catch (Exception ex) {
-            LOG.error("Exception while building File objects: ", ex);
-            throw new IllegalArgumentException("Cannot build Object @" + path + " error : " + ex);
-        }
-        return containerFieldsFile;
-    }
-
-    /**
-     * <p>
-     * Return a {@link Container} instance for the container fields.
-     * </p>
-     *
-     * @param containerFieldsFile
-     *            File object for the container fields file.
-     */
-    private Container getPersistedContainerFields(File containerFieldsFile) {
-        Container containerFields = new Container();
-        try {
-            FileInputStream in = new FileInputStream(containerFieldsFile.getAbsolutePath());
-            int inpSize = in.available();
-            LOG.trace("Container fields file size: {}", inpSize);
-
-            byte[] inBytes = new byte[inpSize];
-            in.read(inBytes);
-
-            containerFields.fromJson(inBytes, true);
-            String mds = new String(inBytes);
-            LOG.trace("Container fields read were: {}", mds);
-
-            // Close the output stream
-            in.close();
-        } catch (Exception ex) {
-            LOG.error("Exception while reading: ", ex);
-            throw new IllegalArgumentException("Cannot read container fields file error : " + ex);
-        }
-        return containerFields;
-    }
-
-    /**
-     * <p>
-     * Return a {@link File} instance for the file or directory at the specified path from our base
-     * directory.
-     * </p>
-     *
-     * @param path
-     *            Path of the requested file or directory.
-     */
-    public File absoluteFile(String path) {
-        if (path == null) {
-            return baseDirectory();
-        } else {
-            return new File(baseDirectory(), path);
-        }
-    }
-
-    private File baseDirectory = null;
-
-    /**
-     * <p>
-     * Return a {@link File} instance for the base directory, erasing any previous content on first
-     * use if the <code>recreate</code> flag has been set.
-     * </p>
-     *
-     * @exception IllegalArgumentException
-     *                if we cannot create the base directory
-     */
-    private File baseDirectory() {
-        if (baseDirectory == null) {
-            baseDirectory = new File(baseDirectoryName);
-            if (recreate) {
-                recursivelyDelete(baseDirectory);
-                if (!baseDirectory.mkdirs()) {
-                    throw new IllegalArgumentException("Cannot create base directory '"
-                                                       + baseDirectoryName
-                                                       + "'");
-                }
-            }
-        }
-        return baseDirectory;
-    }
-
-    /**
-     * <p>
-     * Return the {@link Container} identified by the specified <code>path</code>.
-     * </p>
-     *
-     * @param container
-     *            The requested container with persisted fields
-     * @param directory
-     *            Directory of the requested container
-     * @param path
-     *            Path of the requested container
-     *
-     * @exception NotFoundException
-     *                if the specified path does not identify a valid resource
-     * @exception IllegalArgumentException
-     *                if the specified path identifies a data object instead of a container
-     */
-    private Container completeContainer(Container container, File directory, String path) {
-        LOG.trace("In ContainerDaoImpl.Container, path is: {}", path);
-
-        LOG.trace("In ContainerDaoImpl.Container, absolute path is: {}",
-                           directory.getAbsolutePath());
-
-
-        container.setObjectType("application/cdmi-container");
-
-
-
-        //
-        // Derive ParentURI
-        //
-
-        String parentURI = "/";
-
-        if (path != null) {
-            String[] tokens = path.split("[/]+");
-            String containerName = tokens[tokens.length - 1];
-            // FIXME : This is the kludge way !
-            for (int i = 0; i <= tokens.length - 2; i++) {
-                parentURI += tokens[i] + "/";
-            }
-            LOG.trace("In ContainerDaoImpl.Container, ParentURI = {}"
-                               + " Container Name = {}", parentURI, containerName);
-            // Check for illegal top level container names
-            if (parentURI.matches("/") && containerName.startsWith("cdmi")) {
-                throw new BadRequestException("Root container names must not start with cdmi");
-            }
-        }
-
-        container.setParentURI(parentURI);
-
-        //
-        // Add children containers and/or objects representing subdirectories or
-        // files
-        //
-
-        List<String> children = container.getChildren();
-
-        for (File file : directory.listFiles()) {
-            String name = file.getName();
-            if (file.isDirectory()) {
-                children.add(name + "/");
-            } else {
-                if (!file.getName().startsWith(".")) {
-                    children.add(name);
-                }
-            }
-        }
-
-        if (children.size() > 0) {
-            // has children - set the range
-            int lastindex = children.size() - 1;
-            String childrange = "0-" + lastindex;
-            container.setChildrenrange(childrange);
-        }
-
-        return container;
-    }
-
-    /**
-     * <p>
-     * Delete the specified directory, after first recursively deleting any contents within it.
-     * </p>
-     *
-     * @param directory
-     *            {@link File} identifying the directory to be deleted
-     */
-    private void recursivelyDelete(File directory) {
-        for (File file : directory.listFiles()) {
-            if (file.isDirectory()) {
-                recursivelyDelete(file);
-            } else {
-                file.delete();
-            }
-        }
-        directory.delete();
-    }
-
-    //
-
-    @Override
-    public boolean isContainer(String path) {
-        File directoryOrFile = absoluteFile(path);
-        if (directoryOrFile.isDirectory()) {
-            return true;
-        } else {
-            return false;
-        }
-    }
+	private static final Logger LOG = LoggerFactory.getLogger(ContainerDaoImpl.class);
+
+	@Value("${cdmi.capabilitiesUri}")
+	private String capabilitiesUri;
+
+	@Value("${cdmi.domainUri}")
+	private String domainUri;
+
+	@Value("${cdmi.data.baseDirectory}")
+	private String baseDirectoryName;
+
+	@Autowired
+	private CdmiObjectDaoImpl cdmiObjectDaoImpl;
+
+	@Override
+	public CdmiObject createByPath(String path, Container containerRequest) {
+		LOG.debug("create container {} {}", path.trim(), containerRequest.toString());
+
+		Container container = (Container) cdmiObjectDaoImpl.createCdmiObject(new Container());
+
+		if (container != null) {
+			Path containerPath = Paths.get(baseDirectoryName.trim(), path.trim());
+			Path relPath = Paths.get(path.trim());
+			try {
+				Path directory = Files.createDirectory(containerPath);
+				LOG.debug("created directory {}", directory.toString());
+
+				CdmiObject parentObject = cdmiObjectDaoImpl.getCdmiObjectByPath(directory.getParent().toString());
+				LOG.debug("parent object {}", parentObject.toString());
+
+				container.setObjectType(MediaTypes.CONTAINER);
+				container.setObjectName(directory.getFileName().toString());
+				container.setParentURI(relPath.getParent().toString());
+				container.setParentID(parentObject.getObjectId());
+				container.setCapabilitiesURI(capabilitiesUri);
+				container.setDomainURI(domainUri);
+				container.setMetadata(containerRequest.getMetadata());
+
+				// optional
+				// container.setPercentComplete(percentComplete);
+				// container.setExports(exports);
+				// container.setSnapshots(snapshots);
+				// container.setChildrenrange(childrenrange);
+				// container.setChildren(children);
+
+				container.setCompletionStatus("Complete");
+
+				cdmiObjectDaoImpl.updateCdmiObject(container);
+
+				if (cdmiObjectDaoImpl.createCdmiObject(container, directory.toString()) == null)
+					cdmiObjectDaoImpl.updateCdmiObject(container, directory.toString());
+
+				return container;
+			} catch (FileAlreadyExistsException e) {
+				LOG.warn("object alredy exists");
+				cdmiObjectDaoImpl.deleteCdmiObject(container.getObjectID());
+				throw new ConflictException("object already exists");
+			} catch (IOException e) {
+				LOG.error("ERROR: {}", e.getMessage());
+				cdmiObjectDaoImpl.deleteCdmiObject(container.getObjectID());
+				throw new NotFoundException("resource was not found at the specified uri");
+			} catch (Exception e) {
+				LOG.error("ERROR: {}", e.getMessage());
+				cdmiObjectDaoImpl.deleteCdmiObject(container.getObjectID());
+			}
+		}
+		return null;
+	}
+
+	@Override
+	public void deleteByPath(String path) {
+		LOG.debug("delete container {}", path.trim());
+		Path containerPath = Paths.get(baseDirectoryName.trim(), path.trim());
+
+		Container container = (Container) cdmiObjectDaoImpl.getCdmiObjectByPath(containerPath.toString());
+
+		if (container != null) {
+			try {
+				LOG.debug("delete directory {}", containerPath.toString());
+				Files.delete(containerPath);
+
+				cdmiObjectDaoImpl.deleteCdmiObject(container.getObjectId());
+				cdmiObjectDaoImpl.deleteCdmiObjectByPath(containerPath.toString());
+
+			} catch (NoSuchFileException e) {
+				LOG.warn("container not found");
+				throw new NotFoundException("container not found");
+			} catch (DirectoryNotEmptyException e) {
+				LOG.warn("container not empty");
+			} catch (IOException e) {
+				LOG.error("ERROR: {}", e.getMessage());
+			} catch (Exception e) {
+				LOG.error("ERROR: {}", e.getMessage());
+			}
+		}
+	}
+
+	@Override
+	public Container findByObjectId(String objectId) {
+		return (Container) cdmiObjectDaoImpl.getCdmiObject(objectId);
+	}
+
+	@Override
+	public Container findByPath(String path) {
+		Path containerPath = Paths.get(baseDirectoryName.trim(), path.trim());
+		return (Container) cdmiObjectDaoImpl.getCdmiObjectByPath(containerPath.toString());
+	}
+
+	@Override
+	public boolean isContainer(String path) {
+		Path containerPath = Paths.get(baseDirectoryName.trim(), path.trim());
+		return Files.isDirectory(containerPath);
+	}
 }

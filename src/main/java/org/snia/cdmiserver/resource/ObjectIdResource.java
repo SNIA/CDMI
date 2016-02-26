@@ -48,6 +48,7 @@ import javax.ws.rs.core.Response;
 import org.snia.cdmiserver.dao.DataObjectDao;
 import org.snia.cdmiserver.model.DataObject;
 import org.snia.cdmiserver.util.MediaTypes;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * <p>
@@ -58,101 +59,96 @@ import org.snia.cdmiserver.util.MediaTypes;
 @Path("cdmi_objectid/{objectId}")
 // How will URL get here ? TBD
 public class ObjectIdResource {
-    private static final Logger LOG = LoggerFactory.getLogger(ObjectIdResource.class);
+	private static final Logger LOG = LoggerFactory.getLogger(ObjectIdResource.class);
 
-    private DataObjectDao dObjDao;// = new DataObjectDaoImpl();
+	@Autowired
+	private DataObjectDao dObjDao;// = new DataObjectDaoImpl();
 
-    //
-    public void setDataObjectDao(DataObjectDao dataObjectDao) {
-        this.dObjDao = dataObjectDao;
-    }
+	//
+	// public void setDataObjectDao(DataObjectDao dataObjectDao) {
+	// this.dObjDao = dataObjectDao;
+	// }
 
-    /**
-     * <p>
-     * [7.5.8] Get Container By Object Id
-     * </p>
-     *
-     * @param objectId
-     *            Object ID of the requested {@link Container}
-     */
+	/**
+	 * <p>
+	 * [7.5.8] Get Container By Object Id
+	 * </p>
+	 *
+	 * @param objectId
+	 *            Object ID of the requested {@link Container}
+	 */
 
+	/*
+	 * @GET
+	 *
+	 * @Produces(MediaTypes.CONTAINER) public Response
+	 * getContainer(@PathParam("objectId") String objectId) { throw new
+	 * UnsupportedOperationException("ObjectIdResource.getContainer()"); }
+	 */
 
-    /*
-     * @GET
-     *
-     * @Produces(MediaTypes.CONTAINER) public Response getContainer(@PathParam("objectId") String
-     * objectId) { throw new UnsupportedOperationException("ObjectIdResource.getContainer()"); }
-     */
+	/**
+	 * <p>
+	 * [7.4.8] Get Data Object By Object Id
+	 * </p>
+	 *
+	 * @param objectId
+	 *            Object ID of the requested {@link DataObject}
+	 */
+	@GET
+	@Consumes(MediaTypes.DATA_OBJECT)
+	@Produces(MediaTypes.DATA_OBJECT)
+	public Response getDataObjectByID(@PathParam("objectId") String objectId, @Context HttpHeaders headers) {
+		// print headers for debug
+		if (LOG.isDebugEnabled()) {
+			for (String hdr : headers.getRequestHeaders().keySet()) {
+				LOG.debug("{} - {}", hdr, headers.getRequestHeader(hdr));
+			}
+		}
+		LOG.debug("Get Object ID = {}", objectId);
 
-    /**
-     * <p>
-     * [7.4.8] Get Data Object By Object Id
-     * </p>
-     *
-     * @param objectId
-     *            Object ID of the requested {@link DataObject}
-     */
-    @GET
-    @Consumes(MediaTypes.DATA_OBJECT)
-    @Produces(MediaTypes.DATA_OBJECT)
-    public Response getDataObjectByID(
-            @PathParam("objectId") String objectId,
-            @Context HttpHeaders headers) {
-        // print headers for debug
-        if (LOG.isDebugEnabled()) {
-            for (String hdr : headers.getRequestHeaders().keySet()) {
-                LOG.debug("{} - {}", hdr, headers.getRequestHeader(hdr));
-            }
-        }
-        LOG.debug("Get Object ID = {}", objectId);
+		String path = "object_id/" + objectId;
+		PathResource pathResource = new PathResource();
+		return pathResource.getContainerOrDataObject(path, headers);
+	}
 
-        String path = "object_id/" + objectId;
-        PathResource pathResource = new PathResource();
-        return pathResource.getContainerOrDataObject(path,headers);
-    }
+	@PUT
+	// @Consumes("application/json")
+	@Consumes(MediaTypes.DATA_OBJECT)
+	@Produces(MediaTypes.DATA_OBJECT)
+	public Response updateDataObject(@Context HttpHeaders headers, @PathParam("objectId") String objectId,
+			byte[] bytes) {
+		// print headers for debug
+		if (LOG.isDebugEnabled()) {
+			for (String hdr : headers.getRequestHeaders().keySet()) {
+				LOG.debug("{} - {}", hdr, headers.getRequestHeader(hdr));
+			}
 
-    @PUT
-    // @Consumes("application/json")
-    @Consumes(MediaTypes.DATA_OBJECT)
-    @Produces(MediaTypes.DATA_OBJECT)
-    public Response updateDataObject(
-            @Context HttpHeaders headers,
-            @PathParam("objectId") String objectId,
-            byte[] bytes) {
-        // print headers for debug
-        if (LOG.isDebugEnabled()) {
-            for (String hdr : headers.getRequestHeaders().keySet()) {
-                LOG.debug("{} - {}", hdr, headers.getRequestHeader(hdr));
-            }
+			String inBuffer = new String(bytes);
+			LOG.debug("Object Id = {} {}", objectId, inBuffer);
+		}
+		PathResource pathResource = new PathResource();
+		String objectPath = "object_id" + "/" + objectId;
+		Response resp = pathResource.putDataObject(headers, objectPath, bytes);
+		return resp;
+	}
 
-            String inBuffer = new String(bytes);
-            LOG.debug("Object Id = {} {}", objectId, inBuffer);
-        }
-        PathResource pathResource = new PathResource();
-        String objectPath = "object_id" + "/" + objectId;
-        Response resp = pathResource.putDataObject(headers,objectPath,bytes);
-        return resp;
-    }
-
-    @POST
-    // @Consumes("application/json")
-    @Consumes(MediaTypes.DATA_OBJECT)
-    @Produces(MediaTypes.DATA_OBJECT)
-    public Response createDataObject(
-            @Context HttpHeaders headers,
-            @PathParam("objectId") String objectId,
-            byte[] bytes) {
-        // print headers for debug
-        if (LOG.isDebugEnabled()) {
-            for (String hdr : headers.getRequestHeaders().keySet()) {
-                LOG.debug("{} - {}", hdr, headers.getRequestHeader(hdr));
-            }
-            String inBuffer = new String(bytes);
-            LOG.debug("Object Id = {} {}", objectId, inBuffer);
-        }
-        PathResource pathResource = new PathResource();
-        String objectPath = "object_id" + "/" + objectId;
-        Response resp = pathResource.postDataObject(objectPath,bytes);
-        return resp;
-  }
+	@POST
+	// @Consumes("application/json")
+	@Consumes(MediaTypes.DATA_OBJECT)
+	@Produces(MediaTypes.DATA_OBJECT)
+	public Response createDataObject(@Context HttpHeaders headers, @PathParam("objectId") String objectId,
+			byte[] bytes) {
+		// print headers for debug
+		if (LOG.isDebugEnabled()) {
+			for (String hdr : headers.getRequestHeaders().keySet()) {
+				LOG.debug("{} - {}", hdr, headers.getRequestHeader(hdr));
+			}
+			String inBuffer = new String(bytes);
+			LOG.debug("Object Id = {} {}", objectId, inBuffer);
+		}
+		PathResource pathResource = new PathResource();
+		String objectPath = "object_id" + "/" + objectId;
+		Response resp = pathResource.postDataObject(objectPath, bytes);
+		return resp;
+	}
 }
