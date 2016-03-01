@@ -86,12 +86,15 @@ public class Container extends CdmiObject {
 	}
 
 	public Map<String, Object> getMetadata() {
-		JSONObject json = (JSONObject) getAttributeMap().get(metadata);
-		HashMap<String, Object> map = new HashMap<>();
-		for (Object key : json.keySet()) {
-			map.put((String) key, json.get((String) key));
+		if (getAttributeMap().get(metadata) != null) {
+			JSONObject json = (JSONObject) getAttributeMap().get(metadata);
+			HashMap<String, Object> map = new HashMap<>();
+			for (Object key : json.keySet()) {
+				map.put((String) key, json.get((String) key));
+			}
+			return map;
 		}
-		return map;
+		return null;
 	}
 
 	public void setMetadata(Map<String, Object> metadata) {
@@ -99,12 +102,15 @@ public class Container extends CdmiObject {
 	}
 
 	public Map<String, Object> getExports() {
-		JSONObject json = (JSONObject) getAttributeMap().get(exports);
-		HashMap<String, Object> map = new HashMap<>();
-		for (Object key : json.keySet()) {
-			map.put((String) key, json.get((String) key));
+		if (getAttributeMap().get(exports) != null) {
+			JSONObject json = (JSONObject) getAttributeMap().get(exports);
+			HashMap<String, Object> map = new HashMap<>();
+			for (Object key : json.keySet()) {
+				map.put((String) key, json.get((String) key));
+			}
+			return map;
 		}
-		return map;
+		return null;
 	}
 
 	public void setExports(Map<String, Object> exports) {
@@ -232,12 +238,15 @@ public class Container extends CdmiObject {
 	}
 
 	public List<Object> getSnapshots() {
-		JSONObject json = (JSONObject) getAttributeMap().get(snapshots);
-		ArrayList<Object> list = new ArrayList<>();
-		for (Object key : json.keySet()) {
-			list.add(json.get((String) key));
+		if (getAttributeMap().get(snapshots) != null) {
+			JSONObject json = (JSONObject) getAttributeMap().get(snapshots);
+			ArrayList<Object> list = new ArrayList<>();
+			for (Object key : json.keySet()) {
+				list.add(json.get((String) key));
+			}
+			return list;
 		}
-		return list;
+		return null;
 	}
 
 	public void setSnapshots(List<Object> snapshots) {
@@ -253,12 +262,15 @@ public class Container extends CdmiObject {
 	}
 
 	public List<Object> getChildren() {
-		JSONObject json = (JSONObject) getAttributeMap().get(children);
-		ArrayList<Object> list = new ArrayList<>();
-		for (Object key : json.keySet()) {
-			list.add(json.get((String) key));
+		if (getAttributeMap().get(children) != null) {
+			JSONObject json = (JSONObject) getAttributeMap().get(children);
+			ArrayList<Object> list = new ArrayList<>();
+			for (Object key : json.keySet()) {
+				list.add(json.get((String) key));
+			}
+			return list;
 		}
-		return list;
+		return null;
 	}
 
 	public void setChildren(List<Object> children) {

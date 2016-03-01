@@ -13,7 +13,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.json.JSONObject;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -34,16 +33,44 @@ public class ContainerFilesystemTest {
 	@Autowired
 	private ContainerDaoImpl containerDaoImpl;
 
-	private static Container testObjectId;
-
-	@Before
-	public void setup() {
+	@Test
+	public void crudContainerTest() {
 		String json = "{\"metadata\": {\"profile\": \"qos:2015\"}}";
-		testObjectId = new Container(new JSONObject(json));
+		Container testObjectId = new Container(new JSONObject(json));
+		assertNotNull(testObjectId);
+
+		String containerPath = "/container";
+		CdmiObject container = containerDaoImpl.createByPath(containerPath, testObjectId);
+
+		assertNotNull(container);
+		log.debug(container.toString());
+
+		String myContainerPath = "/container/MyContainer";
+		CdmiObject myContainer = containerDaoImpl.createByPath(myContainerPath, testObjectId);
+
+		assertNotNull(myContainer);
+		log.debug(myContainer.toString());
+
+		assertTrue(containerDaoImpl.isContainer(containerPath));
+		assertTrue(containerDaoImpl.isContainer(myContainerPath));
+
+		CdmiObject objectByPath = containerDaoImpl.findByPath(myContainerPath);
+		log.debug(objectByPath.toString());
+
+		CdmiObject objectById = containerDaoImpl.findByObjectId(myContainer.getObjectId());
+		log.debug(objectById.toString());
+
+		assertEquals(objectByPath.toString(), objectById.toString());
+
+		containerDaoImpl.deleteByPath(myContainerPath);
+		containerDaoImpl.deleteByPath(containerPath);
+
 	}
 
 	@Test
-	public void crudContainerTest() {
+	public void crudContainerNoMetadataTest() {
+		String json = "{}";
+		Container testObjectId = new Container(new JSONObject(json));
 		assertNotNull(testObjectId);
 
 		String containerPath = "/container";

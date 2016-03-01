@@ -130,6 +130,12 @@ public class ContainerDaoImpl implements ContainerDao {
 				throw new NotFoundException("resource was not found at the specified uri");
 			} catch (Exception e) {
 				LOG.error("ERROR: {}", e.getMessage());
+				try {
+					Files.delete(containerPath);
+				} catch (IOException e1) {
+					LOG.error("ERROR: {}", e1.getMessage());
+					// e1.printStackTrace();
+				}
 				cdmiObjectDaoImpl.deleteCdmiObject(container.getObjectID());
 			}
 		}

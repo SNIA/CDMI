@@ -110,12 +110,8 @@ public class CdmiRestController {
 
 		if (contentType.equals(MediaTypes.DATA_OBJECT)) {
 			JSONObject json = new JSONObject(body);
-			try {
-				DataObject dataObject = dataObjectDaoImpl.createByPath(path, new DataObject(json));
-				return dataObject.toJson().toString();
-			} catch (Exception e) {
-				log.debug("ERROR {}", e.getMessage());
-			}
+			DataObject dataObject = dataObjectDaoImpl.createByPath(path, new DataObject(json));
+			return dataObject.toJson().toString();
 		}
 
 		throw new org.snia.cdmiserver.exception.BadRequestException("bad content-type");

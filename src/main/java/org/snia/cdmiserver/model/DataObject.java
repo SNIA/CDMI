@@ -31,6 +31,7 @@
 
 package org.snia.cdmiserver.model;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.json.JSONObject;
@@ -59,6 +60,7 @@ public class DataObject extends CdmiObject {
 
 	// DataObject representation fields
 	private static final String objectType = "objectType";
+	private static final String objectName = "objectName";
 	private static final String parentURI = "parentURI";
 	private static final String parentID = "parentID";
 	private static final String domainURI = "domainURI";
@@ -72,6 +74,14 @@ public class DataObject extends CdmiObject {
 
 	public DataObject(JSONObject json) {
 		super(json);
+	}
+
+	public String getObjectName() {
+		return (String) getAttributeMap().get(objectName);
+	}
+
+	public void setObjectName(String objectName) {
+		getAttributeMap().put(DataObject.objectName, objectName);
 	}
 
 	public String getDeserializevalue() {
@@ -114,11 +124,19 @@ public class DataObject extends CdmiObject {
 		getAttributeMap().put(DataObject.mimetype, mimetype);
 	}
 
-	public Map<String, String> getMetadata() {
-		return (Map<String, String>) getAttributeMap().get(metadata);
+	public Map<String, Object> getMetadata() {
+		if (getAttributeMap().get(metadata) != null) {
+			JSONObject json = (JSONObject) getAttributeMap().get(metadata);
+			HashMap<String, Object> map = new HashMap<>();
+			for (Object key : json.keySet()) {
+				map.put((String) key, json.get((String) key));
+			}
+			return map;
+		}
+		return null;
 	}
 
-	public void setMetadata(Map<String, String> metadata) {
+	public void setMetadata(Map<String, Object> metadata) {
 		getAttributeMap().put(DataObject.metadata, metadata);
 	}
 
