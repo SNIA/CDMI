@@ -43,5 +43,17 @@ public class DataObjectFilesystemTest {
 
 		assertNotNull(object);
 		log.debug(object.toString());
+		
+		DataObject objectByPath = dataObjectDaoImpl.findByPath(path);
+		assertNotNull(objectByPath);
+		log.debug(objectByPath.toString());
+		
+		DataObject objectById = dataObjectDaoImpl.findByObjectId(object.getObjectId());
+		assertNotNull(objectById);
+		log.debug(objectById.toString());
+		
+		assertEquals(objectById.toString(), objectByPath.toString());
+		
+		dataObjectDaoImpl.deleteByPath(path);
 	}
 }

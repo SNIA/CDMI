@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.CdmiObjectDao;
 import org.snia.cdmiserver.model.CdmiObject;
 import org.snia.cdmiserver.model.Container;
+import org.snia.cdmiserver.model.DataObject;
 import org.snia.cdmiserver.util.MediaTypes;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -166,7 +167,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
 				if (objectType.equals(MediaTypes.CONTAINER))
 					return new Container(json);
 				else if (objectType.equals(MediaTypes.DATA_OBJECT))
-					return new CdmiObject(json);
+					return new DataObject(json);
 			}
 			object = new CdmiObject(json);
 			log.debug("get objectId from file {}", object.toString());
@@ -192,7 +193,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
 				if (objectType.equals(MediaTypes.CONTAINER))
 					return new Container(json);
 				else if (objectType.equals(MediaTypes.DATA_OBJECT))
-					return new CdmiObject(json);
+					return new DataObject(json);
 			}
 			object = new CdmiObject(json);
 			log.debug("get objectId from file {}", object.toString());

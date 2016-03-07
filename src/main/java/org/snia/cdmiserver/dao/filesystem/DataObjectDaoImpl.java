@@ -33,6 +33,7 @@ package org.snia.cdmiserver.dao.filesystem;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -147,16 +148,59 @@ public class DataObjectDaoImpl implements DataObjectDao {
 
 	@Override
 	public void deleteByPath(String path) {
-		throw new UnsupportedOperationException("DataObjectDaoImpl.deleteByPath()");
+		LOG.debug("delete data object {}", path.trim());
+		Path objectPath = Paths.get(baseDirectoryName.trim(), path.trim());
+
+		DataObject dataObject = (DataObject) cdmiObjectDaoImpl.getCdmiObjectByPath(objectPath.toString());
+
+		if (dataObject != null) {
+			try {
+				LOG.debug("delete file {}", objectPath.toString());
+				Files.delete(objectPath);
+
+				cdmiObjectDaoImpl.deleteCdmiObject(dataObject.getObjectId());
+				cdmiObjectDaoImpl.deleteCdmiObjectByPath(objectPath.toString());
+
+			} catch (NoSuchFileException e) {
+				LOG.warn("data object not found");
+				throw new NotFoundException("data object not found");
+			} catch (IOException e) {
+				LOG.error("ERROR: {}", e.getMessage());
+			} catch (Exception e) {
+				LOG.error("ERROR: {}", e.getMessage());
+			}
+		}
 	}
 
 	@Override
 	public DataObject findByPath(String path) {
-		throw new UnsupportedOperationException("DataObjectDaoImpl.findByPath()");
+		Path objectPath = Paths.get(baseDirectoryName.trim(), path.trim());
+		DataObject dataObject = (DataObject) cdmiObjectDaoImpl.getCdmiObjectByPath(objectPath.toString());
+
+		if (dataObject != null) {
+			dataObject.setValue(new String(getDataObjectContent(path)));
+		}
+		return dataObject;
 	}
 
 	@Override
 	public DataObject findByObjectId(String objectId) {
-		throw new UnsupportedOperationException("DataObjectDaoImpl.findByObjectId()");
+		DataObject dataObject = (DataObject) cdmiObjectDaoImpl.getCdmiObject(objectId);
+		if (dataObject != null) {
+			Path path = Paths.get(dataObject.getParentURI(), dataObject.getObjectName());
+			dataObject.setValue(new String(getDataObjectContent(path.toString())));
+		}
+		return dataObject;
+	}
+
+	private byte[] getDataObjectContent(String path) {
+		Path objectPath = Paths.get(baseDirectoryName.trim(), path.trim());
+		byte[] content = null;
+		try {
+			content = Files.readAllBytes(objectPath);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return content;
 	}
 }
