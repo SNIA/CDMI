@@ -64,7 +64,7 @@ public class CdmiRestController {
 		return capability;
 	}
 
-	@RequestMapping(path = "/cdmi_objectid/{objectID}", method = RequestMethod.GET)
+	@RequestMapping(path = "/cdmi_objectid/{objectId}", method = RequestMethod.GET)
 	public String getCdmiObjectByID(@PathVariable String objectId, HttpServletRequest request,
 			HttpServletResponse response) {
 		log.debug("Get objectID {}", objectId);
@@ -86,7 +86,7 @@ public class CdmiRestController {
 			CdmiObject container = containerDaoImpl.findByPath(path);
 			if (container != null)
 				return container.toJson().toString();
-		} catch (org.snia.cdmiserver.exception.NotFoundException e) {
+		} catch (org.snia.cdmiserver.exception.NotFoundException|java.lang.ClassCastException e) {
 			DataObject dataObject = dataObjectDaoImpl.findByPath(path);
 			if (dataObject != null)
 				return dataObject.toJson().toString();
@@ -118,12 +118,21 @@ public class CdmiRestController {
 	}
 
 	@RequestMapping(path = "/**", method = RequestMethod.DELETE)
-	public CdmiObject deleteCdmiObject(HttpServletRequest request, HttpServletResponse response) {
+	@ResponseStatus(value = HttpStatus.NO_CONTENT)
+	public String deleteCdmiObject(HttpServletRequest request, HttpServletResponse response) {
 		String path = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-		log.debug("Create path {}", path);
+		
+		log.debug("Delete path {}", path);
 
-		// TODO
-		return new CdmiObject();
+		try {
+			dataObjectDaoImpl.deleteByPath(path);
+			return path + "deleted";
+		} catch (org.snia.cdmiserver.exception.NotFoundException|java.lang.ClassCastException e) {	
+			containerDaoImpl.deleteByPath(path);
+			return path + "deleted";
+		}
+	
+
 	}
 
 }
