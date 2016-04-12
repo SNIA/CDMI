@@ -8,6 +8,8 @@
  */
 package edu.kit.scc;
 
+import java.util.Arrays;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -18,6 +20,7 @@ import org.snia.cdmiserver.dao.filesystem.CapabilityDaoImpl;
 import org.snia.cdmiserver.dao.filesystem.CdmiObjectDaoImpl;
 import org.snia.cdmiserver.dao.filesystem.ContainerDaoImpl;
 import org.snia.cdmiserver.dao.filesystem.DataObjectDaoImpl;
+import org.snia.cdmiserver.exception.BadRequestException;
 import org.snia.cdmiserver.exception.NotFoundException;
 import org.snia.cdmiserver.model.Capability;
 import org.snia.cdmiserver.model.CdmiObject;
@@ -69,11 +72,28 @@ public class CdmiRestController {
 			HttpServletResponse response) {
 		log.debug("Get objectID {}", objectId);
 
-		CdmiObject object = cdmiObjectDaoImpl.getCdmiObject(objectId);
-
-		if (object != null)
-			return object.toJson().toString();
-
+		try {
+			CdmiObject container = containerDaoImpl.findByObjectId(objectId);
+			if (container != null)
+				return container.toJson().toString();
+		} catch (org.snia.cdmiserver.exception.NotFoundException | java.lang.ClassCastException e) {
+			DataObject dataObject = dataObjectDaoImpl.findByObjectId(objectId);
+			if (dataObject != null) {
+				String range = request.getHeader("Range");
+				if (range != null) {
+					byte[] content = dataObject.getValue().getBytes();
+					String[] ranges = range.split("-");
+					try {
+						content = Arrays.copyOfRange(content, Integer.valueOf(ranges[0].trim()),
+								Integer.valueOf(ranges[1].trim()));
+						dataObject.setValue(new String(content));
+					} catch (NumberFormatException e1) {
+						throw new BadRequestException("bad range");
+					}
+				}
+				return dataObject.toJson().toString();
+			}
+		}
 		throw new NotFoundException("object not found");
 	}
 
@@ -86,10 +106,23 @@ public class CdmiRestController {
 			CdmiObject container = containerDaoImpl.findByPath(path);
 			if (container != null)
 				return container.toJson().toString();
-		} catch (org.snia.cdmiserver.exception.NotFoundException|java.lang.ClassCastException e) {
+		} catch (org.snia.cdmiserver.exception.NotFoundException | java.lang.ClassCastException e) {
 			DataObject dataObject = dataObjectDaoImpl.findByPath(path);
-			if (dataObject != null)
+			if (dataObject != null) {
+				String range = request.getHeader("Range");
+				if (range != null) {
+					byte[] content = dataObject.getValue().getBytes();
+					String[] ranges = range.split("-");
+					try {
+						content = Arrays.copyOfRange(content, Integer.valueOf(ranges[0].trim()),
+								Integer.valueOf(ranges[1].trim()));
+						dataObject.setValue(new String(content));
+					} catch (NumberFormatException e1) {
+						throw new BadRequestException("bad range");
+					}
+				}
 				return dataObject.toJson().toString();
+			}
 		}
 		throw new NotFoundException("object not found");
 	}
@@ -121,17 +154,16 @@ public class CdmiRestController {
 	@ResponseStatus(value = HttpStatus.NO_CONTENT)
 	public String deleteCdmiObject(HttpServletRequest request, HttpServletResponse response) {
 		String path = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-		
+
 		log.debug("Delete path {}", path);
 
 		try {
 			dataObjectDaoImpl.deleteByPath(path);
 			return path + "deleted";
-		} catch (org.snia.cdmiserver.exception.NotFoundException|java.lang.ClassCastException e) {	
+		} catch (org.snia.cdmiserver.exception.NotFoundException | java.lang.ClassCastException e) {
 			containerDaoImpl.deleteByPath(path);
 			return path + "deleted";
 		}
-	
 
 	}
 
