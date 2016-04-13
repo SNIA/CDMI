@@ -152,19 +152,17 @@ public class CdmiRestController {
 
 	@RequestMapping(path = "/**", method = RequestMethod.DELETE)
 	@ResponseStatus(value = HttpStatus.NO_CONTENT)
-	public String deleteCdmiObject(HttpServletRequest request, HttpServletResponse response) {
+	public void deleteCdmiObject(HttpServletRequest request, HttpServletResponse response) {
 		String path = (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 
 		log.debug("Delete path {}", path);
 
+		response.addHeader("X-CDMI-Specification-Version", "1.1.1");
 		try {
 			dataObjectDaoImpl.deleteByPath(path);
-			return path + "deleted";
 		} catch (org.snia.cdmiserver.exception.NotFoundException | java.lang.ClassCastException e) {
 			containerDaoImpl.deleteByPath(path);
-			return path + "deleted";
 		}
-
 	}
 
 }

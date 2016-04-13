@@ -38,7 +38,7 @@ public class DataObjectFilesystemTest {
 
 		assertNotNull(testObject);
 
-		String path = "/container1/myContainer/myFile";
+		String path = "/container1/myFile";
 		CdmiObject object = dataObjectDaoImpl.createByPath(path, testObject);
 
 		assertNotNull(object);

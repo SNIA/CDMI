@@ -1,0 +1,67 @@
+{
+        container-capabilities:
+        {
+          default: {
+                cdmi_list_children: true,
+				cdmi_read_metadata: true,
+				cdmi_modify_metadata: true,
+				cdmi_create_dataobject: true,
+				cdmi_post_dataobject: true,
+				cdmi_create_container: true
+          },
+          tape: {
+                cdmi_list_children: true,
+				cdmi_read_metadata: true,
+				cdmi_modify_metadata: true,
+				cdmi_create_dataobject: true,
+				cdmi_post_dataobject: true,
+				cdmi_create_container: true
+          },
+          disk: {
+                cdmi_list_children: true,
+				cdmi_read_metadata: true,
+				cdmi_modify_metadata: true,
+				cdmi_create_dataobject: true,
+				cdmi_post_dataobject: true,
+				cdmi_create_container: true
+          }
+        },
+        data-object-capabilities:
+        {
+          default: {
+                cdmi_read_value: true,
+				cdmi_read_value_range: true,
+				cdmi_read_metadata: true,
+				cdmi_modify_metadata: true,
+				cdmi_modify_value: true,
+				cdmi_modify_value_range: not implemented,
+				cdmi_delete_dataobject: true
+          },
+          tape: {
+                cdmi_read_value: true,
+				cdmi_read_value_range: true,
+				cdmi_read_metadata: true,
+				cdmi_modify_metadata: true,
+				cdmi_modify_value: true,
+				cdmi_modify_value_range: not implemented,
+				cdmi_delete_dataobject: true
+          },
+          disk: {
+                cdmi_read_value: true,
+				cdmi_read_value_range: true,
+				cdmi_read_metadata: true,
+				cdmi_modify_metadata: true,
+				cdmi_modify_value: true,
+				cdmi_modify_value_range: not implemented,
+				cdmi_delete_dataobject: true
+          }
+        },
+        system-capabilities:
+        {
+                cdmi_domains: false,
+				cdmi_export_occi_iscsi: true,
+				cdmi_metadata_maxitems: 1024,
+				cdmi_metadata_maxsize: 4096
+
+        }
+}
