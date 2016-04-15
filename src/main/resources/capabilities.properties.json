@@ -2,12 +2,23 @@
         container-capabilities:
         {
           default: {
+                tape: {
                 cdmi_list_children: true,
 				cdmi_read_metadata: true,
 				cdmi_modify_metadata: true,
 				cdmi_create_dataobject: true,
 				cdmi_post_dataobject: true,
 				cdmi_create_container: true
+          },
+				
+				disk: {
+                cdmi_list_children: true,
+				cdmi_read_metadata: true,
+				cdmi_modify_metadata: true,
+				cdmi_create_dataobject: true,
+				cdmi_post_dataobject: true,
+				cdmi_create_container: true
+          }
           },
           tape: {
                 cdmi_list_children: true,
@@ -24,11 +35,15 @@
 				cdmi_create_dataobject: true,
 				cdmi_post_dataobject: true,
 				cdmi_create_container: true
+          },
+          test: {
+          	cdmi_test: true
           }
         },
         data-object-capabilities:
         {
           default: {
+               tape: {
                 cdmi_read_value: true,
 				cdmi_read_value_range: true,
 				cdmi_read_metadata: true,
@@ -36,6 +51,15 @@
 				cdmi_modify_value: true,
 				cdmi_modify_value_range: not implemented,
 				cdmi_delete_dataobject: true
+          },
+
+                cdmi_list_children: true,
+				cdmi_read_metadata: true,
+				cdmi_modify_metadata: true,
+				cdmi_create_dataobject: true,
+				cdmi_post_dataobject: true,
+				cdmi_create_container: true
+
           },
           tape: {
                 cdmi_read_value: true,

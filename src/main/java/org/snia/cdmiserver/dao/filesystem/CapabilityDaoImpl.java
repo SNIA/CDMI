@@ -33,15 +33,20 @@ package org.snia.cdmiserver.dao.filesystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.CapabilityDao;
+import org.snia.cdmiserver.exception.NotFoundException;
 import org.snia.cdmiserver.model.Capability;
 import org.snia.cdmiserver.util.MediaTypes;
 import org.snia.cdmiserver.util.ObjectID;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 import jersey.repackaged.com.google.common.collect.ImmutableMap;
@@ -59,26 +64,14 @@ public class CapabilityDaoImpl implements CapabilityDao {
 
 	// -------------------------------------------------------------- Properties
 
-	private String ROOTobjectID = ObjectID.getObjectID(8);
-	private String CONTAINERobjectID = ObjectID.getObjectID(8);
-	private String DEFAULTCONTAINERobjectID = ObjectID.getObjectID(8);
-	private String DISKCONTAINERobjectID = ObjectID.getObjectID(8);
-	private String TAPECONTAINERobjectID = ObjectID.getObjectID(8);
-	private String DEFAULTOBJECTobjectID = ObjectID.getObjectID(8);
-	private String DISKOBJECTobjectID = ObjectID.getObjectID(8);
-	private String TAPEOBJECTobjectID = ObjectID.getObjectID(8);
-	private String OBJECTobjectID = ObjectID.getObjectID(8);
+	@Value("${cdmi.data.rootObjectId}")
+	private String ROOTobjectID;
 	
-	private final ImmutableMap<String, String> OBJECTIDs_BY_NAME = ImmutableMap.of(
-		    "default", DEFAULTOBJECTobjectID,
-		    "tape", TAPEOBJECTobjectID,
-		    "disk", DISKOBJECTobjectID
-		);
-	private final ImmutableMap<String, String> CONTAINERIDs_BY_NAME = ImmutableMap.of(
-		    "default", DEFAULTCONTAINERobjectID,
-		    "tape", TAPECONTAINERobjectID,
-		    "disk", DISKCONTAINERobjectID
-		);
+	private JSONObject json;
+	private JSONObject system;
+	private JSONObject dataobject;
+	private JSONObject container;
+	private String properties;
 
 	// ---------------------------------------------------- ContainerDao Methods
 
@@ -87,23 +80,21 @@ public class CapabilityDaoImpl implements CapabilityDao {
 		throw new UnsupportedOperationException("CapabilityDaoImpl.findByObjectId()");
 	}
 
-	private JSONObject json;
-	private JSONObject system;
-	private JSONObject dataobject;
-	private JSONObject container;
-
-	private void readProperties() {
+	public void readProperties() {
 		Path path = Paths.get("src/main/resources/capabilities.properties.json");
 		String file;
+		// String properties;
 		try {
+			properties = new String(Files.readAllBytes(Paths.get("src/main/resources/application.properties")));
 			file = new String(Files.readAllBytes(path));
 			json = new JSONObject(file);
 			system = json.getJSONObject("system-capabilities");
 			dataobject = json.getJSONObject("data-object-capabilities");
 			container = json.getJSONObject("container-capabilities");
+
 		} catch (Exception e) {
 			LOG.error("ERROR: {}", e.getMessage());
-			//e.printStackTrace();
+			// e.printStackTrace();
 		}
 	}
 
@@ -113,47 +104,58 @@ public class CapabilityDaoImpl implements CapabilityDao {
 		readProperties();
 
 		LOG.trace("In Capability.findByPath, path is: {}", path);
-		//container capabilities
-		Iterator<?> containerkeys = container.keys();
-		while (containerkeys.hasNext()) {
-			String key = (String) containerkeys.next();
-			if (container.get(key) instanceof JSONObject) {
-				if (path.equals("/cdmi_capabilities/container/" + key)) {
-					LOG.trace("Container "+key+" Capabilities");
-					JSONObject defaultC = container.getJSONObject(key);
-					Iterator<?> keys = defaultC.keys();
-					while (keys.hasNext()) {
-						String cap = (String) keys.next();
-						capability.getCapabilities().put(cap, String.valueOf(defaultC.get(cap)));
+
+		String[] pathsplit = path.split("/");
+		String request = null;
+		if (pathsplit.length >= 3) {
+			switch (pathsplit[2]) {
+			case "container":
+				request = "container";
+				break;
+			case "dataobject":
+				request = "dataobject";
+				break;
+			default:
+				throw new NotFoundException("capability not found");
+			}
+			if (request != null) {
+				JSONObject object = null;
+				switch (request) {
+				case "container":
+					object = container;
+					break;
+				case "dataobject":
+					object = dataobject;
+					break;
+				default:
+					throw new NotFoundException("capability not found");
+				}
+				if (object != null) {
+					try {
+						path = path.split("/cdmi_capabilities/" + request + "/")[1];
+						if (path.equals(""))
+							throw new IndexOutOfBoundsException();
+						capability.setParentURI("cdmi_capabilities/" + request);
+						rekursivGetCapability(capability, path, object);
+					} catch (IndexOutOfBoundsException e) {
+						capability.setParentURI("cdmi_capabilities");
+						capability.setParentID(getIdByUri(capability.getParentURI()));
+						capability.setObjectName(request);
+						capability.setObjectID(getIdByUri(capability.getParentURI() + "/" + capability.getObjectName()));
+						Iterator<?> keys = object.keys();
+						while (keys.hasNext()) {
+							String child = (String) keys.next();
+							if (object.get(child) instanceof JSONObject)
+								capability.getChildren().add(child);
+							else
+								capability.getCapabilities().put(child, String.valueOf(object.get(child)));
+						}
+						if (!capability.getChildren().isEmpty())
+							capability.setChildrenrange("0-" + String.valueOf(capability.getChildren().size() - 1));
 					}
-					capability.setParentURI("cdmi_capabilities/container");
-					capability.setParentID(CONTAINERobjectID);
-					capability.setObjectName("cdmi_container_"+key+"_capabilities");
-					capability.setObjectID(CONTAINERIDs_BY_NAME.get(key));
 				}
 			}
-		}
-		//dataobject capabilities
-		Iterator<?> objectkeys = dataobject.keys();
-		while (objectkeys.hasNext()) {
-			String key = (String) objectkeys.next();
-			if (dataobject.get(key) instanceof JSONObject) {
-				if (path.equals("/cdmi_capabilities/dataobject/" + key)) {
-					LOG.trace("Dataobject "+key+" Capabilities");
-					JSONObject object = dataobject.getJSONObject(key);
-					Iterator<?> keys = object.keys();
-					while (keys.hasNext()) {
-						String cap = (String) keys.next();
-						capability.getCapabilities().put(cap, String.valueOf(object.get(cap)));
-					}
-					capability.setParentURI("cdmi_capabilities/dataobject");
-					capability.setParentID(OBJECTobjectID);
-					capability.setObjectName("cdmi_object_"+key+"_capabilities");
-					capability.setObjectID(OBJECTIDs_BY_NAME.get(key));
-				}
-			}
-		}
-		if (path.equals("/cdmi_capabilities/")) {
+		} else {
 			// System Capabilities
 			LOG.trace("System Capabilities");
 
@@ -162,19 +164,76 @@ public class CapabilityDaoImpl implements CapabilityDao {
 				String key = (String) keys.next();
 				capability.getCapabilities().put(key, String.valueOf(system.get(key)));
 			}
-
 			capability.getChildren().add("container");
 			capability.getChildren().add("dataobject");
 			capability.setChildrenrange("0-" + String.valueOf(capability.getChildren().size() - 1));
-			capability.setObjectID(ROOTobjectID);
+			capability.setObjectID(getIdByUri("cdmi_capabilities"));
 			capability.setObjectName("cdmi_capabilities");
 			capability.setParentURI("/");
 			capability.setParentID(ROOTobjectID);
 		}
-
 		capability.setObjectType(MediaTypes.CAPABILITY);
 		return (capability);
 
+	}
+
+	private Capability rekursivGetCapability(Capability capability, String path, JSONObject object) {
+		Boolean end = false;
+		if (path.endsWith("/"))
+			path = path.substring(0, path.length() - 1);
+		String[] pathSplit = path.split("/", 2);
+		String pathPart = pathSplit[0];
+		try {
+			path = pathSplit[1];
+		} catch (IndexOutOfBoundsException e) {
+			end = true;
+		}
+
+		try {
+			if (end) {
+				JSONObject newObject = object.getJSONObject(pathPart);
+				Iterator<?> keys = newObject.keys();
+				while (keys.hasNext()) {
+					String cap = (String) keys.next();
+					if (newObject.get(cap) instanceof JSONObject)
+						capability.getChildren().add(cap);
+					else
+						capability.getCapabilities().put(cap, String.valueOf(newObject.get(cap)));
+				}
+				if (!capability.getChildren().isEmpty())
+					capability.setChildrenrange("0-" + String.valueOf(capability.getChildren().size() - 1));
+				String parentUri = capability.getParentURI();
+				capability.setParentID(getIdByUri(parentUri));
+				capability.setObjectName(pathPart);
+				capability.setObjectID(getIdByUri(parentUri + "/" + pathPart));
+				return capability;
+			} else {
+				JSONObject newObject = object.getJSONObject(pathPart);
+				capability.setParentURI(capability.getParentURI() + "/" + pathPart);
+				return rekursivGetCapability(capability, path, newObject);
+			}
+		} catch (org.json.JSONException e) {
+			throw new NotFoundException("Capability not found");
+		}
+
+	}
+
+	private String getIdByUri(String uri) {
+		LOG.trace("InCapabilities.getIdByUri URI is {}", uri);
+		String searchkey = uri.replace("/", ".");
+		if (searchkey.endsWith("."))
+			searchkey = searchkey + "ObjectId";
+		else
+			searchkey = searchkey + ".ObjectId";
+		if (searchkey.startsWith("."))
+			searchkey = searchkey.substring(1, searchkey.length());
+		int position = properties.toLowerCase().indexOf(searchkey.toLowerCase());
+		if (position != -1) {
+			int startindex = position + searchkey.length() + 1;
+			String id = properties.substring(startindex, startindex + 50).trim();
+			return id;
+		}
+		return null;
 	}
 
 }
