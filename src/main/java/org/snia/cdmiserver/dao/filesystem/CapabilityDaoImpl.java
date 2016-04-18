@@ -33,9 +33,7 @@ package org.snia.cdmiserver.dao.filesystem;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -43,13 +41,11 @@ import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.CapabilityDao;
 import org.snia.cdmiserver.exception.NotFoundException;
 import org.snia.cdmiserver.model.Capability;
+import org.snia.cdmiserver.model.Container;
 import org.snia.cdmiserver.util.MediaTypes;
-import org.snia.cdmiserver.util.ObjectID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
-
-import jersey.repackaged.com.google.common.collect.ImmutableMap;
 
 /**
  * <p>
@@ -61,6 +57,8 @@ import jersey.repackaged.com.google.common.collect.ImmutableMap;
 public class CapabilityDaoImpl implements CapabilityDao {
 
 	private static final Logger LOG = LoggerFactory.getLogger(CapabilityDaoImpl.class);
+	@Autowired
+	private CdmiObjectDaoImpl cdmiObjectDaoImpl = new CdmiObjectDaoImpl();
 
 	// -------------------------------------------------------------- Properties
 
@@ -80,10 +78,9 @@ public class CapabilityDaoImpl implements CapabilityDao {
 		throw new UnsupportedOperationException("CapabilityDaoImpl.findByObjectId()");
 	}
 
-	public void readProperties() {
+	private void readProperties() {
 		Path path = Paths.get("src/main/resources/capabilities.properties.json");
 		String file;
-		// String properties;
 		try {
 			properties = new String(Files.readAllBytes(Paths.get("src/main/resources/application.properties")));
 			file = new String(Files.readAllBytes(path));

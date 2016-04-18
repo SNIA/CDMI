@@ -8,7 +8,8 @@
 				cdmi_modify_metadata: true,
 				cdmi_create_dataobject: true,
 				cdmi_post_dataobject: true,
-				cdmi_create_container: true
+				cdmi_create_container: true,
+				cdmi_copy_dataobject: true
           },
 				
 				disk: {
@@ -17,7 +18,8 @@
 				cdmi_modify_metadata: true,
 				cdmi_create_dataobject: true,
 				cdmi_post_dataobject: true,
-				cdmi_create_container: true
+				cdmi_create_container: true,
+				cdmi_copy_dataobject: true
           }
           },
           tape: {
@@ -26,7 +28,8 @@
 				cdmi_modify_metadata: true,
 				cdmi_create_dataobject: true,
 				cdmi_post_dataobject: true,
-				cdmi_create_container: true
+				cdmi_create_container: true,
+				cdmi_copy_dataobject: true
           },
           disk: {
                 cdmi_list_children: true,
@@ -34,7 +37,8 @@
 				cdmi_modify_metadata: true,
 				cdmi_create_dataobject: true,
 				cdmi_post_dataobject: true,
-				cdmi_create_container: true
+				cdmi_create_container: true,
+				cdmi_copy_dataobject: true
           },
           test: {
           	cdmi_test: true

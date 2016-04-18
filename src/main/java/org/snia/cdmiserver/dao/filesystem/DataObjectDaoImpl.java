@@ -84,6 +84,11 @@ public class DataObjectDaoImpl implements DataObjectDao {
 			Path relPath = Paths.get(path.trim());
 			try {
 				Path file;
+				if(dataObjectRequest.getCopy() != null) {
+					String copyFrom = dataObjectRequest.getCopy();
+					DataObject copiedObject = findByPath(copyFrom);
+					dataObject = createByPath(path, copiedObject);
+				} else{
 				if (dataObjectRequest.getValue() == null)
 					file = Files.createFile(objectPath);
 				else
@@ -112,7 +117,7 @@ public class DataObjectDaoImpl implements DataObjectDao {
 
 				if (cdmiObjectDaoImpl.createCdmiObject(dataObject, file.toString()) == null)
 					cdmiObjectDaoImpl.updateCdmiObject(dataObject, file.toString());
-
+				}
 				return dataObject;
 			} catch (FileAlreadyExistsException e) {
 				LOG.warn("object alredy exists");
@@ -192,7 +197,7 @@ public class DataObjectDaoImpl implements DataObjectDao {
 		}
 		return dataObject;
 	}
-
+	
 	private byte[] getDataObjectContent(String path) {
 		Path objectPath = Paths.get(baseDirectoryName.trim(), path.trim());
 		byte[] content = null;

@@ -48,7 +48,6 @@ public class RestCapabilitiesTest {
 
 		HttpEntity entity = response.getEntity();
 		String content = EntityUtils.toString(entity);
-		System.out.println(content);
 		assertTrue(content.contains("\"objectID\""));
 		assertTrue(content.contains("\"parentID\""));
 		assertTrue(content.contains("\"objectName\":\"cdmi_capabilities\""));

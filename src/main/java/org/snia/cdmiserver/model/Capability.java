@@ -36,12 +36,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONObject;
+
 /**
  * <p>
  * Representation of a CDMI <em>Capability</em>.
  * </p>
  */
-public class Capability {
+public class Capability{
 
 	// Container representation fields
 	private String objectName;
@@ -115,5 +117,23 @@ public class Capability {
 
 	public Capability getByPath(String path) {
 		return this;
+	}
+	
+	public JSONObject toJson() {
+
+		
+		JSONObject json = new JSONObject();
+			json.put("capabilities", this.capabilities);
+			json.put("children", this.children);
+			json.put("childrenrange", this.childrenrange);
+			json.put("objectID", this.objectID);
+			json.put("objectName", this.objectName);
+			json.put("objectType", this.objectType);
+			json.put("parentID", this.parentID);
+			json.put("parentURI", this.parentURI);
+			json.put("capabilities", this.capabilities);
+			json.put("childrenrange", this.childrenrange);
+			json.put("children", this.children);
+		return json;
 	}
 }
