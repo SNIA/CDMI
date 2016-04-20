@@ -15,7 +15,6 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.filesystem.CapabilityDaoImpl;
-import org.snia.cdmiserver.dao.filesystem.CdmiObjectDaoImpl;
 import org.snia.cdmiserver.dao.filesystem.ContainerDaoImpl;
 import org.snia.cdmiserver.dao.filesystem.DataObjectDaoImpl;
 import org.snia.cdmiserver.exception.BadRequestException;
@@ -60,9 +59,6 @@ public class CdmiRestController {
   @Autowired
   private DataObjectDaoImpl dataObjectDaoImpl;
 
-  @Autowired
-  private CdmiObjectDaoImpl cdmiObjectDaoImpl;
-
   @RequestMapping(path = "/cdmi_capabilities/**", produces = "application/cdmi-capability+json")
   public String capabilitiesWithFields(HttpServletRequest request, HttpServletResponse response) {
     String path =
@@ -78,21 +74,28 @@ public class CdmiRestController {
     return getRequestedJson(json, requestedFields).toString();
   }
 
-  @RequestMapping(path = "/cdmi_objectid/{objectId}", method = RequestMethod.GET)
+  @RequestMapping(path = "/cdmi_objectid/{objectId}", method = RequestMethod.GET,
+      produces = "application/cdmi-object+json")
   public String getCdmiObjectByID(@PathVariable String objectId, HttpServletRequest request,
       HttpServletResponse response) {
     log.debug("Get objectID {}", objectId);
     String[] requestedFields = parseFields(request);
     try {
       CdmiObject container = containerDaoImpl.findByObjectId(objectId);
-      if (container != null)
-        if (requestedFields == null)
+      if (container != null) {
+        response.setContentType("application/cdmi-container+json");
+
+        if (requestedFields == null) {
           return container.toJson().toString();
-        else
+        } else {
           return getRequestedJson(container.toJson(), requestedFields).toString();
+        }
+      }
     } catch (org.snia.cdmiserver.exception.NotFoundException | java.lang.ClassCastException e) {
       DataObject dataObject = dataObjectDaoImpl.findByObjectId(objectId);
       if (dataObject != null) {
+        response.setContentType("application/cdmi-object+json");
+
         String range = request.getHeader("Range");
         if (range != null) {
           byte[] content = dataObject.getValue().getBytes();
@@ -105,16 +108,18 @@ public class CdmiRestController {
             throw new BadRequestException("bad range");
           }
         }
-        if (requestedFields == null)
+        if (requestedFields == null) {
           return dataObject.toJson().toString();
-        else
+        } else {
           return getRequestedJson(dataObject.toJson(), requestedFields).toString();
+        }
       }
     }
     throw new NotFoundException("object not found");
   }
 
-  @RequestMapping(path = "/**", method = RequestMethod.GET)
+  @RequestMapping(path = "/**", method = RequestMethod.GET,
+      produces = "application/cdmi-object+json")
   public String getCdmiObjectByPath(HttpServletRequest request, HttpServletResponse response) {
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
@@ -122,14 +127,20 @@ public class CdmiRestController {
     String[] requestedFields = parseFields(request);
     try {
       CdmiObject container = containerDaoImpl.findByPath(path);
-      if (container != null)
-        if (requestedFields == null)
+      if (container != null) {
+        response.setContentType("application/cdmi-container+json");
+
+        if (requestedFields == null) {
           return container.toJson().toString();
-        else
+        } else {
           return getRequestedJson(container.toJson(), requestedFields).toString();
+        }
+      }
     } catch (org.snia.cdmiserver.exception.NotFoundException | java.lang.ClassCastException e) {
       DataObject dataObject = dataObjectDaoImpl.findByPath(path);
       if (dataObject != null) {
+        response.setContentType("application/cdmi-object+json");
+
         String range = request.getHeader("Range");
         if (range != null) {
           byte[] content = dataObject.getValue().getBytes();
@@ -142,10 +153,11 @@ public class CdmiRestController {
             throw new BadRequestException("bad range");
           }
         }
-        if (requestedFields == null)
+        if (requestedFields == null) {
           return dataObject.toJson().toString();
-        else
+        } else {
           return getRequestedJson(dataObject.toJson(), requestedFields).toString();
+        }
       }
     }
     throw new NotFoundException("object not found");
