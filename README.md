@@ -23,4 +23,30 @@ To specify the server port use the ```--server.port=9000``` parameter, default 8
 java -jar cdmi-server-0.0.1-SNAPSHOT.jar --server.port=9000
 ```
 
-Configuration is done in the application.properties file.
+Configuration for the application is done in the application.properties file.
+Configuration for the CDMI capabilities (QoS) is done in capabilities.properties.json
+
+## Tests
+
+Some curl commands for testing:
+
+Create container "testcontainer" with metadata "tag=test"
+```
+curl -X PUT http://localhost:8080/testcontainer -H "Content-Type: application/cdmi-container" -d '{"metadata":{"tag":"test"}}'
+```
+Read container info by path
+```
+curl http://localhost:8080/testcontainer
+```
+Read container info by objectid
+```
+curl http://localhost:8080/cdmi_objectid/<OBJECT_ID>
+```
+Read system capabilities
+```
+curl http://localhost:8080/cdmi_capabilities
+```
+Read container capabilities
+```
+curl http://localhost:8080/cdmi_capabilities/container
+```
