@@ -42,9 +42,9 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Iterator;
 
 /**
@@ -84,12 +84,21 @@ public class CapabilityDaoImpl implements CapabilityDao {
     LOG.debug("Load application configuration: {}", applicationConfiguration.getFilename());
 
     String file;
+    FileInputStream in = null;
     try {
-      Path capabilitiesConfPath = Paths.get(capabilitiesConfiguration.getFile().getAbsolutePath());
-      Path applicationConfPath = Paths.get(applicationConfiguration.getFile().getAbsolutePath());
+      File capabilitiesConf = capabilitiesConfiguration.getFile();
+      File applicationConf = applicationConfiguration.getFile();
 
-      properties = new String(Files.readAllBytes(applicationConfPath));
-      file = new String(Files.readAllBytes(capabilitiesConfPath));
+      in = new FileInputStream(applicationConf);
+      byte bt[] = new byte[(int) applicationConf.length()];
+      in.read(bt);
+
+      properties = new String(bt);
+
+      in = new FileInputStream(capabilitiesConf);
+      bt = new byte[(int) capabilitiesConf.length()];
+      in.read(bt);
+      file = new String(bt);
 
       json = new JSONObject(file);
       system = json.getJSONObject("system-capabilities");
@@ -101,6 +110,13 @@ public class CapabilityDaoImpl implements CapabilityDao {
       // e.printStackTrace();
     } finally {
       ((ConfigurableApplicationContext) ctx).close();
+      try {
+        if (in != null) {
+          in.close();
+        }
+      } catch (IOException ex) {
+        LOG.error("ERROR: {}", ex.getMessage());
+      }
     }
   }
 
