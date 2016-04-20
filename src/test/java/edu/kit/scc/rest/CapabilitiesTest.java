@@ -30,7 +30,7 @@ public class CapabilitiesTest {
     request.setMethod("GET");
 
 
-    controller.capabilitiesWithFields(request, response);
+    controller.capabilities(request, response);
   }
 
   @Test
@@ -46,7 +46,7 @@ public class CapabilitiesTest {
     request.setMethod("GET");
 
 
-    controller.capabilitiesWithFields(request, response);
+    controller.capabilities(request, response);
   }
 
   @Test
@@ -62,7 +62,7 @@ public class CapabilitiesTest {
     request.setMethod("GET");
 
 
-    controller.capabilitiesWithFields(request, response);
+    controller.capabilities(request, response);
   }
 
   @Test
@@ -77,7 +77,7 @@ public class CapabilitiesTest {
     request.setMethod("GET");
 
 
-    controller.capabilitiesWithFields(request, response);
+    controller.capabilities(request, response);
   }
 
   @Test
@@ -93,6 +93,6 @@ public class CapabilitiesTest {
     request.setMethod("GET");
 
 
-    controller.capabilitiesWithFields(request, response);
+    controller.capabilities(request, response);
   }
 }

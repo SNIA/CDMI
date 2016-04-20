@@ -17,6 +17,7 @@ import org.snia.cdmiserver.dao.CdmiObjectDao;
 import org.snia.cdmiserver.model.CdmiObject;
 import org.snia.cdmiserver.model.Container;
 import org.snia.cdmiserver.model.DataObject;
+import org.snia.cdmiserver.model.Domain;
 import org.snia.cdmiserver.util.MediaTypes;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -69,6 +70,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
     try {
       Path path =
           Paths.get(baseDirectoryName.trim(), objectIdDirectoryName.trim(), objectId.getObjectId());
+      log.debug("path is {}", path);
       Files.write(path, objectId.toJson().toString().getBytes(), StandardOpenOption.WRITE,
           StandardOpenOption.CREATE_NEW);
 
@@ -165,6 +167,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
 
     Path newPath = Paths.get(p.getParent().toString(), objectIdPrefix + p.getFileName().toString());
     try {
+      log.debug("path is {}", newPath);
       byte[] content = Files.readAllBytes(newPath);
       JSONObject json = new JSONObject(new String(content));
 
@@ -174,6 +177,8 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
           return new Container(json);
         else if (objectType.equals(MediaTypes.DATA_OBJECT))
           return new DataObject(json);
+        else if (objectType.equals(MediaTypes.ACCOUNT))
+          return new Domain(json);
       }
       object = new CdmiObject(json);
       log.debug("get objectId from file {}", object.toString());
