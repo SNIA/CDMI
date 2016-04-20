@@ -12,7 +12,7 @@ This project ports the SNIA CDMI-Server reference implementation to a Spring Boo
 The project uses maven build automation tool that will build one fat jar Spring Boot application.
 
 ```
-maven clean package
+mvn clean package
 ```
 
 The CDMI server can run without any additional server deployment (Tomcat, JBoss, etc.).
