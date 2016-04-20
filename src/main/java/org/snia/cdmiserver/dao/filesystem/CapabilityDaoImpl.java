@@ -42,9 +42,8 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Iterator;
 
 /**
@@ -84,21 +83,20 @@ public class CapabilityDaoImpl implements CapabilityDao {
     LOG.debug("Load application configuration: {}", applicationConfiguration.getFilename());
 
     String file;
-    FileInputStream in = null;
+    InputStream in = null;
     try {
-      File capabilitiesConf = new File(capabilitiesConfiguration.getURL().getFile());
-      File applicationConf = new File(applicationConfiguration.getURL().getFile());
-
-      in = new FileInputStream(applicationConf);
-      byte bt[] = new byte[(int) applicationConf.length()];
+      in = applicationConfiguration.getInputStream();
+      byte bt[] = new byte[(int) applicationConfiguration.contentLength()];
       in.read(bt);
 
       properties = new String(bt);
+      in.close();
 
-      in = new FileInputStream(capabilitiesConf);
-      bt = new byte[(int) capabilitiesConf.length()];
+      in = capabilitiesConfiguration.getInputStream();
+      bt = new byte[(int) capabilitiesConfiguration.contentLength()];
       in.read(bt);
       file = new String(bt);
+      in.close();
 
       json = new JSONObject(file);
       system = json.getJSONObject("system-capabilities");
