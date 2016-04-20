@@ -42,6 +42,7 @@ import org.springframework.web.servlet.HandlerMapping;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -67,27 +68,6 @@ public class CdmiRestController {
 
   @Autowired
   private CdmiObjectDaoImpl cdmiObjectDaoImpl;
-
-
-  // @RequestMapping(path = "/cdmi_domains/**", method = RequestMethod.PUT,
-  // produces = "application/cdmi-domain+json")
-  // @ResponseStatus(value = HttpStatus.CREATED)
-  // public String putDomain(@RequestHeader("Content-Type") String contentType,
-  // @RequestBody String body, HttpServletRequest request, HttpServletResponse response) {
-  // String path =
-  // (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-  //
-  // log.debug("Create path {} as {}", path, contentType);
-  // response.addHeader("X-CDMI-Specification-Version", "1.1.1");
-  //
-  // if (contentType.equals(MediaTypes.ACCOUNT)) {
-  // JSONObject json = new JSONObject(body);
-  // CdmiObject domain = domainDaoImpl.createByPath(path, new Domain(json));
-  // return domain.toJson().toString();
-  // }
-  //
-  // throw new org.snia.cdmiserver.exception.BadRequestException("bad content-type");
-  // }
 
   @RequestMapping(path = "/cdmi_domains/**", method = RequestMethod.GET,
       produces = "application/cdmi-domain+json")
@@ -218,6 +198,7 @@ public class CdmiRestController {
 
     log.debug("Create path {} as {}", path, contentType);
 
+    String[]requestedFields = parseFields(request);
     if (contentType.equals(MediaTypes.CONTAINER)) {
       JSONObject json = new JSONObject(body);
       CdmiObject container = containerDaoImpl.createByPath(path, new Container(json));
@@ -231,8 +212,13 @@ public class CdmiRestController {
     }
 
     if (contentType.equals(MediaTypes.ACCOUNT)) {
+      
       JSONObject json = new JSONObject(body);
-      CdmiObject domain = domainDaoImpl.createByPath(path, new Domain(json));
+      CdmiObject domain;
+      if (requestedFields==null)
+        domain = domainDaoImpl.createByPath(path, new Domain(json));
+      else
+        domain = domainDaoImpl.updateByPath(path, new Domain(json), requestedFields);
       return domain.toJson().toString();
     }
 
@@ -280,10 +266,18 @@ public class CdmiRestController {
           String[] fieldsplit = field.split(":");
           if (object.get(fieldsplit[0]) instanceof JSONObject) {
             JSONObject fieldObject = new JSONObject();
-            if (requestedJson.has(fieldsplit[0]))
-              fieldObject = requestedJson.getJSONObject(fieldsplit[0]);
-            fieldObject.put(fieldsplit[1], object.getJSONObject(fieldsplit[0]).get(fieldsplit[1]));
-            requestedJson.put(fieldsplit[0], fieldObject);
+            String prefix = fieldsplit[1];
+            String fieldname = fieldsplit[0];
+            if (requestedJson.has(fieldname))
+              fieldObject = requestedJson.getJSONObject(fieldname);
+            Iterator<?> keys = object.getJSONObject(fieldname).keys();
+            while (keys.hasNext()) {
+              String key = (String) keys.next();
+              if (key.startsWith(prefix))
+                fieldObject.put(key, object.getJSONObject(fieldname).get(key));
+            }
+            if (fieldObject.length() != 0)
+              requestedJson.put(fieldname, fieldObject);
           } else if (field.startsWith("children:")) {
             String range = field.split("children:")[1];
             String[] rangeSplit = range.split("-");

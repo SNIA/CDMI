@@ -63,6 +63,7 @@ public class CapabilityDaoImpl implements CapabilityDao {
   private JSONObject system;
   private JSONObject dataobject;
   private JSONObject container;
+  private JSONObject domain;
   private String properties;
 
   // ---------------------------------------------------- ContainerDao Methods
@@ -83,6 +84,7 @@ public class CapabilityDaoImpl implements CapabilityDao {
       system = json.getJSONObject("system-capabilities");
       dataobject = json.getJSONObject("data-object-capabilities");
       container = json.getJSONObject("container-capabilities");
+      domain = json.getJSONObject("domain-capabilities");
 
     } catch (Exception e) {
       LOG.error("ERROR: {}", e.getMessage());
@@ -106,6 +108,9 @@ public class CapabilityDaoImpl implements CapabilityDao {
         case "dataobject":
           request = "dataobject";
           break;
+        case "domain":
+          request = "domain";
+          break;
         default:
           throw new NotFoundException("capability not found");
       }
@@ -117,6 +122,9 @@ public class CapabilityDaoImpl implements CapabilityDao {
             break;
           case "dataobject":
             object = dataobject;
+            break;
+          case "domain":
+            object = domain;
             break;
           default:
             throw new NotFoundException("capability not found");
