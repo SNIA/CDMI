@@ -36,6 +36,10 @@ import org.snia.cdmiserver.exception.NotFoundException;
 import org.snia.cdmiserver.model.Capability;
 import org.snia.cdmiserver.util.MediaTypes;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Files;
@@ -73,12 +77,20 @@ public class CapabilityDaoImpl implements CapabilityDao {
   }
 
   private void readProperties() {
-    Path path = Paths.get("src/main/resources/capabilities.properties.json");
+    ApplicationContext ctx = new ClassPathXmlApplicationContext();
+    Resource capabilitiesConfiguration = ctx.getResource("classpath:capabilities.properties.json");
+    Resource applicationConfiguration = ctx.getResource("classpath:application.properties");
+    LOG.debug("Load capabilities configuration: {}", capabilitiesConfiguration.getFilename());
+    LOG.debug("Load application configuration: {}", applicationConfiguration.getFilename());
+
     String file;
     try {
-      properties =
-          new String(Files.readAllBytes(Paths.get("src/main/resources/application.properties")));
-      file = new String(Files.readAllBytes(path));
+      Path capabilitiesConfPath = Paths.get(capabilitiesConfiguration.getFile().getAbsolutePath());
+      Path applicationConfPath = Paths.get(applicationConfiguration.getFile().getAbsolutePath());
+
+      properties = new String(Files.readAllBytes(applicationConfPath));
+      file = new String(Files.readAllBytes(capabilitiesConfPath));
+
       json = new JSONObject(file);
       system = json.getJSONObject("system-capabilities");
       dataobject = json.getJSONObject("data-object-capabilities");
@@ -87,6 +99,8 @@ public class CapabilityDaoImpl implements CapabilityDao {
     } catch (Exception e) {
       LOG.error("ERROR: {}", e.getMessage());
       // e.printStackTrace();
+    } finally {
+      ((ConfigurableApplicationContext) ctx).close();
     }
   }
 
