@@ -26,6 +26,8 @@ java -jar cdmi-server-0.0.1-SNAPSHOT.jar --server.port=9000
 Configuration for the application is done in the application.properties file.
 Configuration for the CDMI capabilities (QoS) is done in capabilities.properties.json
 
+It is recommended to run the application behind a https proxy with e.g. apache,nginx ...
+
 ## Tests
 
 Some curl commands for testing:
