@@ -86,8 +86,8 @@ public class CapabilityDaoImpl implements CapabilityDao {
     String file;
     FileInputStream in = null;
     try {
-      File capabilitiesConf = capabilitiesConfiguration.getFile();
-      File applicationConf = applicationConfiguration.getFile();
+      File capabilitiesConf = new File(capabilitiesConfiguration.getURL().getFile());
+      File applicationConf = new File(applicationConfiguration.getURL().getFile());
 
       in = new FileInputStream(applicationConf);
       byte bt[] = new byte[(int) applicationConf.length()];
