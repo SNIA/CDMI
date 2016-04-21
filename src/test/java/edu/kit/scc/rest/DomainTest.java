@@ -2,7 +2,6 @@ package edu.kit.scc.rest;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import edu.kit.scc.CdmiRestController;
 import edu.kit.scc.CdmiServerApplication;
@@ -12,14 +11,14 @@ import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
-import org.snia.cdmiserver.exception.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.servlet.HandlerMapping;
-
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
@@ -44,10 +43,11 @@ public class DomainTest {
     request.setMethod("PUT");
 
 
-    String answer = controller.putCdmiObject(request.getContentType(),
+    ResponseEntity<?> answer = controller.putCdmiObject(request.getContentType(),
         "{\"metadata\" : { created: by test, color:red } }", request, response);
 
     assertNotNull(answer);
+
   }
 
   @Test
@@ -64,7 +64,7 @@ public class DomainTest {
     request.setMethod("PUT");
 
 
-    String answer = controller.putCdmiObject(request.getContentType(),
+    ResponseEntity<?> answer = controller.putCdmiObject(request.getContentType(),
         "{\"metadata\" : { created: by test, color:yellow } }", request, response);
 
     assertNotNull(answer);
@@ -85,7 +85,7 @@ public class DomainTest {
     request.setMethod("PUT");
 
 
-    String answer = controller.putCdmiObject(request.getContentType(),
+    ResponseEntity<?> answer = controller.putCdmiObject(request.getContentType(),
         "{\"metadata\" : { created: updatet by test } }", request, response);
 
     assertNotNull(answer);
@@ -105,10 +105,12 @@ public class DomainTest {
     request.setMethod("PUT");
 
 
-    String answer = controller.putCdmiObject(request.getContentType(),
+    ResponseEntity<?> answer = controller.putCdmiObject(request.getContentType(),
         "{copy:\"/cdmi_domains/testDomain\"}", request, response);
 
-    JSONObject json = new JSONObject(answer);
+    JSONObject json = new JSONObject((String) answer.getBody());
+    System.out.println(answer.getBody());
+    System.out.println(json.toString());
     movingId = json.getString("objectID");
     assertNotNull(movingId);
     System.out.println(movingId);
@@ -129,7 +131,7 @@ public class DomainTest {
     request.setMethod("PUT");
 
 
-    String answer = controller.putCdmiObject(request.getContentType(),
+    ResponseEntity<?> answer = controller.putCdmiObject(request.getContentType(),
         "{move:\"/cdmi_domains/testDomain2\"}", request, response);
 
     assertNotNull(answer);
@@ -149,9 +151,9 @@ public class DomainTest {
     request.setMethod("GET");
 
 
-    String content = controller.getDomainByPath(request, response);
+    ResponseEntity<?> content = controller.getDomainByPath(request, response);
     assertNotNull(content);
-    JSONObject answer = new JSONObject(content);
+    JSONObject answer = new JSONObject((String) content.getBody());
     String objectId = answer.getString("objectID");
 
     request = new MockHttpServletRequest();
@@ -168,7 +170,7 @@ public class DomainTest {
 
 
   public void C_check_moved(String movingId) {
-    try {
+
       MockHttpServletRequest request = new MockHttpServletRequest();
       MockHttpServletResponse response = new MockHttpServletResponse();
       request.setServerName("localhost:8080");
@@ -178,23 +180,22 @@ public class DomainTest {
       request.setMethod("GET");
 
 
-      String content = controller.getDomainByPath(request, response);
-      System.out.println("ERROR: " + content);
-      fail();
-    } catch (NotFoundException e) {
-      MockHttpServletRequest request = new MockHttpServletRequest();
-      MockHttpServletResponse response = new MockHttpServletResponse();
+      ResponseEntity<?> content = controller.getDomainByPath(request, response);
+    System.out.println(content.getStatusCode());
+    assertTrue(content.getStatusCode().equals(HttpStatus.NOT_FOUND));
+
+
+    request = new MockHttpServletRequest();
+    response = new MockHttpServletResponse();
       request.setServerName("localhost:8080");
       request.setRequestURI("/cdmi_domains/testDomain/testSub");
       request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE,
           "/cdmi_domains/testDomain/testSub");
       request.setMethod("GET");
 
-      String content = controller.getDomainByPath(request, response);
-      JSONObject json = new JSONObject(content);
-      System.out.println(movingId);
-      System.out.println(json.getString("objectID"));
-      assertTrue(movingId.equals(json.getString("objectID")));
+    content = controller.getDomainByPath(request, response);
+    JSONObject json = new JSONObject((String) content.getBody());
+    assertTrue(movingId.equals(json.getString("objectID")));
 
 
       request = new MockHttpServletRequest();
@@ -206,7 +207,7 @@ public class DomainTest {
       request.setMethod("GET");
       assertNotNull(movingId);
       content = controller.getCdmiObjectByID(movingId, request, response);
-    }
+
 
   }
 
@@ -222,9 +223,8 @@ public class DomainTest {
     request.setMethod("GET");
 
 
-    String answer = controller.getDomainByPath(request, response);
-    System.out.println(answer);
-    assertTrue(answer.equals("{\"metadata\":{\"color\":\"yellow\"}}"));
+    ResponseEntity<?> answer = controller.getDomainByPath(request, response);
+    assertTrue(answer.getBody().equals("{\"metadata\":{\"color\":\"yellow\"}}"));
 
   }
 
@@ -232,10 +232,22 @@ public class DomainTest {
   public void D_delete() {
     MockHttpServletRequest request = new MockHttpServletRequest();
     MockHttpServletResponse response = new MockHttpServletResponse();
+    // request.setServerName("localhost:8080");
+    // request.setRequestURI("/cdmi_domains/testDomain/testSub/testSub");
+    // request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE,
+    // "/cdmi_domains/testDomain/testSub/testSub");
+    // request.addHeader("Content-Type", "application/cdmi-domain");
+    // request.setMethod("DELETE");
+
+
+    // controller.deleteCdmiObject(request, response);
+
+    request = new MockHttpServletRequest();
+    response = new MockHttpServletResponse();
     request.setServerName("localhost:8080");
     request.setRequestURI("/cdmi_domains/testDomain/testSub");
     request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE,
-        "/cdmi_domains/testDomain/");
+        "/cdmi_domains/testDomain/testSub");
     request.addHeader("Content-Type", "application/cdmi-domain");
     request.setMethod("DELETE");
 
