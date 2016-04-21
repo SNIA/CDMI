@@ -1,3 +1,12 @@
+/*
+ * Copyright 2016 Karlsruhe Institute of Technology (KIT)
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 package edu.kit.scc.rest;
 
 import edu.kit.scc.CdmiRestController;
@@ -86,9 +95,9 @@ public class CapabilitiesTest {
     MockHttpServletResponse response = new MockHttpServletResponse();
     request.setServerName("localhost:8080");
     request.setRequestURI(
-        "/cdmi_capabilities/dataobjectdefault/tape/disk/?capabilities:cdmi_read_value;capabilities:cdmi_read_metadata");
+        "/cdmi_capabilities/dataobject/default/?capabilities:cdmi_read_value;capabilities:cdmi_read_metadata");
     request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE,
-        "/cdmi_capabilities/dataobject/default/tape/");
+        "/cdmi_capabilities/dataobject/default/");
     request.setParameter("capabilities:cdmi_read_value;capabilities:cdmi_read_metadata", "");
     request.setMethod("GET");
 

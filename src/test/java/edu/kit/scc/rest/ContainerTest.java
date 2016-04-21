@@ -1,14 +1,28 @@
+/*
+ * Copyright 2016 Karlsruhe Institute of Technology (KIT)
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 package edu.kit.scc.rest;
 
 import edu.kit.scc.CdmiRestController;
 import edu.kit.scc.CdmiServerApplication;
 
+import org.json.JSONObject;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -19,6 +33,8 @@ import org.springframework.web.servlet.HandlerMapping;
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
 public class ContainerTest {
+
+  private static final Logger log = LoggerFactory.getLogger(ContainerTest.class);
 
   @Autowired
   private CdmiRestController controller;
@@ -37,8 +53,13 @@ public class ContainerTest {
     request.setMethod("PUT");
 
 
-    controller.putCdmiObject(request.getContentType(),
+    ResponseEntity<?> res = controller.putCdmiObject(request.getContentType(),
         "{ \"value\":{}, \"metadata\" : { created: by test, color:yellow } }", request, response);
+
+    log.debug("Create container {}", res.getStatusCode());
+    if (!res.getStatusCode().equals(HttpStatus.OK)) {
+      log.debug("ERROR reason {}", res.getBody());
+    }
   }
 
   @Test
@@ -51,7 +72,11 @@ public class ContainerTest {
     request.setMethod("GET");
 
 
-    String content = controller.getCdmiObjectByPath(request, response);
+    ResponseEntity<?> res = controller.getCdmiObjectByPath(request, response);
+    JSONObject json = (JSONObject) res.getBody();
+    log.debug(json.toString());
+
+    String content = json.toString();
     String objectId = content.split("objectID\":\"")[1].split("\"")[0];
 
     request = new MockHttpServletRequest();

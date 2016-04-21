@@ -1,14 +1,25 @@
+/*
+ * Copyright 2016 Karlsruhe Institute of Technology (KIT)
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ */
+
 package edu.kit.scc.rest;
 
 import edu.kit.scc.CdmiRestController;
 import edu.kit.scc.CdmiServerApplication;
 
+import org.json.JSONObject;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 // import org.springframework.test.context.ContextConfiguration;
@@ -72,7 +83,9 @@ public class DataObjectTest {
     request.setMethod("GET");
 
 
-    String content = controller.getCdmiObjectByPath(request, response);
+    ResponseEntity<?> res = controller.getCdmiObjectByPath(request, response);
+    JSONObject json = (JSONObject) res.getBody();
+    String content = json.toString();
     String objectId = content.split("objectID\":\"")[1].split("\"")[0];
 
     request = new MockHttpServletRequest();
