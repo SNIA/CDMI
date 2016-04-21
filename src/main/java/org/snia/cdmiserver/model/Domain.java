@@ -51,12 +51,16 @@ public class Domain extends CdmiObject {
 
   public Map<String, Object> getMetadata() {
     if (getAttributeMap().get(metadata) != null) {
-      JSONObject json = (JSONObject) getAttributeMap().get(metadata);
-      HashMap<String, Object> map = new HashMap<>();
-      for (Object key : json.keySet()) {
-        map.put((String) key, json.get((String) key));
+      try {
+        JSONObject json = (JSONObject) getAttributeMap().get(metadata);
+        HashMap<String, Object> map = new HashMap<>();
+        for (Object key : json.keySet()) {
+          map.put((String) key, json.get((String) key));
+        }
+        return map;
+      } catch (ClassCastException e) {
+        return (Map<String, Object>) getAttributeMap().get(metadata);
       }
-      return map;
     }
     return null;
   }
