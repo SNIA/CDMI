@@ -82,10 +82,24 @@
         },
         system-capabilities:
         {
-                cdmi_domains: false,
+                cdmi_domains: true,
 				cdmi_export_occi_iscsi: true,
 				cdmi_metadata_maxitems: 1024,
 				cdmi_metadata_maxsize: 4096
 
+        },
+        domain-capabilities:
+        {
+        		cdmi_create_domain: true,
+        		cdmi_delete_domain: true,
+        		cdmi_move_domain: true,
+        		cdmi_domain_summary: false,
+        		cdmi_domain_members: false,
+        		cdmi_list_children: true,
+        		cdmi_read_metadata: true,
+        		cdmi_modify_metadata: true,
+        		cdmi_copy_domain: true,
+        		cdmi_modify_deserialize_domain: false,
+        		cdmi_deserialize_domain: false
         }
 }

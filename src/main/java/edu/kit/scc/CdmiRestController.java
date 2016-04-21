@@ -17,12 +17,14 @@ import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.filesystem.CapabilityDaoImpl;
 import org.snia.cdmiserver.dao.filesystem.ContainerDaoImpl;
 import org.snia.cdmiserver.dao.filesystem.DataObjectDaoImpl;
+import org.snia.cdmiserver.dao.filesystem.DomainDaoImpl;
 import org.snia.cdmiserver.exception.BadRequestException;
 import org.snia.cdmiserver.exception.NotFoundException;
 import org.snia.cdmiserver.model.Capability;
 import org.snia.cdmiserver.model.CdmiObject;
 import org.snia.cdmiserver.model.Container;
 import org.snia.cdmiserver.model.DataObject;
+import org.snia.cdmiserver.model.Domain;
 import org.snia.cdmiserver.util.MediaTypes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
@@ -39,6 +41,7 @@ import org.springframework.web.servlet.HandlerMapping;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -59,8 +62,29 @@ public class CdmiRestController {
   @Autowired
   private DataObjectDaoImpl dataObjectDaoImpl;
 
+  @Autowired
+  private DomainDaoImpl domainDaoImpl;
+
+  @RequestMapping(path = "/cdmi_domains/**", method = RequestMethod.GET,
+      produces = "application/cdmi-domain+json")
+  public String getDomainByPath(HttpServletRequest request, HttpServletResponse response) {
+    String path =
+        (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+
+    log.debug("Get path {}", path);
+    String[] requestedFields = parseFields(request);
+    CdmiObject domain = domainDaoImpl.findByPath(path);
+    if (domain != null)
+      if (requestedFields == null)
+        return domain.toJson().toString();
+      else
+        return getRequestedJson(domain.toJson(), requestedFields).toString();
+
+    throw new NotFoundException("object not found");
+  }
+
   @RequestMapping(path = "/cdmi_capabilities/**", produces = "application/cdmi-capability+json")
-  public String capabilitiesWithFields(HttpServletRequest request, HttpServletResponse response) {
+  public String capabilities(HttpServletRequest request, HttpServletResponse response) {
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
     log.debug("Capabilities path {}", path);
@@ -92,29 +116,39 @@ public class CdmiRestController {
         }
       }
     } catch (org.snia.cdmiserver.exception.NotFoundException | java.lang.ClassCastException e) {
-      DataObject dataObject = dataObjectDaoImpl.findByObjectId(objectId);
-      if (dataObject != null) {
-        response.setContentType("application/cdmi-object+json");
-
-        String range = request.getHeader("Range");
-        if (range != null) {
-          byte[] content = dataObject.getValue().getBytes();
-          String[] ranges = range.split("-");
-          try {
-            content = Arrays.copyOfRange(content, Integer.valueOf(ranges[0].trim()),
-                Integer.valueOf(ranges[1].trim()));
-            dataObject.setValue(new String(content));
-          } catch (NumberFormatException e1) {
-            throw new BadRequestException("bad range");
+      try {
+        DataObject dataObject = dataObjectDaoImpl.findByObjectId(objectId);
+        if (dataObject != null) {
+          response.setContentType("application/cdmi-object+json");
+          String range = request.getHeader("Range");
+          if (range != null) {
+            byte[] content = dataObject.getValue().getBytes();
+            String[] ranges = range.split("-");
+            try {
+              content = Arrays.copyOfRange(content, Integer.valueOf(ranges[0].trim()),
+                  Integer.valueOf(ranges[1].trim()));
+              dataObject.setValue(new String(content));
+            } catch (NumberFormatException e1) {
+              throw new BadRequestException("bad range");
+            }
+          }
+          if (requestedFields == null) {
+            return dataObject.toJson().toString();
+          } else {
+            return getRequestedJson(dataObject.toJson(), requestedFields).toString();
           }
         }
-        if (requestedFields == null) {
-          return dataObject.toJson().toString();
-        } else {
-          return getRequestedJson(dataObject.toJson(), requestedFields).toString();
-        }
+      } catch (java.lang.ClassCastException e1) {
+        CdmiObject domain = domainDaoImpl.findByObjectId(objectId);
+        if (domain != null)
+          if (requestedFields == null)
+            return domain.toJson().toString();
+          else
+            return getRequestedJson(domain.toJson(), requestedFields).toString();
       }
     }
+
+
     throw new NotFoundException("object not found");
   }
 
@@ -174,6 +208,7 @@ public class CdmiRestController {
 
     log.debug("Create path {} as {}", path, contentType);
 
+    String[] requestedFields = parseFields(request);
     if (contentType.equals(MediaTypes.CONTAINER)) {
       JSONObject json = new JSONObject(body);
       CdmiObject container = containerDaoImpl.createByPath(path, new Container(json));
@@ -184,6 +219,17 @@ public class CdmiRestController {
       JSONObject json = new JSONObject(body);
       DataObject dataObject = dataObjectDaoImpl.createByPath(path, new DataObject(json));
       return dataObject.toJson().toString();
+    }
+
+    if (contentType.equals(MediaTypes.ACCOUNT)) {
+
+      JSONObject json = new JSONObject(body);
+      CdmiObject domain;
+      if (requestedFields == null)
+        domain = domainDaoImpl.createByPath(path, new Domain(json));
+      else
+        domain = domainDaoImpl.updateByPath(path, new Domain(json), requestedFields);
+      return domain.toJson().toString();
     }
 
     throw new org.snia.cdmiserver.exception.BadRequestException("bad content-type");
@@ -201,7 +247,11 @@ public class CdmiRestController {
     try {
       dataObjectDaoImpl.deleteByPath(path);
     } catch (org.snia.cdmiserver.exception.NotFoundException | java.lang.ClassCastException e) {
-      containerDaoImpl.deleteByPath(path);
+      try {
+        containerDaoImpl.deleteByPath(path);
+      } catch (org.snia.cdmiserver.exception.NotFoundException | java.lang.ClassCastException e1) {
+        domainDaoImpl.deleteByPath(path);
+      }
     }
   }
 
@@ -226,10 +276,18 @@ public class CdmiRestController {
           String[] fieldsplit = field.split(":");
           if (object.get(fieldsplit[0]) instanceof JSONObject) {
             JSONObject fieldObject = new JSONObject();
-            if (requestedJson.has(fieldsplit[0]))
-              fieldObject = requestedJson.getJSONObject(fieldsplit[0]);
-            fieldObject.put(fieldsplit[1], object.getJSONObject(fieldsplit[0]).get(fieldsplit[1]));
-            requestedJson.put(fieldsplit[0], fieldObject);
+            String prefix = fieldsplit[1];
+            String fieldname = fieldsplit[0];
+            if (requestedJson.has(fieldname))
+              fieldObject = requestedJson.getJSONObject(fieldname);
+            Iterator<?> keys = object.getJSONObject(fieldname).keys();
+            while (keys.hasNext()) {
+              String key = (String) keys.next();
+              if (key.startsWith(prefix))
+                fieldObject.put(key, object.getJSONObject(fieldname).get(key));
+            }
+            if (fieldObject.length() != 0)
+              requestedJson.put(fieldname, fieldObject);
           } else if (field.startsWith("children:")) {
             String range = field.split("children:")[1];
             String[] rangeSplit = range.split("-");
