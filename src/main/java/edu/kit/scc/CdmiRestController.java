@@ -27,7 +27,9 @@ import org.snia.cdmiserver.model.DataObject;
 import org.snia.cdmiserver.model.Domain;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -85,12 +87,15 @@ public class CdmiRestController {
     response.addHeader("X-CDMI-Specification-Version", "1.1.1");
 
     if (domain != null) {
-      response.setContentType("application/cdmi-domain");
+      HttpHeaders responseHeaders = new HttpHeaders();
+      responseHeaders
+          .setContentType(new MediaType("cdmi-domain", MediaType.APPLICATION_JSON.getType()));
       if (requestedFields == null) {
-        return new ResponseEntity<String>(domain.toJson().toString(), HttpStatus.OK);
+        return new ResponseEntity<String>(domain.toJson().toString(), responseHeaders,
+            HttpStatus.OK);
       } else {
         String jsonString = getRequestedJson(domain.toJson(), requestedFields).toString();
-        return new ResponseEntity<String>(jsonString, HttpStatus.OK);
+        return new ResponseEntity<String>(jsonString, responseHeaders, HttpStatus.OK);
       }
     }
 
@@ -115,12 +120,15 @@ public class CdmiRestController {
     Capability capability = capabilityDaoImpl.findByPath(path);
     String[] requestedFields = parseFields(request);
     if (capability != null) {
-      response.setContentType("application/cdmi-capability");
+      HttpHeaders responseHeaders = new HttpHeaders();
+      responseHeaders
+          .setContentType(new MediaType("cdmi-capability", MediaType.APPLICATION_JSON.getType()));
       if (requestedFields == null) {
-        return new ResponseEntity<String>(capability.toJson().toString(), HttpStatus.OK);
+        return new ResponseEntity<String>(capability.toJson().toString(), responseHeaders,
+            HttpStatus.OK);
       } else {
         String jsonString = getRequestedJson(capability.toJson(), requestedFields).toString();
-        return new ResponseEntity<String>(jsonString, HttpStatus.OK);
+        return new ResponseEntity<String>(jsonString, responseHeaders, HttpStatus.OK);
       }
     }
     return new ResponseEntity<String>("Capabilities not found", HttpStatus.NOT_FOUND);
@@ -142,16 +150,20 @@ public class CdmiRestController {
     response.addHeader("X-CDMI-Specification-Version", "1.1.1");
 
     String[] requestedFields = parseFields(request);
+    HttpHeaders responseHeaders = new HttpHeaders();
+
     // look for container
     try {
       CdmiObject container = containerDaoImpl.findByObjectId(objectId);
       if (container != null) {
-        response.setContentType("application/cdmi-container");
+        responseHeaders
+            .setContentType(new MediaType("cdmi-container", MediaType.APPLICATION_JSON.getType()));
         if (requestedFields == null) {
-          return new ResponseEntity<String>(container.toJson().toString(), HttpStatus.OK);
+          return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
+              HttpStatus.OK);
         } else {
           String jsonString = getRequestedJson(container.toJson(), requestedFields).toString();
-          return new ResponseEntity<String>(jsonString, HttpStatus.OK);
+          return new ResponseEntity<String>(jsonString, responseHeaders, HttpStatus.OK);
         }
       }
     } catch (NotFoundException | ClassCastException e1) {
@@ -171,12 +183,14 @@ public class CdmiRestController {
               return new ResponseEntity<String>("Bad range", HttpStatus.BAD_REQUEST);
             }
           }
-          response.setContentType("application/cdmi-object");
+          responseHeaders
+              .setContentType(new MediaType("cdmi-object", MediaType.APPLICATION_JSON.getType()));
           if (requestedFields == null) {
-            return new ResponseEntity<String>(dataObject.toJson().toString(), HttpStatus.OK);
+            return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
+                HttpStatus.OK);
           } else {
             String jsonString = getRequestedJson(dataObject.toJson(), requestedFields).toString();
-            return new ResponseEntity<String>(jsonString, HttpStatus.OK);
+            return new ResponseEntity<String>(jsonString, responseHeaders, HttpStatus.OK);
           }
         }
       } catch (NotFoundException | ClassCastException e2) {
@@ -184,12 +198,14 @@ public class CdmiRestController {
         try {
           CdmiObject domain = domainDaoImpl.findByObjectId(objectId);
           if (domain != null) {
-            response.setContentType("application/cdmi-domain");
+            responseHeaders
+                .setContentType(new MediaType("cdmi-domain", MediaType.APPLICATION_JSON.getType()));
             if (requestedFields == null) {
-              return new ResponseEntity<String>(domain.toJson().toString(), HttpStatus.OK);
+              return new ResponseEntity<String>(domain.toJson().toString(), responseHeaders,
+                  HttpStatus.OK);
             } else {
               String jsonString = getRequestedJson(domain.toJson(), requestedFields).toString();
-              return new ResponseEntity<String>(jsonString, HttpStatus.OK);
+              return new ResponseEntity<String>(jsonString, responseHeaders, HttpStatus.OK);
             }
           }
         } catch (NotFoundException | ClassCastException e3) {
@@ -218,16 +234,20 @@ public class CdmiRestController {
     response.addHeader("X-CDMI-Specification-Version", "1.1.1");
 
     String[] requestedFields = parseFields(request);
+    HttpHeaders responseHeaders = new HttpHeaders();
+
     // look for container
     try {
       CdmiObject container = containerDaoImpl.findByPath(path);
       if (container != null) {
-        response.setContentType("application/cdmi-container");
+        responseHeaders
+            .setContentType(new MediaType("cdmi-container", MediaType.APPLICATION_JSON.getType()));
         if (requestedFields == null) {
-          return new ResponseEntity<String>(container.toJson().toString(), HttpStatus.OK);
+          return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
+              HttpStatus.OK);
         } else {
           String jsonString = getRequestedJson(container.toJson(), requestedFields).toString();
-          return new ResponseEntity<String>(jsonString, HttpStatus.OK);
+          return new ResponseEntity<String>(jsonString, responseHeaders, HttpStatus.OK);
         }
       }
     } catch (NotFoundException | ClassCastException e1) {
@@ -235,7 +255,8 @@ public class CdmiRestController {
       try {
         DataObject dataObject = dataObjectDaoImpl.findByPath(path);
         if (dataObject != null) {
-          response.setContentType("application/cdmi-object");
+          responseHeaders
+              .setContentType(new MediaType("cdmi-object", MediaType.APPLICATION_JSON.getType()));
           String range = request.getHeader("Range");
           if (range != null) {
             byte[] content = dataObject.getValue().getBytes();
@@ -249,10 +270,11 @@ public class CdmiRestController {
             }
           }
           if (requestedFields == null) {
-            return new ResponseEntity<String>(dataObject.toJson().toString(), HttpStatus.OK);
+            return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
+                HttpStatus.OK);
           } else {
             String jsonString = getRequestedJson(dataObject.toJson(), requestedFields).toString();
-            return new ResponseEntity<String>(jsonString, HttpStatus.OK);
+            return new ResponseEntity<String>(jsonString, responseHeaders, HttpStatus.OK);
           }
         }
       } catch (NotFoundException | ClassCastException e2) {
@@ -282,13 +304,17 @@ public class CdmiRestController {
     response.addHeader("X-CDMI-Specification-Version", "1.1.1");
 
     String[] requestedFields = parseFields(request);
+    HttpHeaders responseHeaders = new HttpHeaders();
+
     // create container
     if (contentType.equals("application/cdmi-container")) {
       JSONObject json = new JSONObject(body);
       CdmiObject container = containerDaoImpl.createByPath(path, new Container(json));
       if (container != null) {
-        response.setContentType("application/cdmi-container");
-        return new ResponseEntity<String>(container.toJson().toString(), HttpStatus.CREATED);
+        responseHeaders
+            .setContentType(new MediaType("cdmi-container", MediaType.APPLICATION_JSON.getType()));
+        return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
+            HttpStatus.CREATED);
       }
     }
     // create dataobject
@@ -296,8 +322,10 @@ public class CdmiRestController {
       JSONObject json = new JSONObject(body);
       DataObject dataObject = dataObjectDaoImpl.createByPath(path, new DataObject(json));
       if (dataObject != null) {
-        response.setContentType("application/cdmi-object");
-        return new ResponseEntity<String>(dataObject.toJson().toString(), HttpStatus.CREATED);
+        responseHeaders
+            .setContentType(new MediaType("cdmi-object", MediaType.APPLICATION_JSON.getType()));
+        return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
+            HttpStatus.CREATED);
       }
     }
     // create domain
@@ -310,8 +338,10 @@ public class CdmiRestController {
         domain = domainDaoImpl.updateByPath(path, new Domain(json), requestedFields);
       }
       if (domain != null) {
-        response.setContentType("application/cdmi-domain");
-        return new ResponseEntity<String>(domain.toJson().toString(), HttpStatus.CREATED);
+        responseHeaders
+            .setContentType(new MediaType("cdmi-domain", MediaType.APPLICATION_JSON.getType()));
+        return new ResponseEntity<String>(domain.toJson().toString(), responseHeaders,
+            HttpStatus.CREATED);
       }
     } else if (contentType.equals("application/json")) {
       return new ResponseEntity<String>("Specify CDMI content type", HttpStatus.BAD_REQUEST);
