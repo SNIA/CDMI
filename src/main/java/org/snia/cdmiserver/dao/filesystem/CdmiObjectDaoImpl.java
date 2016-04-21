@@ -70,6 +70,9 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
     try {
       Path path =
           Paths.get(baseDirectoryName.trim(), objectIdDirectoryName.trim(), objectId.getObjectId());
+      if (!Files.exists(Paths.get(baseDirectoryName.trim(), objectIdDirectoryName.trim()))) {
+        Files.createDirectory(Paths.get(baseDirectoryName.trim(), objectIdDirectoryName.trim()));
+      }
       log.debug("path is {}", path);
       Files.write(path, objectId.toJson().toString().getBytes(), StandardOpenOption.WRITE,
           StandardOpenOption.CREATE_NEW);
@@ -158,8 +161,8 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
 
   public CdmiObject getCdmiObjectByPath(String path) {
     CdmiObject object = null;
-    Path p = Paths.get(path.trim());
-    if (p.toString().equals(baseDirectoryName.trim())) {
+    Path p = Paths.get(path.trim().replaceAll("/$", ""));
+    if (p.toString().equals(baseDirectoryName.trim().replaceAll("/$", ""))) {
       Container rootContainer = new Container();
       rootContainer.setObjectId(rootObjectId);
       return rootContainer;

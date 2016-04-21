@@ -101,7 +101,7 @@ public class DataObjectDaoImpl implements DataObjectDao {
           dataObject.setObjectName(file.getFileName().toString());
           dataObject.setParentURI(relPath.getParent().toString());
           dataObject.setParentID(parentObject.getObjectId());
-          dataObject.setCapabilitiesURI(capabilitiesUri);
+          dataObject.setCapabilitiesURI(capabilitiesUri + "/dataobject/default");
           dataObject.setDomainURI(domainUri);
           dataObject.setMetadata(dataObjectRequest.getMetadata());
 

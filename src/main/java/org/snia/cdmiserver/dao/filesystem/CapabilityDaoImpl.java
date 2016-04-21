@@ -36,11 +36,14 @@ import org.snia.cdmiserver.exception.NotFoundException;
 import org.snia.cdmiserver.model.Capability;
 import org.snia.cdmiserver.util.MediaTypes;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Iterator;
 
 /**
@@ -74,12 +77,28 @@ public class CapabilityDaoImpl implements CapabilityDao {
   }
 
   private void readProperties() {
-    Path path = Paths.get("src/main/resources/capabilities.properties.json");
+    ApplicationContext ctx = new ClassPathXmlApplicationContext();
+    Resource capabilitiesConfiguration = ctx.getResource("classpath:capabilities.properties.json");
+    Resource applicationConfiguration = ctx.getResource("classpath:application.properties");
+    LOG.debug("Load capabilities configuration: {}", capabilitiesConfiguration.getFilename());
+    LOG.debug("Load application configuration: {}", applicationConfiguration.getFilename());
+
     String file;
+    InputStream in = null;
     try {
-      properties =
-          new String(Files.readAllBytes(Paths.get("src/main/resources/application.properties")));
-      file = new String(Files.readAllBytes(path));
+      in = applicationConfiguration.getInputStream();
+      byte bt[] = new byte[(int) applicationConfiguration.contentLength()];
+      in.read(bt);
+
+      properties = new String(bt);
+      in.close();
+
+      in = capabilitiesConfiguration.getInputStream();
+      bt = new byte[(int) capabilitiesConfiguration.contentLength()];
+      in.read(bt);
+      file = new String(bt);
+      in.close();
+
       json = new JSONObject(file);
       system = json.getJSONObject("system-capabilities");
       dataobject = json.getJSONObject("data-object-capabilities");
@@ -89,6 +108,15 @@ public class CapabilityDaoImpl implements CapabilityDao {
     } catch (Exception e) {
       LOG.error("ERROR: {}", e.getMessage());
       // e.printStackTrace();
+    } finally {
+      ((ConfigurableApplicationContext) ctx).close();
+      try {
+        if (in != null) {
+          in.close();
+        }
+      } catch (IOException ex) {
+        LOG.error("ERROR: {}", ex.getMessage());
+      }
     }
   }
 

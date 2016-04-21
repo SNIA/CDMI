@@ -99,7 +99,7 @@ public class ContainerDaoImpl implements ContainerDao {
         container.setObjectName(directory.getFileName().toString());
         container.setParentURI(relPath.getParent().toString());
         container.setParentID(parentObject.getObjectId());
-        container.setCapabilitiesURI(capabilitiesUri);
+        container.setCapabilitiesURI(capabilitiesUri + "/container/default");
         container.setDomainURI(domainUri);
         container.setMetadata(containerRequest.getMetadata());
 

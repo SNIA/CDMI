@@ -1,10 +1,10 @@
-/*   Copyright 2016 Karlsruhe Institute of Technology (KIT)
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
+/*
+ * Copyright 2016 Karlsruhe Institute of Technology (KIT)
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
  */
 package edu.kit.scc;
 
@@ -28,76 +28,76 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
 public class ContainerFilesystemTest {
 
-	private static final Logger log = LoggerFactory.getLogger(ContainerFilesystemTest.class);
+  private static final Logger log = LoggerFactory.getLogger(ContainerFilesystemTest.class);
 
-	@Autowired
-	private ContainerDaoImpl containerDaoImpl;
+  @Autowired
+  private ContainerDaoImpl containerDaoImpl;
 
-	@Test
-	public void crudContainerTest() {
-		String json = "{\"metadata\": {\"profile\": \"qos:2015\"}}";
-		Container testObjectId = new Container(new JSONObject(json));
-		assertNotNull(testObjectId);
+  @Test
+  public void crudContainerTest() {
+    String json = "{\"metadata\": {\"profile\": \"qos:2015\"}}";
+    Container testObjectId = new Container(new JSONObject(json));
+    assertNotNull(testObjectId);
 
-		String containerPath = "/container";
-		CdmiObject container = containerDaoImpl.createByPath(containerPath, testObjectId);
+    String containerPath = "/container";
+    CdmiObject container = containerDaoImpl.createByPath(containerPath, testObjectId);
 
-		assertNotNull(container);
-		log.debug(container.toString());
+    assertNotNull(container);
+    log.debug(container.toString());
 
-		String myContainerPath = "/container/MyContainer";
-		CdmiObject myContainer = containerDaoImpl.createByPath(myContainerPath, testObjectId);
+    String myContainerPath = "/container/MyContainer";
+    CdmiObject myContainer = containerDaoImpl.createByPath(myContainerPath, testObjectId);
 
-		assertNotNull(myContainer);
-		log.debug(myContainer.toString());
+    assertNotNull(myContainer);
+    log.debug(myContainer.toString());
 
-		assertTrue(containerDaoImpl.isContainer(containerPath));
-		assertTrue(containerDaoImpl.isContainer(myContainerPath));
+    assertTrue(containerDaoImpl.isContainer(containerPath));
+    assertTrue(containerDaoImpl.isContainer(myContainerPath));
 
-		CdmiObject objectByPath = containerDaoImpl.findByPath(myContainerPath);
-		log.debug(objectByPath.toString());
+    CdmiObject objectByPath = containerDaoImpl.findByPath(myContainerPath);
+    log.debug(objectByPath.toString());
 
-		CdmiObject objectById = containerDaoImpl.findByObjectId(myContainer.getObjectId());
-		log.debug(objectById.toString());
+    CdmiObject objectById = containerDaoImpl.findByObjectId(myContainer.getObjectId());
+    log.debug(objectById.toString());
 
-		assertEquals(objectByPath.toString(), objectById.toString());
+    assertEquals(objectByPath.toString(), objectById.toString());
 
-		containerDaoImpl.deleteByPath(myContainerPath);
-		containerDaoImpl.deleteByPath(containerPath);
+    containerDaoImpl.deleteByPath(myContainerPath);
+    containerDaoImpl.deleteByPath(containerPath);
 
-	}
+  }
 
-	@Test
-	public void crudContainerNoMetadataTest() {
-		String json = "{}";
-		Container testObjectId = new Container(new JSONObject(json));
-		assertNotNull(testObjectId);
+  @Test
+  public void crudContainerNoMetadataTest() {
+    String json = "{}";
+    Container testObjectId = new Container(new JSONObject(json));
+    assertNotNull(testObjectId);
 
-		String containerPath = "/container";
-		CdmiObject container = containerDaoImpl.createByPath(containerPath, testObjectId);
+    String containerPath = "/container";
+    CdmiObject container = containerDaoImpl.createByPath(containerPath, testObjectId);
 
-		assertNotNull(container);
-		log.debug(container.toString());
+    assertNotNull(container);
+    log.debug(container.toString());
 
-		String myContainerPath = "/container/MyContainer";
-		CdmiObject myContainer = containerDaoImpl.createByPath(myContainerPath, testObjectId);
+    String myContainerPath = "/container/MyContainer";
+    CdmiObject myContainer = containerDaoImpl.createByPath(myContainerPath, testObjectId);
 
-		assertNotNull(myContainer);
-		log.debug(myContainer.toString());
+    assertNotNull(myContainer);
+    log.debug(myContainer.toString());
 
-		assertTrue(containerDaoImpl.isContainer(containerPath));
-		assertTrue(containerDaoImpl.isContainer(myContainerPath));
+    assertTrue(containerDaoImpl.isContainer(containerPath));
+    assertTrue(containerDaoImpl.isContainer(myContainerPath));
 
-		CdmiObject objectByPath = containerDaoImpl.findByPath(myContainerPath);
-		log.debug(objectByPath.toString());
+    CdmiObject objectByPath = containerDaoImpl.findByPath(myContainerPath);
+    log.debug(objectByPath.toString());
 
-		CdmiObject objectById = containerDaoImpl.findByObjectId(myContainer.getObjectId());
-		log.debug(objectById.toString());
+    CdmiObject objectById = containerDaoImpl.findByObjectId(myContainer.getObjectId());
+    log.debug(objectById.toString());
 
-		assertEquals(objectByPath.toString(), objectById.toString());
+    assertEquals(objectByPath.toString(), objectById.toString());
 
-		containerDaoImpl.deleteByPath(myContainerPath);
-		containerDaoImpl.deleteByPath(containerPath);
+    containerDaoImpl.deleteByPath(myContainerPath);
+    containerDaoImpl.deleteByPath(containerPath);
 
-	}
+  }
 }
