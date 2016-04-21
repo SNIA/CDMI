@@ -88,8 +88,7 @@ public class CdmiRestController {
 
     if (domain != null) {
       HttpHeaders responseHeaders = new HttpHeaders();
-      responseHeaders
-          .setContentType(new MediaType("cdmi-domain", MediaType.APPLICATION_JSON.getType()));
+      responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
       if (requestedFields == null) {
         return new ResponseEntity<String>(domain.toJson().toString(), responseHeaders,
             HttpStatus.OK);
@@ -121,8 +120,7 @@ public class CdmiRestController {
     String[] requestedFields = parseFields(request);
     if (capability != null) {
       HttpHeaders responseHeaders = new HttpHeaders();
-      responseHeaders
-          .setContentType(new MediaType("cdmi-capability", MediaType.APPLICATION_JSON.getType()));
+      responseHeaders.setContentType(new MediaType("application", "cdmi-capability"));
       if (requestedFields == null) {
         return new ResponseEntity<String>(capability.toJson().toString(), responseHeaders,
             HttpStatus.OK);
@@ -156,8 +154,7 @@ public class CdmiRestController {
     try {
       CdmiObject container = containerDaoImpl.findByObjectId(objectId);
       if (container != null) {
-        responseHeaders
-            .setContentType(new MediaType("cdmi-container", MediaType.APPLICATION_JSON.getType()));
+        responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
         if (requestedFields == null) {
           return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
               HttpStatus.OK);
@@ -183,8 +180,7 @@ public class CdmiRestController {
               return new ResponseEntity<String>("Bad range", HttpStatus.BAD_REQUEST);
             }
           }
-          responseHeaders
-              .setContentType(new MediaType("cdmi-object", MediaType.APPLICATION_JSON.getType()));
+          responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
           if (requestedFields == null) {
             return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
                 HttpStatus.OK);
@@ -198,8 +194,7 @@ public class CdmiRestController {
         try {
           CdmiObject domain = domainDaoImpl.findByObjectId(objectId);
           if (domain != null) {
-            responseHeaders
-                .setContentType(new MediaType("cdmi-domain", MediaType.APPLICATION_JSON.getType()));
+            responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
             if (requestedFields == null) {
               return new ResponseEntity<String>(domain.toJson().toString(), responseHeaders,
                   HttpStatus.OK);
@@ -240,8 +235,7 @@ public class CdmiRestController {
     try {
       CdmiObject container = containerDaoImpl.findByPath(path);
       if (container != null) {
-        responseHeaders
-            .setContentType(new MediaType("cdmi-container", MediaType.APPLICATION_JSON.getType()));
+        responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
         if (requestedFields == null) {
           return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
               HttpStatus.OK);
@@ -255,8 +249,7 @@ public class CdmiRestController {
       try {
         DataObject dataObject = dataObjectDaoImpl.findByPath(path);
         if (dataObject != null) {
-          responseHeaders
-              .setContentType(new MediaType("cdmi-object", MediaType.APPLICATION_JSON.getType()));
+          responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
           String range = request.getHeader("Range");
           if (range != null) {
             byte[] content = dataObject.getValue().getBytes();
@@ -311,8 +304,7 @@ public class CdmiRestController {
       JSONObject json = new JSONObject(body);
       CdmiObject container = containerDaoImpl.createByPath(path, new Container(json));
       if (container != null) {
-        responseHeaders
-            .setContentType(new MediaType("cdmi-container", MediaType.APPLICATION_JSON.getType()));
+        responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
         return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
             HttpStatus.CREATED);
       }
@@ -322,8 +314,7 @@ public class CdmiRestController {
       JSONObject json = new JSONObject(body);
       DataObject dataObject = dataObjectDaoImpl.createByPath(path, new DataObject(json));
       if (dataObject != null) {
-        responseHeaders
-            .setContentType(new MediaType("cdmi-object", MediaType.APPLICATION_JSON.getType()));
+        responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
         return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
             HttpStatus.CREATED);
       }
@@ -338,8 +329,7 @@ public class CdmiRestController {
         domain = domainDaoImpl.updateByPath(path, new Domain(json), requestedFields);
       }
       if (domain != null) {
-        responseHeaders
-            .setContentType(new MediaType("cdmi-domain", MediaType.APPLICATION_JSON.getType()));
+        responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
         return new ResponseEntity<String>(domain.toJson().toString(), responseHeaders,
             HttpStatus.CREATED);
       }
