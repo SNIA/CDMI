@@ -72,7 +72,7 @@ public class CdmiRestController {
    * @return a JSON serialized {@link Domain} object
    */
   @RequestMapping(path = "/cdmi_domains/**", method = RequestMethod.GET,
-      consumes = "application/cdmi-domain+json", produces = "application/cdmi-domain+json")
+      produces = {"application/cdmi-domain", "application/json"})
   public ResponseEntity<?> getDomainByPath(HttpServletRequest request,
       HttpServletResponse response) {
     String path =
@@ -85,8 +85,9 @@ public class CdmiRestController {
     response.addHeader("X-CDMI-Specification-Version", "1.1.1");
 
     if (domain != null) {
+      response.setContentType("application/cdmi-domain");
       if (requestedFields == null) {
-        return new ResponseEntity<JSONObject>(domain.toJson(), HttpStatus.OK);
+        return new ResponseEntity<String>(domain.toJson().toString(), HttpStatus.OK);
       } else {
         String jsonString = getRequestedJson(domain.toJson(), requestedFields).toString();
         return new ResponseEntity<String>(jsonString, HttpStatus.OK);
@@ -104,7 +105,7 @@ public class CdmiRestController {
    * @return a JSON serialized {@link Capability} object
    */
   @RequestMapping(path = "/cdmi_capabilities/**", method = RequestMethod.GET,
-      consumes = "application/cdmi-capability+json", produces = "application/cdmi-capability+json")
+      produces = {"application/cdmi-capability", "application/json"})
   public ResponseEntity<?> capabilities(HttpServletRequest request, HttpServletResponse response) {
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
@@ -114,8 +115,9 @@ public class CdmiRestController {
     Capability capability = capabilityDaoImpl.findByPath(path);
     String[] requestedFields = parseFields(request);
     if (capability != null) {
+      response.setContentType("application/cdmi-capability");
       if (requestedFields == null) {
-        return new ResponseEntity<JSONObject>(capability.toJson(), HttpStatus.OK);
+        return new ResponseEntity<String>(capability.toJson().toString(), HttpStatus.OK);
       } else {
         String jsonString = getRequestedJson(capability.toJson(), requestedFields).toString();
         return new ResponseEntity<String>(jsonString, HttpStatus.OK);
@@ -132,8 +134,8 @@ public class CdmiRestController {
    * @return a JSON serialized {@link CdmiObject}
    */
   @RequestMapping(path = "/cdmi_objectid/{objectId}", method = RequestMethod.GET,
-      consumes = "application/cdmi-object+json", produces = {"application/cdmi-object+json",
-          "application/cdmi-container+json", "application/cdmi-domain+json"})
+      produces = {"application/cdmi-object", "application/cdmi-container",
+          "application/cdmi-domain", "application/json"})
   public ResponseEntity<?> getCdmiObjectByID(@PathVariable String objectId,
       HttpServletRequest request, HttpServletResponse response) {
     log.debug("Get objectID {}", objectId);
@@ -144,9 +146,9 @@ public class CdmiRestController {
     try {
       CdmiObject container = containerDaoImpl.findByObjectId(objectId);
       if (container != null) {
-        response.setContentType("application/cdmi-container+json");
+        response.setContentType("application/cdmi-container");
         if (requestedFields == null) {
-          return new ResponseEntity<JSONObject>(container.toJson(), HttpStatus.OK);
+          return new ResponseEntity<String>(container.toJson().toString(), HttpStatus.OK);
         } else {
           String jsonString = getRequestedJson(container.toJson(), requestedFields).toString();
           return new ResponseEntity<String>(jsonString, HttpStatus.OK);
@@ -169,8 +171,9 @@ public class CdmiRestController {
               return new ResponseEntity<String>("Bad range", HttpStatus.BAD_REQUEST);
             }
           }
+          response.setContentType("application/cdmi-object");
           if (requestedFields == null) {
-            return new ResponseEntity<JSONObject>(dataObject.toJson(), HttpStatus.OK);
+            return new ResponseEntity<String>(dataObject.toJson().toString(), HttpStatus.OK);
           } else {
             String jsonString = getRequestedJson(dataObject.toJson(), requestedFields).toString();
             return new ResponseEntity<String>(jsonString, HttpStatus.OK);
@@ -181,9 +184,9 @@ public class CdmiRestController {
         try {
           CdmiObject domain = domainDaoImpl.findByObjectId(objectId);
           if (domain != null) {
-            response.setContentType("application/cdmi-domain+json");
+            response.setContentType("application/cdmi-domain");
             if (requestedFields == null) {
-              return new ResponseEntity<JSONObject>(domain.toJson(), HttpStatus.OK);
+              return new ResponseEntity<String>(domain.toJson().toString(), HttpStatus.OK);
             } else {
               String jsonString = getRequestedJson(domain.toJson(), requestedFields).toString();
               return new ResponseEntity<String>(jsonString, HttpStatus.OK);
@@ -206,8 +209,7 @@ public class CdmiRestController {
    * @return a JSON serialized {@link Container} or {@link DataObject}
    */
   @RequestMapping(path = "/**", method = RequestMethod.GET,
-      consumes = {"application/cdmi-object+json", "application/cdmi-container+json"},
-      produces = {"application/cdmi-object+json", "application/cdmi-container+json"})
+      produces = {"application/cdmi-object", "application/cdmi-container", "application/json"})
   public ResponseEntity<?> getCdmiObjectByPath(HttpServletRequest request,
       HttpServletResponse response) {
     String path =
@@ -220,9 +222,9 @@ public class CdmiRestController {
     try {
       CdmiObject container = containerDaoImpl.findByPath(path);
       if (container != null) {
-        response.setContentType("application/cdmi-container+json");
+        response.setContentType("application/cdmi-container");
         if (requestedFields == null) {
-          return new ResponseEntity<JSONObject>(container.toJson(), HttpStatus.OK);
+          return new ResponseEntity<String>(container.toJson().toString(), HttpStatus.OK);
         } else {
           String jsonString = getRequestedJson(container.toJson(), requestedFields).toString();
           return new ResponseEntity<String>(jsonString, HttpStatus.OK);
@@ -233,7 +235,7 @@ public class CdmiRestController {
       try {
         DataObject dataObject = dataObjectDaoImpl.findByPath(path);
         if (dataObject != null) {
-          response.setContentType("application/cdmi-object+json");
+          response.setContentType("application/cdmi-object");
           String range = request.getHeader("Range");
           if (range != null) {
             byte[] content = dataObject.getValue().getBytes();
@@ -247,7 +249,7 @@ public class CdmiRestController {
             }
           }
           if (requestedFields == null) {
-            return new ResponseEntity<JSONObject>(dataObject.toJson(), HttpStatus.OK);
+            return new ResponseEntity<String>(dataObject.toJson().toString(), HttpStatus.OK);
           } else {
             String jsonString = getRequestedJson(dataObject.toJson(), requestedFields).toString();
             return new ResponseEntity<String>(jsonString, HttpStatus.OK);
@@ -268,10 +270,10 @@ public class CdmiRestController {
    * @return a JSON serialized {@link Container} or {@link DataObject}
    */
   @RequestMapping(path = "/**", method = RequestMethod.PUT,
-      consumes = {"application/cdmi-object+json", "application/cdmi-container+json",
-          "application/cdmi-domain+json"},
-      produces = {"application/cdmi-object+json", "application/cdmi-container+json",
-          "application/cdmi-domain+json"})
+      consumes = {"application/cdmi-object", "application/cdmi-container",
+          "application/cdmi-domain", "application/json"},
+      produces = {"application/cdmi-object", "application/cdmi-container",
+          "application/cdmi-domain", "application/json"})
   public ResponseEntity<?> putCdmiObject(@RequestHeader("Content-Type") String contentType,
       @RequestBody String body, HttpServletRequest request, HttpServletResponse response) {
     String path =
@@ -285,7 +287,8 @@ public class CdmiRestController {
       JSONObject json = new JSONObject(body);
       CdmiObject container = containerDaoImpl.createByPath(path, new Container(json));
       if (container != null) {
-        return new ResponseEntity<JSONObject>(container.toJson(), HttpStatus.CREATED);
+        response.setContentType("application/cdmi-container");
+        return new ResponseEntity<String>(container.toJson().toString(), HttpStatus.CREATED);
       }
     }
     // create dataobject
@@ -293,7 +296,8 @@ public class CdmiRestController {
       JSONObject json = new JSONObject(body);
       DataObject dataObject = dataObjectDaoImpl.createByPath(path, new DataObject(json));
       if (dataObject != null) {
-        return new ResponseEntity<JSONObject>(dataObject.toJson(), HttpStatus.CREATED);
+        response.setContentType("application/cdmi-object");
+        return new ResponseEntity<String>(dataObject.toJson().toString(), HttpStatus.CREATED);
       }
     }
     // create domain
@@ -306,8 +310,11 @@ public class CdmiRestController {
         domain = domainDaoImpl.updateByPath(path, new Domain(json), requestedFields);
       }
       if (domain != null) {
-        return new ResponseEntity<JSONObject>(domain.toJson(), HttpStatus.CREATED);
+        response.setContentType("application/cdmi-domain");
+        return new ResponseEntity<String>(domain.toJson().toString(), HttpStatus.CREATED);
       }
+    } else if (contentType.equals("application/json")) {
+      return new ResponseEntity<String>("Specify CDMI content type", HttpStatus.BAD_REQUEST);
     } else {
       return new ResponseEntity<String>("Bad content type", HttpStatus.BAD_REQUEST);
     }

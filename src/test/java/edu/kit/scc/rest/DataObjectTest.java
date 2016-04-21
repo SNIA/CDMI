@@ -12,7 +12,6 @@ package edu.kit.scc.rest;
 import edu.kit.scc.CdmiRestController;
 import edu.kit.scc.CdmiServerApplication;
 
-import org.json.JSONObject;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -84,8 +83,7 @@ public class DataObjectTest {
 
 
     ResponseEntity<?> res = controller.getCdmiObjectByPath(request, response);
-    JSONObject json = (JSONObject) res.getBody();
-    String content = json.toString();
+    String content = (String) res.getBody();
     String objectId = content.split("objectID\":\"")[1].split("\"")[0];
 
     request = new MockHttpServletRequest();
