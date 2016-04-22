@@ -162,11 +162,6 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
   public CdmiObject getCdmiObjectByPath(String path) {
     CdmiObject object = null;
     Path p = Paths.get(path.trim().replaceAll("/$", ""));
-    if (p.toString().equals(baseDirectoryName.trim().replaceAll("/$", ""))) {
-      Container rootContainer = new Container();
-      rootContainer.setObjectId(rootObjectId);
-      return rootContainer;
-    }
 
     Path newPath = Paths.get(p.getParent().toString(), objectIdPrefix + p.getFileName().toString());
     try {

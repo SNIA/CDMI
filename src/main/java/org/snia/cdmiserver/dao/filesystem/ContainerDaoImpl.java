@@ -75,8 +75,70 @@ public class ContainerDaoImpl implements ContainerDao {
   @Value("${cdmi.data.baseDirectory}")
   private String baseDirectoryName;
 
+  @Value("${cdmi.data.rootObjectId}")
+  private String rootObjectId;
+
   @Autowired
   private CdmiObjectDaoImpl cdmiObjectDaoImpl;
+
+  public CdmiObject createRootContainer() {
+    LOG.debug("create RootContainer {}", baseDirectoryName.trim());
+
+    Path containerPath = Paths.get(baseDirectoryName.trim());
+    try {
+
+      Path directory = Files.createDirectories(containerPath);
+      if (directory != null) {
+        LOG.debug("created directory {}", directory.toString());
+
+        if (!Files.exists(Paths.get(baseDirectoryName, "/cdmi_objectid"))) {
+          LOG.info("objectid-Container wasn't created yet");
+          createRootIdContainer();
+        }
+        Container container = new Container();
+        if (container != null) {
+          container.setObjectType(MediaTypes.CONTAINER);
+          container.setObjectName("");
+          container.setParentURI("");
+          container.setParentID("");
+          container.setCapabilitiesURI(capabilitiesUri + "/container/default");
+          container.setDomainURI(domainUri);
+          container.setCompletionStatus("Complete");
+          container.setObjectID(rootObjectId);
+
+          cdmiObjectDaoImpl.createCdmiObject(container);
+
+          if (cdmiObjectDaoImpl.createCdmiObject(container, directory.toString()) == null)
+            cdmiObjectDaoImpl.updateCdmiObject(container, directory.toString());
+          return container;
+        }
+      }
+    } catch (Exception e) {
+      LOG.error("ERROR: {}", e.getMessage());
+      try {
+        Files.delete(containerPath);
+      } catch (IOException e1) {
+        LOG.error("ERROR: {}", e1.getMessage());
+        // e1.printStackTrace();
+      }
+    }
+    return null;
+
+  }
+
+  public Path createRootIdContainer() {
+
+    try {
+      Path idDirectory = Files.createDirectory(Paths.get(baseDirectoryName, "/cdmi_objectid"));
+      LOG.debug("created directory {}", idDirectory.toString());
+      return idDirectory;
+    } catch (IOException e) {
+      LOG.error("ERROR {}", e.getMessage());
+      return null;
+    }
+
+
+  }
 
   @Override
   public CdmiObject createByPath(String path, Container containerRequest) {
@@ -102,14 +164,6 @@ public class ContainerDaoImpl implements ContainerDao {
         container.setCapabilitiesURI(capabilitiesUri + "/container/default");
         container.setDomainURI(domainUri);
         container.setMetadata(containerRequest.getMetadata());
-
-        // optional
-        // container.setPercentComplete(percentComplete);
-        // container.setExports(exports);
-        // container.setSnapshots(snapshots);
-        // container.setChildrenrange(childrenrange);
-        // container.setChildren(children);
-
         container.setCompletionStatus("Complete");
 
         cdmiObjectDaoImpl.updateCdmiObject(container);
