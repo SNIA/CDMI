@@ -70,11 +70,6 @@ public class DomainDaoImpl implements DomainDao {
           } else {
             return updateByPath(path, domainRequest, new String[] {"metadata"});
           }
-          // String copyFrom = domainRequest.getCopy();
-          // Domain copiedObject = (Domain) findByPath(copyFrom);
-          // if (!domainRequest.getMetadata().isEmpty())
-          // copiedObject.setMetadata(domainRequest.getMetadata());
-          // return createByPath(path, copiedObject);
         } else if (domainRequest.getMove() != null) {
           try {
             return move(domainRequest, domainRequest.getMove(), path);
@@ -107,15 +102,6 @@ public class DomainDaoImpl implements DomainDao {
 
           // Add child-entry for parent
           Domain parentDomain = (Domain) parentObject;
-          // JSONArray children = parentDomain.getChildren();
-          // if (children == null)
-          // children = new JSONArray();
-          // children.put(domain.getObjectName());
-          // parentDomain.setChildren(children);
-          // parentDomain.setChildrenrange("0-" + String.valueOf(children.length() - 1));
-          // cdmiObjectDaoImpl.updateCdmiObject(parentDomain);
-          // String parentPath = file.getParent().toString();
-          // cdmiObjectDaoImpl.updateCdmiObject(parentDomain, parentPath);
           addChild(parentDomain, domain.getObjectName(), file.getParent().toString());
         }
         return domain;
@@ -164,22 +150,6 @@ public class DomainDaoImpl implements DomainDao {
 
         // delete childentry from parent
         String parentPath = domainPath.getParent().toString();
-        // CdmiObject parentObject = cdmiObjectDaoImpl.getCdmiObjectByPath(parentPath);
-        // LOG.debug("parent object {}", parentObject.toString());
-        // Domain parentDomain = (Domain) parentObject;
-        // JSONArray children = parentDomain.getChildren();
-        // for (int i = 0; i < children.length(); i++) {
-        // if (children.getString(i).equals(domain.getObjectName())) {
-        // children.remove(i);
-        // // break;
-        // }
-        // }
-        // if (children.length() == 1 && children.getString(0).equals(domain.getObjectName()))
-        // children = new JSONArray();
-        // parentDomain.setChildren(children);
-        // parentDomain.setChildrenrange("0-" + String.valueOf(children.length() - 1));
-        // cdmiObjectDaoImpl.updateCdmiObject(parentDomain);
-        // cdmiObjectDaoImpl.updateCdmiObject(parentDomain, parentPath);
         removeChild(domain.getObjectName(), parentPath);
 
       } catch (NoSuchFileException e) {
@@ -198,8 +168,6 @@ public class DomainDaoImpl implements DomainDao {
         LOG.error("ERROR: {}", e.getMessage());
       }
     }
-
-
   }
 
   @Override
@@ -223,9 +191,7 @@ public class DomainDaoImpl implements DomainDao {
 
       Path relPath = Paths.get(path.trim());
       try {
-
         Domain oldDomain = (Domain) findByPath(path);
-
         if (domainRequest.getCopy() != null) {
           String source = domainRequest.getCopy();
           Domain copiedObject = (Domain) findByPath(source);
@@ -256,8 +222,6 @@ public class DomainDaoImpl implements DomainDao {
               }
             }
           }
-
-
           oldDomain.setAttributeMap(newAttributes);
           cdmiObjectDaoImpl.updateCdmiObject(oldDomain);
           Path file = Paths.get(baseDirectoryName, relPath.toString().trim());
@@ -283,7 +247,6 @@ public class DomainDaoImpl implements DomainDao {
     try {
       Domain domain = new Domain();
       Domain oldDomain = (Domain) findByPath(domainRequest.getCopy().trim());
-      // Files.copy(source, target, StandardCopyOption.COPY_ATTRIBUTES);
       FileUtils.copyDirectory(new File(source.toString()), new File(target.toString()));
       CdmiObject parentObject =
           cdmiObjectDaoImpl.getCdmiObjectByPath(target.getParent().toString());
@@ -355,34 +318,8 @@ public class DomainDaoImpl implements DomainDao {
 
           // delete childentry from old parent
           String parentPath = source.getParent().toString();
-          // CdmiObject oldParentObject = cdmiObjectDaoImpl.getCdmiObjectByPath(parentPath);
-          // LOG.debug("parent object {}", oldParentObject.toString());
-          // Domain parentDomain = (Domain) oldParentObject;
-          // JSONArray children = parentDomain.getChildren();
-          // for (int i = 0; i < children.length(); i++) {
-          // if (children.getString(i).equals(source.getFileName().toString())) {
-          // children.remove(i);
-          // }
-          // }
-          // if (children.length() == 1 && children.getString(0).equals(source.getFileName()))
-          // children = new JSONArray();
-          // parentDomain.setChildren(children);
-          // parentDomain.setChildrenrange("0-" + String.valueOf(children.length() - 1));
-          // cdmiObjectDaoImpl.updateCdmiObject(parentDomain);
-          // cdmiObjectDaoImpl.updateCdmiObject(parentDomain, parentPath);
           removeChild(source.getFileName().toString(), parentPath);
 
-          // Add childentry for new Parent
-          // parentDomain = (Domain) parentObject;
-          // children = parentDomain.getChildren();
-          // if (children == null)
-          // children = new JSONArray();
-          // children.put(domain.getObjectName());
-          // parentDomain.setChildren(children);
-          // parentDomain.setChildrenrange("0-" + String.valueOf(children.length() - 1));
-          // cdmiObjectDaoImpl.updateCdmiObject(parentDomain);
-          // parentPath = target.getParent().toString();
-          // cdmiObjectDaoImpl.updateCdmiObject(parentDomain, parentPath);
           addChild((Domain) parentObject, domain.getObjectName(), target.getParent().toString());
 
           return newDomain;
@@ -429,4 +366,56 @@ public class DomainDaoImpl implements DomainDao {
     cdmiObjectDaoImpl.updateCdmiObject(parentDomain, parentPath);
   }
 
+  public CdmiObject createRootdomain() {
+    LOG.info("domain-Container wasn't created yet");
+
+    String path = "/cdmi_domains";
+    LOG.debug("create Rootdomain {}", path.trim());
+
+    Domain domain = (Domain) cdmiObjectDaoImpl.createCdmiObject(new Domain());
+    LOG.debug("domain is {}", domain.toJson().toString());
+    if (domain != null) {
+      Path relPath = Paths.get(path.trim());
+      try {
+        Path domainPath = Paths.get(baseDirectoryName.trim(), path.trim());
+        Path directory = Files.createDirectory(domainPath);
+        LOG.debug("created directory {}", directory.toString());
+
+        domain.setObjectType(MediaTypes.ACCOUNT);
+        domain.setObjectName(relPath.getFileName().toString());
+        domain.setParentURI("/");
+        domain.setParentID("");
+        domain.setCapabilitiesURI(capabilitiesUri + "/domain");
+        domain.setDomainURI(domainUri);
+
+        cdmiObjectDaoImpl.updateCdmiObject(domain);
+
+        Path file = Paths.get(baseDirectoryName, relPath.toString().trim());
+        if (cdmiObjectDaoImpl.createCdmiObject(domain, file.toString()) == null)
+          cdmiObjectDaoImpl.updateCdmiObject(domain, file.toString());
+
+        return domain;
+      } catch (FileAlreadyExistsException e) {
+        LOG.warn("object alredy exists");
+        cdmiObjectDaoImpl.deleteCdmiObject(domain.getObjectId());
+      } catch (NoSuchFileException | NullPointerException e) {
+        LOG.error("ERROR: {}", e.getMessage());
+        cdmiObjectDaoImpl.deleteCdmiObject(domain.getObjectID());
+        e.printStackTrace();
+        throw new NotFoundException("resource was not found at the specified uri");
+      } catch (BadRequestException e) {
+        throw new BadRequestException("Bad Request");
+      } catch (Exception e) {
+        LOG.error("ERROR: {}", e.getMessage());
+        e.printStackTrace();
+        cdmiObjectDaoImpl.deleteCdmiObject(domain.getObjectID());
+        try {
+          Files.delete(Paths.get(baseDirectoryName.trim(), path.trim()));
+        } catch (IOException e1) {
+          LOG.error("ERROR: {}", e1.getMessage());
+        }
+      }
+    }
+    return null;
+  }
 }

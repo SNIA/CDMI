@@ -26,6 +26,7 @@ import org.snia.cdmiserver.model.Container;
 import org.snia.cdmiserver.model.DataObject;
 import org.snia.cdmiserver.model.Domain;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -39,12 +40,15 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -65,6 +69,37 @@ public class CdmiRestController {
 
   @Autowired
   private DomainDaoImpl domainDaoImpl;
+
+  @Value("${cdmi.data.baseDirectory}")
+  private String baseDirectoryName;
+
+  @PostConstruct
+  public void init() {
+    log.debug("INIT");
+    Container rootContainer = containerDaoImpl.findByPath("/");
+    if (rootContainer == null) {
+      log.info("Rootcontainer wasn't created yet");
+      rootContainer = (Container) containerDaoImpl.createRootContainer();
+      if (rootContainer == null) {
+        log.error("ERROR: RootContainer Could Not Be Created!");
+      }
+    }
+
+    if (!Files.exists(Paths.get(baseDirectoryName, "/cdmi_objectid"))) {
+      log.info("objectid-Container wasn't created yet");
+      if (containerDaoImpl.createRootIdContainer() == null)
+        log.error("ERROR: RootobjectIdContainer Could Not Be Created!");
+    }
+
+    Domain rootDomain = (Domain) domainDaoImpl.findByPath("/cdmi_domains");
+    if (rootDomain == null) {
+      log.info("RootDomain wasn't created yet");
+      if (domainDaoImpl.createRootdomain() == null)
+        log.error("ERROR: RootDomain Could Not Be Created!");
+    }
+
+  }
+
 
   /**
    * Domains endpoint.
@@ -152,7 +187,12 @@ public class CdmiRestController {
 
     // look for container
     try {
+      // CdmiObject container;
+      // if (objectId.equals(rootObjectId)) {
+      // container = containerDaoImpl.findByPath("/");
+      // } else {
       CdmiObject container = containerDaoImpl.findByObjectId(objectId);
+      // }
       if (container != null) {
         responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
         if (requestedFields == null) {
