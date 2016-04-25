@@ -35,6 +35,7 @@ import org.snia.cdmiserver.exception.BadRequestException;
 import org.snia.cdmiserver.exception.ConflictException;
 import org.snia.cdmiserver.exception.NotFoundException;
 import org.snia.cdmiserver.model.CdmiObject;
+import org.snia.cdmiserver.model.Container;
 import org.snia.cdmiserver.model.DataObject;
 import org.snia.cdmiserver.util.MediaTypes;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +48,8 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * <p>
@@ -126,6 +129,9 @@ public class DataObjectDaoImpl implements DataObjectDao {
 
           if (cdmiObjectDaoImpl.createCdmiObject(dataObject, file.toString()) == null)
             cdmiObjectDaoImpl.updateCdmiObject(dataObject, file.toString());
+
+          addChild((Container) parentObject, file.getFileName().toString(),
+              objectPath.getParent().toString());
         }
         return dataObject;
       } catch (BadRequestException e) {
@@ -179,6 +185,8 @@ public class DataObjectDaoImpl implements DataObjectDao {
         cdmiObjectDaoImpl.deleteCdmiObject(dataObject.getObjectId());
         cdmiObjectDaoImpl.deleteCdmiObjectByPath(objectPath.toString());
 
+        removeChild(objectPath.getFileName().toString(), objectPath.getParent().toString());
+
       } catch (NoSuchFileException e) {
         LOG.warn("data object not found");
         throw new NotFoundException("data object not found");
@@ -222,4 +230,35 @@ public class DataObjectDaoImpl implements DataObjectDao {
     }
     return content;
   }
+
+  private void removeChild(String childname, String parentPath) {
+    LOG.debug("In removeChild parentPath is {}", parentPath);
+    CdmiObject oldParentObject = cdmiObjectDaoImpl.getCdmiObjectByPath(parentPath);
+    LOG.debug("parent object {}", oldParentObject.toString());
+    Container parentContainer = (Container) oldParentObject;
+    List<Object> children = parentContainer.getChildren();
+    for (int i = 0; i < children.size(); i++) {
+      if (children.get(i).equals(childname)) {
+        children.remove(i);
+      }
+    }
+    // if (children.size() == 1 && children.get(0).equals(childname))
+    // children = new ArrayList<Object>();
+    parentContainer.setChildren(children);
+    parentContainer.setChildrenrange("0-" + String.valueOf(children.size() - 1));
+    cdmiObjectDaoImpl.updateCdmiObject(parentContainer);
+    cdmiObjectDaoImpl.updateCdmiObject(parentContainer, parentPath);
+  }
+
+  private void addChild(Container parentContainer, String childname, String parentPath) {
+    List<Object> children = parentContainer.getChildren();
+    if (children == null)
+      children = new ArrayList<Object>();
+    children.add(childname);
+    parentContainer.setChildren(children);
+    parentContainer.setChildrenrange("0-" + String.valueOf(children.size() - 1));
+    cdmiObjectDaoImpl.updateCdmiObject(parentContainer);
+    cdmiObjectDaoImpl.updateCdmiObject(parentContainer, parentPath);
+  }
+
 }

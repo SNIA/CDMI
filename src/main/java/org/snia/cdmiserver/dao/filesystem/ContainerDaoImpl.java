@@ -56,6 +56,8 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * <p>
@@ -110,10 +112,17 @@ public class ContainerDaoImpl implements ContainerDao {
           container.setCompletionStatus("Complete");
           container.setObjectID(rootObjectId);
 
+          ArrayList<Object> children = new ArrayList<Object>();
+          children.add("cdmi_objectid");
+          children.add("cdmi_domains");
+          container.setChildren(children);
+          container.setChildrenrange("0-" + String.valueOf(children.size() - 1));
+
           cdmiObjectDaoImpl.createCdmiObject(container);
 
           if (cdmiObjectDaoImpl.createCdmiObject(container, directory.toString()) == null)
             cdmiObjectDaoImpl.updateCdmiObject(container, directory.toString());
+
           return container;
         }
       }
@@ -182,6 +191,9 @@ public class ContainerDaoImpl implements ContainerDao {
         if (cdmiObjectDaoImpl.createCdmiObject(container, directory.toString()) == null)
           cdmiObjectDaoImpl.updateCdmiObject(container, directory.toString());
 
+        addChild((Container) parentObject, containerPath.getFileName().toString(),
+            containerPath.getParent().toString());
+
         return container;
       } catch (BadRequestException e) {
         throw new BadRequestException(e.getMessage());
@@ -195,6 +207,7 @@ public class ContainerDaoImpl implements ContainerDao {
         throw new NotFoundException("resource was not found at the specified uri");
       } catch (Exception e) {
         LOG.error("ERROR: {}", e.getMessage());
+        e.printStackTrace();
         try {
           Files.delete(containerPath);
         } catch (IOException e1) {
@@ -222,6 +235,8 @@ public class ContainerDaoImpl implements ContainerDao {
 
         cdmiObjectDaoImpl.deleteCdmiObject(container.getObjectId());
         cdmiObjectDaoImpl.deleteCdmiObjectByPath(containerPath.toString());
+
+        removeChild(containerPath.getFileName().toString(), containerPath.getParent().toString());
 
       } catch (NoSuchFileException e) {
         LOG.warn("container not found");
@@ -251,5 +266,35 @@ public class ContainerDaoImpl implements ContainerDao {
   public boolean isContainer(String path) {
     Path containerPath = Paths.get(baseDirectoryName.trim(), path.trim());
     return Files.isDirectory(containerPath);
+  }
+
+  private void removeChild(String childname, String parentPath) {
+    LOG.debug("In removeChild parentPath is {}", parentPath);
+    CdmiObject oldParentObject = cdmiObjectDaoImpl.getCdmiObjectByPath(parentPath);
+    LOG.debug("parent object {}", oldParentObject.toString());
+    Container parentContainer = (Container) oldParentObject;
+    List<Object> children = parentContainer.getChildren();
+    for (int i = 0; i < children.size(); i++) {
+      if (children.get(i).equals(childname)) {
+        children.remove(i);
+      }
+    }
+    // if (children.size() == 1 && children.get(0).equals(childname))
+    // children = new ArrayList<Object>();
+    parentContainer.setChildren(children);
+    parentContainer.setChildrenrange("0-" + String.valueOf(children.size() - 1));
+    cdmiObjectDaoImpl.updateCdmiObject(parentContainer);
+    cdmiObjectDaoImpl.updateCdmiObject(parentContainer, parentPath);
+  }
+
+  private void addChild(Container parentContainer, String childname, String parentPath) {
+    List<Object> children = parentContainer.getChildren();
+    if (children == null)
+      children = new ArrayList<Object>();
+    children.add(childname);
+    parentContainer.setChildren(children);
+    parentContainer.setChildrenrange("0-" + String.valueOf(children.size() - 1));
+    cdmiObjectDaoImpl.updateCdmiObject(parentContainer);
+    cdmiObjectDaoImpl.updateCdmiObject(parentContainer, parentPath);
   }
 }
