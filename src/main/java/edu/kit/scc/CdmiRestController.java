@@ -19,6 +19,7 @@ import org.snia.cdmiserver.dao.filesystem.ContainerDaoImpl;
 import org.snia.cdmiserver.dao.filesystem.DataObjectDaoImpl;
 import org.snia.cdmiserver.dao.filesystem.DomainDaoImpl;
 import org.snia.cdmiserver.exception.BadRequestException;
+import org.snia.cdmiserver.exception.ConflictException;
 import org.snia.cdmiserver.exception.NotFoundException;
 import org.snia.cdmiserver.model.Capability;
 import org.snia.cdmiserver.model.CdmiObject;
@@ -338,45 +339,52 @@ public class CdmiRestController {
 
     String[] requestedFields = parseFields(request);
     HttpHeaders responseHeaders = new HttpHeaders();
-
-    // create container
-    if (contentType.equals("application/cdmi-container")) {
-      JSONObject json = new JSONObject(body);
-      CdmiObject container = containerDaoImpl.createByPath(path, new Container(json));
-      if (container != null) {
-        responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
-        return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
-            HttpStatus.CREATED);
+    try {
+      // create container
+      if (contentType.equals("application/cdmi-container")) {
+        JSONObject json = new JSONObject(body);
+        CdmiObject container = containerDaoImpl.createByPath(path, new Container(json));
+        if (container != null) {
+          responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
+          return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
+              HttpStatus.CREATED);
+        }
       }
-    }
-    // create dataobject
-    else if (contentType.equals("application/cdmi-object")) {
-      JSONObject json = new JSONObject(body);
-      DataObject dataObject = dataObjectDaoImpl.createByPath(path, new DataObject(json));
-      if (dataObject != null) {
-        responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
-        return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
-            HttpStatus.CREATED);
+      // create dataobject
+      else if (contentType.equals("application/cdmi-object")) {
+        JSONObject json = new JSONObject(body);
+        DataObject dataObject = dataObjectDaoImpl.createByPath(path, new DataObject(json));
+        if (dataObject != null) {
+          responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
+          return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
+              HttpStatus.CREATED);
+        }
       }
-    }
-    // create domain
-    else if (contentType.equals("application/cdmi-domain")) {
-      JSONObject json = new JSONObject(body);
-      CdmiObject domain = null;
-      if (requestedFields == null) {
-        domain = domainDaoImpl.createByPath(path, new Domain(json));
+      // create domain
+      else if (contentType.equals("application/cdmi-domain")) {
+        JSONObject json = new JSONObject(body);
+        CdmiObject domain = null;
+        if (requestedFields == null) {
+          domain = domainDaoImpl.createByPath(path, new Domain(json));
+        } else {
+          domain = domainDaoImpl.updateByPath(path, new Domain(json), requestedFields);
+        }
+        if (domain != null) {
+          responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
+          return new ResponseEntity<String>(domain.toJson().toString(), responseHeaders,
+              HttpStatus.CREATED);
+        }
+      } else if (contentType.equals("application/json")) {
+        return new ResponseEntity<String>("Specify CDMI content type", HttpStatus.BAD_REQUEST);
       } else {
-        domain = domainDaoImpl.updateByPath(path, new Domain(json), requestedFields);
+        return new ResponseEntity<String>("Bad content type", HttpStatus.BAD_REQUEST);
       }
-      if (domain != null) {
-        responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
-        return new ResponseEntity<String>(domain.toJson().toString(), responseHeaders,
-            HttpStatus.CREATED);
-      }
-    } else if (contentType.equals("application/json")) {
-      return new ResponseEntity<String>("Specify CDMI content type", HttpStatus.BAD_REQUEST);
-    } else {
-      return new ResponseEntity<String>("Bad content type", HttpStatus.BAD_REQUEST);
+    } catch (BadRequestException e) {
+      return new ResponseEntity<String>(e.getMessage(), HttpStatus.BAD_REQUEST);
+    } catch (NotFoundException e) {
+      return new ResponseEntity<String>(e.getMessage(), HttpStatus.NOT_FOUND);
+    } catch (ConflictException e) {
+      return new ResponseEntity<String>(e.getMessage(), HttpStatus.CONFLICT);
     }
     return new ResponseEntity<String>("Bad request", HttpStatus.BAD_REQUEST);
   }

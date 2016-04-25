@@ -31,6 +31,7 @@ package org.snia.cdmiserver.dao.filesystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.DataObjectDao;
+import org.snia.cdmiserver.exception.BadRequestException;
 import org.snia.cdmiserver.exception.ConflictException;
 import org.snia.cdmiserver.exception.NotFoundException;
 import org.snia.cdmiserver.model.CdmiObject;
@@ -70,6 +71,9 @@ public class DataObjectDaoImpl implements DataObjectDao {
   @Autowired
   private CdmiObjectDaoImpl cdmiObjectDaoImpl;
 
+  @Autowired
+  private DomainDaoImpl domainDaoImpl;
+
   @Override
   public DataObject createByPath(String path, DataObject dataObjectRequest) {
     LOG.debug("create data object {} {}", path.trim(), dataObjectRequest.toString());
@@ -102,7 +106,14 @@ public class DataObjectDaoImpl implements DataObjectDao {
           dataObject.setParentURI(relPath.getParent().toString());
           dataObject.setParentID(parentObject.getObjectId());
           dataObject.setCapabilitiesURI(capabilitiesUri + "/dataobject/default");
-          dataObject.setDomainURI(domainUri);
+          if (dataObjectRequest.getDomainURI() != null) {
+            String domain = dataObjectRequest.getDomainURI();
+            if (domainDaoImpl.findByPath(domain) != null)
+              dataObject.setDomainURI(domain);
+            else
+              throw new BadRequestException("The specified domainURI doesn't exist");
+          } else
+            dataObject.setDomainURI(domainUri);
           dataObject.setMetadata(dataObjectRequest.getMetadata());
 
           // optional
@@ -117,6 +128,8 @@ public class DataObjectDaoImpl implements DataObjectDao {
             cdmiObjectDaoImpl.updateCdmiObject(dataObject, file.toString());
         }
         return dataObject;
+      } catch (BadRequestException e) {
+        throw new BadRequestException(e.getMessage());
       } catch (FileAlreadyExistsException e) {
         LOG.warn("object alredy exists");
         cdmiObjectDaoImpl.deleteCdmiObject(dataObject.getObjectId());

@@ -39,6 +39,7 @@ package org.snia.cdmiserver.dao.filesystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.ContainerDao;
+import org.snia.cdmiserver.exception.BadRequestException;
 import org.snia.cdmiserver.exception.ConflictException;
 import org.snia.cdmiserver.exception.NotFoundException;
 import org.snia.cdmiserver.model.CdmiObject;
@@ -80,6 +81,9 @@ public class ContainerDaoImpl implements ContainerDao {
 
   @Autowired
   private CdmiObjectDaoImpl cdmiObjectDaoImpl;
+
+  @Autowired
+  private DomainDaoImpl domainDaoImpl;
 
   public CdmiObject createRootContainer() {
     LOG.debug("create RootContainer {}", baseDirectoryName.trim());
@@ -162,7 +166,14 @@ public class ContainerDaoImpl implements ContainerDao {
         container.setParentURI(relPath.getParent().toString());
         container.setParentID(parentObject.getObjectId());
         container.setCapabilitiesURI(capabilitiesUri + "/container/default");
-        container.setDomainURI(domainUri);
+        if (containerRequest.getDomainURI() != null) {
+          String domain = containerRequest.getDomainURI();
+          if (domainDaoImpl.findByPath(domain) != null)
+            container.setDomainURI(domain);
+          else
+            throw new BadRequestException("The specified domainURI doesn't exist");
+        } else
+          container.setDomainURI(domainUri);
         container.setMetadata(containerRequest.getMetadata());
         container.setCompletionStatus("Complete");
 
@@ -172,6 +183,8 @@ public class ContainerDaoImpl implements ContainerDao {
           cdmiObjectDaoImpl.updateCdmiObject(container, directory.toString());
 
         return container;
+      } catch (BadRequestException e) {
+        throw new BadRequestException(e.getMessage());
       } catch (FileAlreadyExistsException e) {
         LOG.warn("object alredy exists");
         cdmiObjectDaoImpl.deleteCdmiObject(container.getObjectID());
