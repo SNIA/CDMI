@@ -26,6 +26,7 @@ import org.snia.cdmiserver.model.CdmiObject;
 import org.snia.cdmiserver.model.Container;
 import org.snia.cdmiserver.model.DataObject;
 import org.snia.cdmiserver.model.Domain;
+import org.snia.cdmiserver.util.MediaTypes;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.ComponentScan;
@@ -341,7 +342,7 @@ public class CdmiRestController {
     HttpHeaders responseHeaders = new HttpHeaders();
     try {
       // create container
-      if (contentType.equals("application/cdmi-container")) {
+      if (contentType.equals(MediaTypes.CONTAINER)) {
         JSONObject json = new JSONObject(body);
         CdmiObject container = containerDaoImpl.createByPath(path, new Container(json));
         if (container != null) {
@@ -351,7 +352,7 @@ public class CdmiRestController {
         }
       }
       // create dataobject
-      else if (contentType.equals("application/cdmi-object")) {
+      else if (contentType.equals(MediaTypes.DATA_OBJECT)) {
         JSONObject json = new JSONObject(body);
         DataObject dataObject = dataObjectDaoImpl.createByPath(path, new DataObject(json));
         if (dataObject != null) {
@@ -361,7 +362,7 @@ public class CdmiRestController {
         }
       }
       // create domain
-      else if (contentType.equals("application/cdmi-domain")) {
+      else if (contentType.equals(MediaTypes.ACCOUNT)) {
         JSONObject json = new JSONObject(body);
         CdmiObject domain = null;
         if (requestedFields == null) {
