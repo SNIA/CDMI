@@ -48,8 +48,12 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
   public CdmiObject createCdmiObject(CdmiObject objectId, String path) {
     try {
       Path p = Paths.get(path.trim());
-      Path newPath =
-          Paths.get(p.getParent().toString(), objectIdPrefix + p.getFileName().toString());
+      Path newPath;
+      try {
+        newPath = Paths.get(p.getParent().toString(), objectIdPrefix + p.getFileName().toString());
+      } catch (NullPointerException e) {
+        newPath = Paths.get(objectIdPrefix + p.getFileName().toString());
+      }
       Files.write(newPath, objectId.toJson().toString().getBytes(), StandardOpenOption.WRITE,
           StandardOpenOption.CREATE_NEW);
 
@@ -92,8 +96,12 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
   public CdmiObject updateCdmiObject(CdmiObject objectId, String path) {
     try {
       Path p = Paths.get(path.trim());
-      Path newPath =
-          Paths.get(p.getParent().toString(), objectIdPrefix + p.getFileName().toString());
+      Path newPath;
+      try {
+        newPath = Paths.get(p.getParent().toString(), objectIdPrefix + p.getFileName().toString());
+      } catch (NullPointerException e) {
+        newPath = Paths.get(objectIdPrefix + p.getFileName().toString());
+      }
       Files.write(newPath, objectId.toJson().toString().getBytes(), StandardOpenOption.WRITE,
           StandardOpenOption.TRUNCATE_EXISTING);
 
@@ -132,8 +140,12 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
     CdmiObject object = getCdmiObjectByPath(path);
     if (object != null) {
       Path p = Paths.get(path.trim());
-      Path newPath =
-          Paths.get(p.getParent().toString(), objectIdPrefix + p.getFileName().toString());
+      Path newPath;
+      try {
+        newPath = Paths.get(p.getParent().toString(), objectIdPrefix + p.getFileName().toString());
+      } catch (NullPointerException e) {
+        newPath = Paths.get(objectIdPrefix + p.getFileName().toString());
+      }
       try {
         boolean deleted = Files.deleteIfExists(newPath);
         log.debug("delete objectId file {} success {}", object.toString(), deleted);
@@ -162,8 +174,12 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
   public CdmiObject getCdmiObjectByPath(String path) {
     CdmiObject object = null;
     Path p = Paths.get(path.trim().replaceAll("/$", ""));
-
-    Path newPath = Paths.get(p.getParent().toString(), objectIdPrefix + p.getFileName().toString());
+    Path newPath;
+    try {
+      newPath = Paths.get(p.getParent().toString(), objectIdPrefix + p.getFileName().toString());
+    } catch (NullPointerException e) {
+      newPath = Paths.get(objectIdPrefix + p.getFileName().toString());
+    }
     try {
       log.debug("path is {}", newPath);
       byte[] content = Files.readAllBytes(newPath);
