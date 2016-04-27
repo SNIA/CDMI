@@ -182,7 +182,7 @@ public class ContainerDaoImpl implements ContainerDao {
           else
             throw new BadRequestException("The specified domainURI doesn't exist");
         } else
-          container.setDomainURI(domainUri);
+          container.setDomainURI(((Container) parentObject).getDomainURI());
         container.setMetadata(containerRequest.getMetadata());
         container.setCompletionStatus("Complete");
 

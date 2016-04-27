@@ -91,7 +91,7 @@ public class DomainDaoImpl implements DomainDao {
           domain.setParentURI(relPath.getParent().toString());
           domain.setParentID(parentObject.getObjectId());
           domain.setCapabilitiesURI(capabilitiesUri + "/domain");
-          domain.setDomainURI(domainUri);
+          domain.setDomainURI(relPath.toString()); // A domain object is always owned by itself.
           domain.setMetadata(domainRequest.getMetadata());
 
           cdmiObjectDaoImpl.updateCdmiObject(domain);

@@ -116,7 +116,7 @@ public class DataObjectDaoImpl implements DataObjectDao {
             else
               throw new BadRequestException("The specified domainURI doesn't exist");
           } else
-            dataObject.setDomainURI(domainUri);
+            dataObject.setDomainURI(((Container) parentObject).getDomainURI());
           dataObject.setMetadata(dataObjectRequest.getMetadata());
 
           // optional
