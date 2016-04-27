@@ -36,6 +36,7 @@
 
 package org.snia.cdmiserver.dao.filesystem;
 
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.ContainerDao;
@@ -157,64 +158,74 @@ public class ContainerDaoImpl implements ContainerDao {
   public CdmiObject createByPath(String path, Container containerRequest) {
     LOG.debug("create container {} {}", path.trim(), containerRequest.toString());
 
-    Container container = (Container) cdmiObjectDaoImpl.createCdmiObject(new Container());
+    if (containerRequest.getCopy() != null) {
+      if (findByPath(path) == null)
+        return copyCreate(containerRequest, path);
+      else
+        return copyUpdate(containerRequest, path);
+    } else if (containerRequest.getMove() != null) {
+      return move();
+    } else {
 
-    if (container != null) {
-      Path containerPath = Paths.get(baseDirectoryName.trim(), path.trim());
-      Path relPath = Paths.get(path.trim());
-      try {
-        Path directory = Files.createDirectory(containerPath);
-        LOG.debug("created directory {}", directory.toString());
+      Container container = (Container) cdmiObjectDaoImpl.createCdmiObject(new Container());
 
-        CdmiObject parentObject =
-            cdmiObjectDaoImpl.getCdmiObjectByPath(directory.getParent().toString());
-        LOG.debug("parent object {}", parentObject.toString());
-
-        container.setObjectType(MediaTypes.CONTAINER);
-        container.setObjectName(directory.getFileName().toString());
-        container.setParentURI(relPath.getParent().toString());
-        container.setParentID(parentObject.getObjectId());
-        container.setCapabilitiesURI(capabilitiesUri + "/container/default");
-        if (containerRequest.getDomainURI() != null) {
-          String domain = containerRequest.getDomainURI();
-          if (domainDaoImpl.findByPath(domain) != null)
-            container.setDomainURI(domain);
-          else
-            throw new BadRequestException("The specified domainURI doesn't exist");
-        } else
-          container.setDomainURI(((Container) parentObject).getDomainURI());
-        container.setMetadata(containerRequest.getMetadata());
-        container.setCompletionStatus("Complete");
-
-        cdmiObjectDaoImpl.updateCdmiObject(container);
-
-        if (cdmiObjectDaoImpl.createCdmiObject(container, directory.toString()) == null)
-          cdmiObjectDaoImpl.updateCdmiObject(container, directory.toString());
-
-        addChild((Container) parentObject, containerPath.getFileName().toString(),
-            containerPath.getParent().toString());
-
-        return container;
-      } catch (BadRequestException e) {
-        throw new BadRequestException(e.getMessage());
-      } catch (FileAlreadyExistsException e) {
-        LOG.warn("object alredy exists");
-        cdmiObjectDaoImpl.deleteCdmiObject(container.getObjectID());
-        throw new ConflictException("object already exists");
-      } catch (IOException e) {
-        LOG.error("ERROR: {}", e.getMessage());
-        cdmiObjectDaoImpl.deleteCdmiObject(container.getObjectID());
-        throw new NotFoundException("resource was not found at the specified uri");
-      } catch (Exception e) {
-        LOG.error("ERROR: {}", e.getMessage());
-        e.printStackTrace();
+      if (container != null) {
+        Path containerPath = Paths.get(baseDirectoryName.trim(), path.trim());
+        Path relPath = Paths.get(path.trim());
         try {
-          Files.delete(containerPath);
-        } catch (IOException e1) {
-          LOG.error("ERROR: {}", e1.getMessage());
-          // e1.printStackTrace();
+          Path directory = Files.createDirectory(containerPath);
+          LOG.debug("created directory {}", directory.toString());
+
+          CdmiObject parentObject =
+              cdmiObjectDaoImpl.getCdmiObjectByPath(directory.getParent().toString());
+          LOG.debug("parent object {}", parentObject.toString());
+
+          container.setObjectType(MediaTypes.CONTAINER);
+          container.setObjectName(directory.getFileName().toString());
+          container.setParentURI(relPath.getParent().toString());
+          container.setParentID(parentObject.getObjectId());
+          container.setCapabilitiesURI(capabilitiesUri + "/container/default");
+          if (containerRequest.getDomainURI() != null) {
+            String domain = containerRequest.getDomainURI();
+            if (domainDaoImpl.findByPath(domain) != null)
+              container.setDomainURI(domain);
+            else
+              throw new BadRequestException("The specified domainURI doesn't exist");
+          } else
+            container.setDomainURI(((Container) parentObject).getDomainURI());
+          container.setMetadata(containerRequest.getMetadata());
+          container.setCompletionStatus("Complete");
+
+          cdmiObjectDaoImpl.updateCdmiObject(container);
+
+          if (cdmiObjectDaoImpl.createCdmiObject(container, directory.toString()) == null)
+            cdmiObjectDaoImpl.updateCdmiObject(container, directory.toString());
+
+          addChild((Container) parentObject, containerPath.getFileName().toString(),
+              containerPath.getParent().toString());
+
+          return container;
+        } catch (BadRequestException e) {
+          throw new BadRequestException(e.getMessage());
+        } catch (FileAlreadyExistsException e) {
+          LOG.warn("object alredy exists");
+          cdmiObjectDaoImpl.deleteCdmiObject(container.getObjectID());
+          throw new ConflictException("object already exists");
+        } catch (IOException e) {
+          LOG.error("ERROR: {}", e.getMessage());
+          cdmiObjectDaoImpl.deleteCdmiObject(container.getObjectID());
+          throw new NotFoundException("resource was not found at the specified uri");
+        } catch (Exception e) {
+          LOG.error("ERROR: {}", e.getMessage());
+          e.printStackTrace();
+          try {
+            Files.delete(containerPath);
+          } catch (IOException e1) {
+            LOG.error("ERROR: {}", e1.getMessage());
+            // e1.printStackTrace();
+          }
+          cdmiObjectDaoImpl.deleteCdmiObject(container.getObjectID());
         }
-        cdmiObjectDaoImpl.deleteCdmiObject(container.getObjectID());
       }
     }
     return null;
@@ -296,5 +307,128 @@ public class ContainerDaoImpl implements ContainerDao {
     parentContainer.setChildrenrange("0-" + String.valueOf(children.size() - 1));
     cdmiObjectDaoImpl.updateCdmiObject(parentContainer);
     cdmiObjectDaoImpl.updateCdmiObject(parentContainer, parentPath);
+  }
+
+
+  /**
+   * copies a Container with all subcontainers to a new created container at the specified path
+   * 
+   * @param containerRequest the {@link Container}
+   * @param path the {@link String}
+   * @return a {@link CdmiObject}
+   */
+  private CdmiObject copyCreate(Container containerRequest, String path) {
+    Path source = Paths.get(baseDirectoryName.trim(), containerRequest.getCopy().trim());
+    Path target = Paths.get(baseDirectoryName.trim(), path.trim());
+    LOG.debug("In copyCreate source is {}", source);
+    LOG.debug("In copyCreate target is {}", target);
+    try {
+      Container container = (Container) cdmiObjectDaoImpl.createCdmiObject(new Container());
+      Container oldContainer = (Container) findByPath(containerRequest.getCopy().trim());
+      FileUtils.copyDirectory(source.toFile(), target.toFile());
+      Container parentObject =
+          (Container) cdmiObjectDaoImpl.getCdmiObjectByPath(target.getParent().toString());
+      LOG.debug("parent object {}", parentObject.toString());
+      container.setObjectName(target.getFileName().toString());
+      container.setParentURI(Paths.get(path).getParent().toString());
+      container.setParentID(parentObject.getObjectId());
+      container.setObjectType(MediaTypes.CONTAINER);
+      container.setCapabilitiesURI(oldContainer.getCapabilitiesURI());
+      container.setDomainURI(parentObject.getDomainURI());
+      container.setMetadata(oldContainer.getMetadata());
+
+      if (containerRequest.getMetadata() != null && !containerRequest.getMetadata().isEmpty())
+        container.setMetadata(containerRequest.getMetadata());
+      if (containerRequest.getDomainURI() != null && !containerRequest.getDomainURI().isEmpty())
+        container.setDomainURI(containerRequest.getDomainURI());
+      cdmiObjectDaoImpl.updateCdmiObject(container);
+
+      if (cdmiObjectDaoImpl.createCdmiObject(container, target.toString()) == null)
+        cdmiObjectDaoImpl.updateCdmiObject(container, target.toString());
+
+      // addChild to parent
+      addChild((Container) parentObject, container.getObjectName(), target.getParent().toString());
+      // addChilds
+      List<Object> children = oldContainer.getChildren();
+      if (children != null) {
+        if (container.getChildren() == null) {
+          container.setChildren(new ArrayList<Object>());
+        }
+        for (int i = 0; i < children.size(); i++) {
+          addChild(container, (String) children.get(i), target.toString());
+        }
+      }
+      try {
+        editCopiedIdsRecursivly(container, Paths.get(path));
+      } catch (Exception e) {
+        e.printStackTrace();
+        FileUtils.deleteDirectory(target.toFile());
+      }
+
+      return container;
+    } catch (ClassCastException e) {
+      e.printStackTrace();
+      throw new BadRequestException("Requested Resource is not a Container");
+    } catch (FileAlreadyExistsException e) {
+      throw new BadRequestException("Bad Request");
+    } catch (IOException e) {
+      throw new NotFoundException("Object not found");
+    }
+  }
+
+
+  /**
+   * updates the copied Containers: updates the objectId and parentObjectId in the .cdmi_-file and
+   * creates the objectId-file
+   * 
+   * @param container the {@link Container}
+   * @param path the {@link Path}
+   */
+  private void editCopiedIdsRecursivly(Container container, Path path) {
+    if (container.hasChildren()) {
+      String[] children = Paths.get(baseDirectoryName, path.toString()).toFile().list();
+      if (children != null) {
+        for (int i = 0; i < children.length; i++) {
+          String childname = children[i];
+          Path newpath = Paths.get(path.toString(), childname);
+
+          if (Paths.get(baseDirectoryName, newpath.toString()).toFile().isDirectory()) {
+            Container child = (Container) findByPath(newpath.toString());
+            if (child != null) {
+              Container newContainer =
+                  (Container) cdmiObjectDaoImpl.createCdmiObject(new Container());
+              Container parentObject = (Container) cdmiObjectDaoImpl
+                  .getCdmiObjectByPath(Paths.get(baseDirectoryName, path.toString()).toString());
+              newContainer.setObjectName(newpath.getFileName().toString());
+              newContainer.setParentURI(newpath.getParent().toString());
+              newContainer.setParentID(parentObject.getObjectId());
+              newContainer.setObjectType(MediaTypes.CONTAINER);
+              newContainer.setCapabilitiesURI(capabilitiesUri + "/container/default");
+              newContainer.setDomainURI(parentObject.getDomainURI());
+              newContainer.setMetadata(child.getMetadata());
+
+              cdmiObjectDaoImpl.updateCdmiObject(newContainer);
+
+              if (cdmiObjectDaoImpl.createCdmiObject(newContainer,
+                  Paths.get(baseDirectoryName, newpath.toString()).toString()) == null)
+                cdmiObjectDaoImpl.updateCdmiObject(newContainer,
+                    Paths.get(baseDirectoryName, newpath.toString()).toString());
+              editCopiedIdsRecursivly(child, newpath);
+            }
+          }
+        }
+      }
+    } else
+      LOG.trace("PATH {} has no children", path);
+  }
+
+  private CdmiObject copyUpdate(Container containerRequest, String path) {
+    // TODO
+    return null;
+  }
+
+  private Container move() {
+    // TODO
+    return null;
   }
 }

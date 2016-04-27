@@ -261,12 +261,16 @@ public class Container extends CdmiObject {
 
   public List<Object> getChildren() {
     if (getAttributeMap().get(children) != null) {
+      try {
       JSONArray json = (JSONArray) getAttributeMap().get(children);
       ArrayList<Object> list = new ArrayList<>();
       for (int i = 0; i < json.length(); i++) {
         list.add(json.get(i));
       }
       return list;
+      } catch (ClassCastException e) {
+        return (List<Object>) getAttributeMap().get(children);
+      }
     }
     return null;
   }
@@ -291,5 +295,21 @@ public class Container extends CdmiObject {
   @Deprecated
   public String toJson(boolean bool) {
     return null;
+  }
+
+  public boolean hasChildren() {
+    try {
+    JSONArray children = (JSONArray) getAttributeMap().get(Container.children);
+    if (children == null)
+      return false;
+    if (children.length() == 0)
+      return false;
+    return true;
+    } catch (ClassCastException e) {
+      List<Object> children = (List<Object>) getAttributeMap().get(Container.children);
+      if (children == null || children.isEmpty() || children.size() == 0)
+        return false;
+      return true;
+    }
   }
 }
