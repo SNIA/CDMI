@@ -185,6 +185,14 @@ public class Domain extends CdmiObject {
     ObjectURI = objectURI;
   }
 
+  public Boolean hasChildren() {
+    JSONArray children = (JSONArray) getAttributeMap().get(Domain.children);
+    if (children == null)
+      return false;
+    if (children.length() == 0)
+      return false;
+    return true;
+  }
 
 
 }
