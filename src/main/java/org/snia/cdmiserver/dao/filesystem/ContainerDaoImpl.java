@@ -57,6 +57,7 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -164,7 +165,7 @@ public class ContainerDaoImpl implements ContainerDao {
       else
         return copyUpdate(containerRequest, path);
     } else if (containerRequest.getMove() != null) {
-      return move();
+      return move(containerRequest, containerRequest.getMove(), path);
     } else {
 
       Container container = (Container) cdmiObjectDaoImpl.createCdmiObject(new Container());
@@ -201,7 +202,7 @@ public class ContainerDaoImpl implements ContainerDao {
           if (cdmiObjectDaoImpl.createCdmiObject(container, directory.toString()) == null)
             cdmiObjectDaoImpl.updateCdmiObject(container, directory.toString());
 
-          addChild((Container) parentObject, containerPath.getFileName().toString(),
+          addChild(containerPath.getFileName().toString(),
               containerPath.getParent().toString());
 
           return container;
@@ -298,7 +299,10 @@ public class ContainerDaoImpl implements ContainerDao {
     cdmiObjectDaoImpl.updateCdmiObject(parentContainer, parentPath);
   }
 
-  private void addChild(Container parentContainer, String childname, String parentPath) {
+
+
+  private void addChild(String childname, String parentPath) {
+    Container parentContainer = (Container) cdmiObjectDaoImpl.getCdmiObjectByPath(parentPath);
     List<Object> children = parentContainer.getChildren();
     if (children == null)
       children = new ArrayList<Object>();
@@ -341,13 +345,13 @@ public class ContainerDaoImpl implements ContainerDao {
         container.setMetadata(containerRequest.getMetadata());
       if (containerRequest.getDomainURI() != null && !containerRequest.getDomainURI().isEmpty())
         container.setDomainURI(containerRequest.getDomainURI());
-      cdmiObjectDaoImpl.updateCdmiObject(container);
 
+      cdmiObjectDaoImpl.updateCdmiObject(container);
       if (cdmiObjectDaoImpl.createCdmiObject(container, target.toString()) == null)
         cdmiObjectDaoImpl.updateCdmiObject(container, target.toString());
 
       // addChild to parent
-      addChild((Container) parentObject, container.getObjectName(), target.getParent().toString());
+      addChild(container.getObjectName(), target.getParent().toString());
       // addChilds
       List<Object> children = oldContainer.getChildren();
       if (children != null) {
@@ -355,7 +359,7 @@ public class ContainerDaoImpl implements ContainerDao {
           container.setChildren(new ArrayList<Object>());
         }
         for (int i = 0; i < children.size(); i++) {
-          addChild(container, (String) children.get(i), target.toString());
+          addChild((String) children.get(i), target.toString());
         }
       }
       try {
@@ -403,7 +407,7 @@ public class ContainerDaoImpl implements ContainerDao {
               newContainer.setParentURI(newpath.getParent().toString());
               newContainer.setParentID(parentObject.getObjectId());
               newContainer.setObjectType(MediaTypes.CONTAINER);
-              newContainer.setCapabilitiesURI(capabilitiesUri + "/container/default");
+              newContainer.setCapabilitiesURI(child.getCapabilitiesURI());
               newContainer.setDomainURI(parentObject.getDomainURI());
               newContainer.setMetadata(child.getMetadata());
 
@@ -427,8 +431,54 @@ public class ContainerDaoImpl implements ContainerDao {
     return null;
   }
 
-  private Container move() {
-    // TODO
+  private Container move(Container containerRequest, String moveFrom, String moveTo) {
+    Path source = Paths.get(baseDirectoryName.trim(), moveFrom.trim());
+    Path target = Paths.get(baseDirectoryName.trim(), moveTo.trim());
+    LOG.debug("Move source is {}", source);
+    LOG.debug("Move target is {}", target);
+    try {
+      Container container = (Container) findByPath(moveFrom);
+      if (container != null) {
+        Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
+        Container parentObject =
+            (Container) cdmiObjectDaoImpl.getCdmiObjectByPath(target.getParent().toString());
+        LOG.debug("parent object {}", parentObject.toString());
+        container.setObjectName(target.getFileName().toString());
+        container.setParentURI(Paths.get(moveTo).getParent().toString());
+        container.setParentID(parentObject.getObjectId());
+        container.setDomainURI(parentObject.getDomainURI());
+
+        if (containerRequest.getMetadata() != null && !containerRequest.getMetadata().isEmpty())
+          container.setMetadata(containerRequest.getMetadata());
+        if (containerRequest.getDomainURI() != null && !containerRequest.getDomainURI().isEmpty())
+          container.setDomainURI(containerRequest.getDomainURI());
+
+        cdmiObjectDaoImpl.updateCdmiObject(container);
+
+        if (cdmiObjectDaoImpl.createCdmiObject(container, target.toString()) == null)
+          cdmiObjectDaoImpl.updateCdmiObject(container, target.toString());
+
+        Container newContainer = (Container) findByPath(moveTo);
+        if (newContainer != null) {
+          cdmiObjectDaoImpl.deleteCdmiObjectByPath(source.toString());
+
+          String parentPath = source.getParent().toString();
+
+          removeChild(source.getFileName().toString(), parentPath);
+          addChild(container.getObjectName(),
+              target.getParent().toString());
+
+          return newContainer;
+        } else {
+          throw new NotFoundException("Not found");
+        }
+      }
+    } catch (FileAlreadyExistsException e) {
+      throw new ConflictException("Container already exists");
+    } catch (IOException e) {
+      LOG.error("ERROR {}", e.getMessage());
+      throw new NotFoundException("container not found");
+    }
     return null;
   }
 }

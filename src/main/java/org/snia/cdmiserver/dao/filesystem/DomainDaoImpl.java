@@ -100,8 +100,7 @@ public class DomainDaoImpl implements DomainDao {
             cdmiObjectDaoImpl.updateCdmiObject(domain, file.toString());
 
           // Add child-entry for parent
-          Domain parentDomain = (Domain) parentObject;
-          addChild(parentDomain, domain.getObjectName(), file.getParent().toString());
+          addChild(domain.getObjectName(), file.getParent().toString());
 
         return domain;
       } catch (FileAlreadyExistsException e) {
@@ -317,7 +316,7 @@ public class DomainDaoImpl implements DomainDao {
           String parentPath = source.getParent().toString();
           removeChild(source.getFileName().toString(), parentPath);
 
-          addChild((Domain) parentObject, domain.getObjectName(), target.getParent().toString());
+          addChild(domain.getObjectName(), target.getParent().toString());
 
           return newDomain;
         } else {
@@ -352,7 +351,8 @@ public class DomainDaoImpl implements DomainDao {
     cdmiObjectDaoImpl.updateCdmiObject(parentDomain, parentPath);
   }
 
-  private void addChild(Domain parentDomain, String childname, String parentPath) {
+  private void addChild(String childname, String parentPath) {
+    Domain parentDomain = (Domain) cdmiObjectDaoImpl.getCdmiObjectByPath(parentPath);
     JSONArray children = parentDomain.getChildren();
     if (children == null)
       children = new JSONArray();
@@ -452,7 +452,7 @@ public class DomainDaoImpl implements DomainDao {
         cdmiObjectDaoImpl.updateCdmiObject(domain, target.toString());
 
       // addChild to parent
-      addChild((Domain) parentObject, domain.getObjectName(), target.getParent().toString());
+      addChild(domain.getObjectName(), target.getParent().toString());
       // addChilds
       JSONArray children = oldDomain.getChildren();
       if (children != null) {
@@ -460,7 +460,7 @@ public class DomainDaoImpl implements DomainDao {
           domain.setChildren(new JSONArray());
         }
         for (int i = 0; i < children.length(); i++) {
-          addChild(domain, children.getString(i), target.toString());
+          addChild(children.getString(i), target.toString());
         }
       }
       try {

@@ -130,7 +130,7 @@ public class DataObjectDaoImpl implements DataObjectDao {
           if (cdmiObjectDaoImpl.createCdmiObject(dataObject, file.toString()) == null)
             cdmiObjectDaoImpl.updateCdmiObject(dataObject, file.toString());
 
-          addChild((Container) parentObject, file.getFileName().toString(),
+          addChild(file.getFileName().toString(),
               objectPath.getParent().toString());
         }
         return dataObject;
@@ -250,7 +250,8 @@ public class DataObjectDaoImpl implements DataObjectDao {
     cdmiObjectDaoImpl.updateCdmiObject(parentContainer, parentPath);
   }
 
-  private void addChild(Container parentContainer, String childname, String parentPath) {
+  private void addChild(String childname, String parentPath) {
+    Container parentContainer = (Container) cdmiObjectDaoImpl.getCdmiObjectByPath(parentPath);
     List<Object> children = parentContainer.getChildren();
     if (children == null)
       children = new ArrayList<Object>();
