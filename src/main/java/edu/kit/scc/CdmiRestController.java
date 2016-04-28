@@ -344,7 +344,8 @@ public class CdmiRestController {
       // create container
       if (contentType.equals(MediaTypes.CONTAINER)) {
         JSONObject json = new JSONObject(body);
-        CdmiObject container = containerDaoImpl.createByPath(path, new Container(json));
+        CdmiObject container = containerDaoImpl.createByPath(path + "?" + request.getQueryString(),
+            new Container(json));
         if (container != null) {
           responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
           return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,

@@ -85,12 +85,16 @@ public class Container extends CdmiObject {
 
   public Map<String, Object> getMetadata() {
     if (getAttributeMap().get(metadata) != null) {
-      JSONObject json = (JSONObject) getAttributeMap().get(metadata);
-      HashMap<String, Object> map = new HashMap<>();
-      for (Object key : json.keySet()) {
-        map.put((String) key, json.get((String) key));
+      try {
+        JSONObject json = (JSONObject) getAttributeMap().get(metadata);
+        HashMap<String, Object> map = new HashMap<>();
+        for (Object key : json.keySet()) {
+          map.put((String) key, json.get((String) key));
+        }
+        return map;
+      } catch (ClassCastException e) {
+        return (Map<String, Object>) getAttributeMap().get(metadata);
       }
-      return map;
     }
     return null;
   }
@@ -262,12 +266,12 @@ public class Container extends CdmiObject {
   public List<Object> getChildren() {
     if (getAttributeMap().get(children) != null) {
       try {
-      JSONArray json = (JSONArray) getAttributeMap().get(children);
-      ArrayList<Object> list = new ArrayList<>();
-      for (int i = 0; i < json.length(); i++) {
-        list.add(json.get(i));
-      }
-      return list;
+        JSONArray json = (JSONArray) getAttributeMap().get(children);
+        ArrayList<Object> list = new ArrayList<>();
+        for (int i = 0; i < json.length(); i++) {
+          list.add(json.get(i));
+        }
+        return list;
       } catch (ClassCastException e) {
         return (List<Object>) getAttributeMap().get(children);
       }
@@ -299,12 +303,12 @@ public class Container extends CdmiObject {
 
   public boolean hasChildren() {
     try {
-    JSONArray children = (JSONArray) getAttributeMap().get(Container.children);
-    if (children == null)
-      return false;
-    if (children.length() == 0)
-      return false;
-    return true;
+      JSONArray children = (JSONArray) getAttributeMap().get(Container.children);
+      if (children == null)
+        return false;
+      if (children.length() == 0)
+        return false;
+      return true;
     } catch (ClassCastException e) {
       List<Object> children = (List<Object>) getAttributeMap().get(Container.children);
       if (children == null || children.isEmpty() || children.size() == 0)
