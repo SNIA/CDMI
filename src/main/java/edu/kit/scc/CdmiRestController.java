@@ -340,11 +340,15 @@ public class CdmiRestController {
 
     String[] requestedFields = parseFields(request);
     HttpHeaders responseHeaders = new HttpHeaders();
+    String requestPath = path;
+    if (request.getQueryString() != null)
+      requestPath = path + "?" + request.getQueryString();
     try {
       // create container
       if (contentType.equals(MediaTypes.CONTAINER)) {
         JSONObject json = new JSONObject(body);
-        CdmiObject container = containerDaoImpl.createByPath(path, new Container(json));
+        CdmiObject container = containerDaoImpl.createByPath(requestPath,
+            new Container(json));
         if (container != null) {
           responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
           return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
@@ -354,7 +358,8 @@ public class CdmiRestController {
       // create dataobject
       else if (contentType.equals(MediaTypes.DATA_OBJECT)) {
         JSONObject json = new JSONObject(body);
-        DataObject dataObject = dataObjectDaoImpl.createByPath(path, new DataObject(json));
+        DataObject dataObject = dataObjectDaoImpl
+            .createByPath(requestPath, new DataObject(json));
         if (dataObject != null) {
           responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
           return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
