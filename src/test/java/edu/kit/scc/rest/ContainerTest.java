@@ -12,6 +12,7 @@ package edu.kit.scc.rest;
 import edu.kit.scc.CdmiRestController;
 import edu.kit.scc.CdmiServerApplication;
 
+import org.apache.commons.codec.binary.Base64;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -19,6 +20,7 @@ import org.junit.runners.MethodSorters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +28,8 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.servlet.HandlerMapping;
+
+import java.nio.charset.StandardCharsets;
 
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -37,6 +41,12 @@ public class ContainerTest {
 
   @Autowired
   private CdmiRestController controller;
+
+  @Value("${rest.user}")
+  private String restUser;
+
+  @Value("${rest.pass}")
+  private String restPassword;
 
   @Test
   public void A_create() {
@@ -51,8 +61,14 @@ public class ContainerTest {
         "{ \"value\":{}, \"metadata\" : { created: by test, color:yellow } }".getBytes());
     request.setMethod("PUT");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    ResponseEntity<?> res = controller.putCdmiObject(request.getContentType(),
+    controller.capabilities(authorization, request, response);
+
+    ResponseEntity<?> res = controller.putCdmiObject(authorization, request.getContentType(),
         "{ \"value\":{}, \"metadata\" : { created: by test, color:yellow } }", request, response);
 
     log.debug("Create container {}", res.getStatusCode());
@@ -70,8 +86,14 @@ public class ContainerTest {
     request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE, "/containerTest/");
     request.setMethod("GET");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    ResponseEntity<?> res = controller.getCdmiObjectByPath(request, response);
+    controller.capabilities(authorization, request, response);
+
+    ResponseEntity<?> res = controller.getCdmiObjectByPath(authorization, request, response);
     String content = (String) res.getBody();
     String objectId = content.split("objectID\":\"")[1].split("\"")[0];
 
@@ -82,7 +104,7 @@ public class ContainerTest {
     request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE,
         "/cdmi_objectid/" + objectId);
     request.setMethod("GET");
-    controller.getCdmiObjectByID(objectId, request, response);
+    controller.getCdmiObjectById(authorization, objectId, request, response);
   }
 
   @Test
@@ -95,8 +117,12 @@ public class ContainerTest {
     request.setParameter("metadata:color", "");
     request.setMethod("GET");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    controller.getCdmiObjectByPath(request, response);
+    controller.getCdmiObjectByPath(authorization, request, response);
 
   }
 
@@ -110,8 +136,12 @@ public class ContainerTest {
     request.addHeader("Content-Type", "application/cdmi-container");
     request.setMethod("DELETE");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    controller.deleteCdmiObject(request, response);
+    controller.deleteCdmiObject(authorization, request, response);
 
   }
 

@@ -186,8 +186,8 @@ public class DomainDaoImpl implements DomainDao {
     LOG.debug("create domain {} {}", path.trim(), domainRequest.toString());
 
     Domain domain = (Domain) findByPath(path);
-    LOG.debug("domain is {}", domain.toJson().toString());
     if (domain != null) {
+      LOG.debug("domain is {}", domain.toJson().toString());
 
       Path relPath = Paths.get(path.trim());
       try {

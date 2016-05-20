@@ -12,14 +12,18 @@ package edu.kit.scc.rest;
 import edu.kit.scc.CdmiRestController;
 import edu.kit.scc.CdmiServerApplication;
 
+import org.apache.commons.codec.binary.Base64;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.servlet.HandlerMapping;
+
+import java.nio.charset.StandardCharsets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
@@ -27,6 +31,12 @@ public class CapabilitiesTest {
 
   @Autowired
   private CdmiRestController controller;
+
+  @Value("${rest.user}")
+  private String restUser;
+
+  @Value("${rest.pass}")
+  private String restPassword;
 
   @Test
   public void test() {
@@ -38,8 +48,12 @@ public class CapabilitiesTest {
         "/cdmi_capabilities/container/");
     request.setMethod("GET");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    controller.capabilities(request, response);
+    controller.capabilities(authorization, request, response);
   }
 
   @Test
@@ -54,8 +68,12 @@ public class CapabilitiesTest {
     request.setParameter("children:0;childrenrange;objectID;parentURI", "");
     request.setMethod("GET");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    controller.capabilities(request, response);
+    controller.capabilities(authorization, request, response);
   }
 
   @Test
@@ -70,8 +88,12 @@ public class CapabilitiesTest {
     request.setParameter("capabilities:cdmi_read_value;capabilities:cdmi_read_metadata", "");
     request.setMethod("GET");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    controller.capabilities(request, response);
+    controller.capabilities(authorization, request, response);
   }
 
   @Test
@@ -85,8 +107,12 @@ public class CapabilitiesTest {
     request.setParameter("children:0-1", "");
     request.setMethod("GET");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    controller.capabilities(request, response);
+    controller.capabilities(authorization, request, response);
   }
 
   @Test
@@ -101,7 +127,11 @@ public class CapabilitiesTest {
     request.setParameter("capabilities:cdmi_read_value;capabilities:cdmi_read_metadata", "");
     request.setMethod("GET");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    controller.capabilities(request, response);
+    controller.capabilities(authorization, request, response);
   }
 }

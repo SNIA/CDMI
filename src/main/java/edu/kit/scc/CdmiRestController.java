@@ -9,6 +9,10 @@
 
 package edu.kit.scc;
 
+import edu.kit.scc.http.HttpClient;
+import edu.kit.scc.http.HttpResponse;
+
+import org.apache.commons.codec.binary.Base64;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -72,10 +76,34 @@ public class CdmiRestController {
   @Autowired
   private DomainDaoImpl domainDaoImpl;
 
+  @Autowired
+  private HttpClient httpClient;
+
   @Value("${cdmi.data.baseDirectory}")
   private String baseDirectoryName;
 
+  @Value("${rest.user}")
+  private String restUser;
+
+  @Value("${rest.pass}")
+  private String restPassword;
+
+  @Value("${oidc.tokeninfo}")
+  private String tokenInfo;
+
+  @Value("${oidc.userinfo}")
+  private String userInfo;
+
+  @Value("${oidc.clientid}")
+  private String clientId;
+
+  @Value("${oidc.clientsecret}")
+  private String clientSecret;
+
   @PostConstruct
+  /**
+   * Init method to check and initialize the server.
+   */
   public void init() {
     log.debug("INIT");
     Container rootContainer = containerDaoImpl.findByPath("/");
@@ -89,15 +117,17 @@ public class CdmiRestController {
 
     if (!Files.exists(Paths.get(baseDirectoryName, "/cdmi_objectid"))) {
       log.info("objectid-Container wasn't created yet");
-      if (containerDaoImpl.createRootIdContainer() == null)
+      if (containerDaoImpl.createRootIdContainer() == null) {
         log.error("ERROR: RootobjectIdContainer Could Not Be Created!");
+      }
     }
 
     Domain rootDomain = (Domain) domainDaoImpl.findByPath("/cdmi_domains");
     if (rootDomain == null) {
       log.info("RootDomain wasn't created yet");
-      if (domainDaoImpl.createRootdomain() == null)
+      if (domainDaoImpl.createRootdomain() == null) {
         log.error("ERROR: RootDomain Could Not Be Created!");
+      }
     }
 
   }
@@ -112,8 +142,14 @@ public class CdmiRestController {
    */
   @RequestMapping(path = "/cdmi_domains/**", method = RequestMethod.GET,
       produces = {"application/cdmi-domain", "application/json"})
-  public ResponseEntity<?> getDomainByPath(HttpServletRequest request,
+  public ResponseEntity<?> getDomainByPath(
+      @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request,
       HttpServletResponse response) {
+
+    if (!verifyAuthorization(authorizationHeader)) {
+      return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+    }
+
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 
@@ -147,7 +183,13 @@ public class CdmiRestController {
    */
   @RequestMapping(path = "/cdmi_capabilities/**", method = RequestMethod.GET,
       produces = {"application/cdmi-capability", "application/json"})
-  public ResponseEntity<?> capabilities(HttpServletRequest request, HttpServletResponse response) {
+  public ResponseEntity<?> capabilities(@RequestHeader("Authorization") String authorizationHeader,
+      HttpServletRequest request, HttpServletResponse response) {
+
+    if (!verifyAuthorization(authorizationHeader)) {
+      return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+    }
+
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
     log.debug("Capabilities path {}", path);
@@ -179,8 +221,14 @@ public class CdmiRestController {
   @RequestMapping(path = "/cdmi_objectid/{objectId}", method = RequestMethod.GET,
       produces = {"application/cdmi-object", "application/cdmi-container",
           "application/cdmi-domain", "application/json"})
-  public ResponseEntity<?> getCdmiObjectByID(@PathVariable String objectId,
+  public ResponseEntity<?> getCdmiObjectById(
+      @RequestHeader("Authorization") String authorizationHeader, @PathVariable String objectId,
       HttpServletRequest request, HttpServletResponse response) {
+
+    if (!verifyAuthorization(authorizationHeader)) {
+      return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+    }
+
     log.debug("Get objectID {}", objectId);
     response.addHeader("X-CDMI-Specification-Version", "1.1.1");
 
@@ -263,8 +311,14 @@ public class CdmiRestController {
    */
   @RequestMapping(path = "/**", method = RequestMethod.GET,
       produces = {"application/cdmi-object", "application/cdmi-container", "application/json"})
-  public ResponseEntity<?> getCdmiObjectByPath(HttpServletRequest request,
+  public ResponseEntity<?> getCdmiObjectByPath(
+      @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request,
       HttpServletResponse response) {
+
+    if (!verifyAuthorization(authorizationHeader)) {
+      return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+    }
+
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
     log.debug("Get path {}", path);
@@ -331,8 +385,14 @@ public class CdmiRestController {
           "application/cdmi-domain", "application/json"},
       produces = {"application/cdmi-object", "application/cdmi-container",
           "application/cdmi-domain", "application/json"})
-  public ResponseEntity<?> putCdmiObject(@RequestHeader("Content-Type") String contentType,
-      @RequestBody String body, HttpServletRequest request, HttpServletResponse response) {
+  public ResponseEntity<?> putCdmiObject(@RequestHeader("Authorization") String authorizationHeader,
+      @RequestHeader("Content-Type") String contentType, @RequestBody String body,
+      HttpServletRequest request, HttpServletResponse response) {
+
+    if (!verifyAuthorization(authorizationHeader)) {
+      return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+    }
+
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
     log.debug("Create path {} as {}", path, contentType);
@@ -341,14 +401,14 @@ public class CdmiRestController {
     String[] requestedFields = parseFields(request);
     HttpHeaders responseHeaders = new HttpHeaders();
     String requestPath = path;
-    if (request.getQueryString() != null)
+    if (request.getQueryString() != null) {
       requestPath = path + "?" + request.getQueryString();
+    }
     try {
       // create container
       if (contentType.equals(MediaTypes.CONTAINER)) {
         JSONObject json = new JSONObject(body);
-        CdmiObject container = containerDaoImpl.createByPath(requestPath,
-            new Container(json));
+        CdmiObject container = containerDaoImpl.createByPath(requestPath, new Container(json));
         if (container != null) {
           responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
           return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
@@ -358,8 +418,7 @@ public class CdmiRestController {
       // create dataobject
       else if (contentType.equals(MediaTypes.DATA_OBJECT)) {
         JSONObject json = new JSONObject(body);
-        DataObject dataObject = dataObjectDaoImpl
-            .createByPath(requestPath, new DataObject(json));
+        DataObject dataObject = dataObjectDaoImpl.createByPath(requestPath, new DataObject(json));
         if (dataObject != null) {
           responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
           return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
@@ -403,8 +462,14 @@ public class CdmiRestController {
    * @return a {@link ResponseEntity}
    */
   @RequestMapping(path = "/**", method = RequestMethod.DELETE)
-  public ResponseEntity<?> deleteCdmiObject(HttpServletRequest request,
+  public ResponseEntity<?> deleteCdmiObject(
+      @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request,
       HttpServletResponse response) {
+
+    if (!verifyAuthorization(authorizationHeader)) {
+      return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+    }
+
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
     log.debug("Delete path {}", path);
@@ -472,8 +537,9 @@ public class CdmiRestController {
             int startIndex = Integer.valueOf(rangeSplit[0]);
             if (rangeSplit.length > 1) {
               int endIndex = Integer.valueOf(rangeSplit[1]);
-              for (int j = startIndex; j <= endIndex; j++)
+              for (int j = startIndex; j <= endIndex; j++) {
                 requestedChildren.add(children.getString(j));
+              }
             } else {
               requestedChildren.add(children.getString(startIndex));
             }
@@ -486,8 +552,9 @@ public class CdmiRestController {
                     new String(Arrays.copyOfRange(object.getString("value").getBytes(),
                         Integer.valueOf(rangeSplit[0].trim()),
                         Integer.valueOf(rangeSplit[1].trim()))));
-          } else
+          } else {
             throw new BadRequestException("Bad prefix");
+          }
 
         }
       }
@@ -501,6 +568,47 @@ public class CdmiRestController {
       throw new BadRequestException("bad range");
     }
     return requestedJson;
+  }
+
+  /**
+   * Verifies the authorization according to the authorization header.
+   * 
+   * @param authorizationHeader the authorization header
+   * @return true if authorized
+   */
+  public boolean verifyAuthorization(String authorizationHeader) {
+    try {
+      log.debug("Authorization: {}", authorizationHeader);
+      String authorizationMethod = authorizationHeader.split(" ")[0];
+      String encodedCredentials = authorizationHeader.split(" ")[1];
+
+      if (authorizationMethod.equals("Basic")) {
+        String[] credentials = new String(Base64.decodeBase64(encodedCredentials)).split(":");
+
+        if (credentials[0].equals(restUser) && credentials[1].equals(restPassword)) {
+          return true;
+        }
+        log.error("Wrong credentials {} {}", credentials[0], credentials[1]);
+      } else if (authorizationMethod.equals("Bearer")) {
+        // check for user token
+        HttpResponse response = httpClient.makeHttpsGetRequest(encodedCredentials, userInfo);
+        if (response != null && response.statusCode == HttpStatus.OK.value()) {
+          // TODO set user ACLs
+          return true;
+        }
+        // check for client token
+        String body = "token=" + encodedCredentials;
+        response = httpClient.makeHttpsPostRequest(clientId, clientSecret, body, tokenInfo);
+        if (response.statusCode == HttpStatus.OK.value()) {
+          // TODO set client ACLs
+          return true;
+        }
+      }
+    } catch (Exception ex) {
+      log.error("ERROR {}", ex.toString());
+      //ex.printStackTrace();
+    }
+    return false;
   }
 
 }

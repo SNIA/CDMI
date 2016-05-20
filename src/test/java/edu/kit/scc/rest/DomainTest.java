@@ -6,12 +6,14 @@ import static org.junit.Assert.assertTrue;
 import edu.kit.scc.CdmiRestController;
 import edu.kit.scc.CdmiServerApplication;
 
+import org.apache.commons.codec.binary.Base64;
 import org.json.JSONObject;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +21,9 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.servlet.HandlerMapping;
+
+import java.nio.charset.StandardCharsets;
+
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
@@ -28,6 +33,12 @@ public class DomainTest {
   private CdmiRestController controller;
 
   private String movingId;
+
+  @Value("${rest.user}")
+  private String restUser;
+
+  @Value("${rest.pass}")
+  private String restPassword;
 
   @Test
   public void A_create() {
@@ -42,8 +53,12 @@ public class DomainTest {
     request.setContent("{\"metadata\" : { created: by test, color:red } }".getBytes());
     request.setMethod("PUT");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    ResponseEntity<?> answer = controller.putCdmiObject(request.getContentType(),
+    ResponseEntity<?> answer = controller.putCdmiObject(authorization, request.getContentType(),
         "{\"metadata\" : { created: by test, color:red } }", request, response);
 
     assertNotNull(answer);
@@ -63,8 +78,12 @@ public class DomainTest {
     request.setContent("{\"metadata\" : { created: by test, color:yellow } }".getBytes());
     request.setMethod("PUT");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    ResponseEntity<?> answer = controller.putCdmiObject(request.getContentType(),
+    ResponseEntity<?> answer = controller.putCdmiObject(authorization, request.getContentType(),
         "{\"metadata\" : { created: by test, color:yellow } }", request, response);
 
     assertNotNull(answer);
@@ -84,8 +103,12 @@ public class DomainTest {
     request.setParameter("metadata:created", "");
     request.setMethod("PUT");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    ResponseEntity<?> answer = controller.putCdmiObject(request.getContentType(),
+    ResponseEntity<?> answer = controller.putCdmiObject(authorization, request.getContentType(),
         "{\"metadata\" : { created: updatet by test } }", request, response);
 
     assertNotNull(answer);
@@ -104,8 +127,12 @@ public class DomainTest {
     request.setContent("{copy:\"/cdmi_domains/testDomain\"}".getBytes());
     request.setMethod("PUT");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    ResponseEntity<?> answer = controller.putCdmiObject(request.getContentType(),
+    ResponseEntity<?> answer = controller.putCdmiObject(authorization, request.getContentType(),
         "{copy:\"/cdmi_domains/testDomain\"}", request, response);
 
     JSONObject json = new JSONObject((String) answer.getBody());
@@ -130,8 +157,12 @@ public class DomainTest {
     request.setContent("{move:\"/cdmi_domains/testDomain2\"}".getBytes());
     request.setMethod("PUT");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    ResponseEntity<?> answer = controller.putCdmiObject(request.getContentType(),
+    ResponseEntity<?> answer = controller.putCdmiObject(authorization, request.getContentType(),
         "{move:\"/cdmi_domains/testDomain2\"}", request, response);
 
     assertNotNull(answer);
@@ -150,8 +181,12 @@ public class DomainTest {
         "/cdmi_domains/testDomain/");
     request.setMethod("GET");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    ResponseEntity<?> content = controller.getDomainByPath(request, response);
+    ResponseEntity<?> content = controller.getDomainByPath(authorization, request, response);
     assertNotNull(content);
     JSONObject answer = new JSONObject((String) content.getBody());
     String objectId = answer.getString("objectID");
@@ -163,7 +198,7 @@ public class DomainTest {
     request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE,
         "/cdmi_objectid/" + objectId);
     request.setMethod("GET");
-    content = controller.getCdmiObjectByID(objectId, request, response);
+    content = controller.getCdmiObjectById(authorization, objectId, request, response);
 
 
   }
@@ -171,44 +206,44 @@ public class DomainTest {
 
   public void C_check_moved(String movingId) {
 
-      MockHttpServletRequest request = new MockHttpServletRequest();
-      MockHttpServletResponse response = new MockHttpServletResponse();
-      request.setServerName("localhost:8080");
-      request.setRequestURI("/cdmi_domains/testDomain2/");
-      request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE,
-          "/cdmi_domains/testDomain2/");
-      request.setMethod("GET");
+    MockHttpServletRequest request = new MockHttpServletRequest();
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    request.setServerName("localhost:8080");
+    request.setRequestURI("/cdmi_domains/testDomain2/");
+    request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE,
+        "/cdmi_domains/testDomain2/");
+    request.setMethod("GET");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-      ResponseEntity<?> content = controller.getDomainByPath(request, response);
+    ResponseEntity<?> content = controller.getDomainByPath(authorization, request, response);
     System.out.println(content.getStatusCode());
     assertTrue(content.getStatusCode().equals(HttpStatus.NOT_FOUND));
 
-
     request = new MockHttpServletRequest();
     response = new MockHttpServletResponse();
-      request.setServerName("localhost:8080");
-      request.setRequestURI("/cdmi_domains/testDomain/testSub");
-      request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE,
-          "/cdmi_domains/testDomain/testSub");
-      request.setMethod("GET");
+    request.setServerName("localhost:8080");
+    request.setRequestURI("/cdmi_domains/testDomain/testSub");
+    request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE,
+        "/cdmi_domains/testDomain/testSub");
+    request.setMethod("GET");
 
-    content = controller.getDomainByPath(request, response);
+    content = controller.getDomainByPath(authorization, request, response);
     JSONObject json = new JSONObject((String) content.getBody());
     assertTrue(movingId.equals(json.getString("objectID")));
 
-
-      request = new MockHttpServletRequest();
-      response = new MockHttpServletResponse();
-      request.setServerName("localhost:8080");
-      request.setRequestURI("/cdmi_objectid/" + movingId);
-      request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE,
-          "/cdmi_objectid/" + movingId);
-      request.setMethod("GET");
-      assertNotNull(movingId);
-      content = controller.getCdmiObjectByID(movingId, request, response);
-
-
+    request = new MockHttpServletRequest();
+    response = new MockHttpServletResponse();
+    request.setServerName("localhost:8080");
+    request.setRequestURI("/cdmi_objectid/" + movingId);
+    request.setAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE,
+        "/cdmi_objectid/" + movingId);
+    request.setMethod("GET");
+    assertNotNull(movingId);
+    content = controller.getCdmiObjectById(authorization, movingId, request, response);
   }
 
   @Test
@@ -222,8 +257,12 @@ public class DomainTest {
     request.setParameter("metadata:color", "");
     request.setMethod("GET");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    ResponseEntity<?> answer = controller.getDomainByPath(request, response);
+    ResponseEntity<?> answer = controller.getDomainByPath(authorization, request, response);
     assertTrue(answer.getBody().equals("{\"metadata\":{\"color\":\"yellow\"}}"));
 
   }
@@ -251,8 +290,12 @@ public class DomainTest {
     request.addHeader("Content-Type", "application/cdmi-domain");
     request.setMethod("DELETE");
 
+    String auth = restUser + ":" + restPassword;
+    byte[] authZheader = auth.getBytes();
+    String authorization =
+        "Basic " + new String(Base64.encodeBase64(authZheader), StandardCharsets.UTF_8);
 
-    controller.deleteCdmiObject(request, response);
+    controller.deleteCdmiObject(authorization, request, response);
 
     request = new MockHttpServletRequest();
     response = new MockHttpServletResponse();
@@ -263,8 +306,7 @@ public class DomainTest {
     request.addHeader("Content-Type", "application/cdmi-domain");
     request.setMethod("DELETE");
 
-
-    controller.deleteCdmiObject(request, response);
+    controller.deleteCdmiObject(authorization, request, response);
 
     // request = new MockHttpServletRequest();
     // response = new MockHttpServletResponse();
