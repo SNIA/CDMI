@@ -100,10 +100,10 @@ public class CdmiRestController {
   @Value("${oidc.clientsecret}")
   private String clientSecret;
 
-  @PostConstruct
   /**
    * Init method to check and initialize the server.
    */
+  @PostConstruct
   public void init() {
     log.debug("INIT");
     Container rootContainer = containerDaoImpl.findByPath("/");
@@ -414,9 +414,7 @@ public class CdmiRestController {
           return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
               HttpStatus.CREATED);
         }
-      }
-      // create dataobject
-      else if (contentType.equals(MediaTypes.DATA_OBJECT)) {
+      } else if (contentType.equals(MediaTypes.DATA_OBJECT)) {
         JSONObject json = new JSONObject(body);
         DataObject dataObject = dataObjectDaoImpl.createByPath(requestPath, new DataObject(json));
         if (dataObject != null) {
@@ -424,9 +422,7 @@ public class CdmiRestController {
           return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
               HttpStatus.CREATED);
         }
-      }
-      // create domain
-      else if (contentType.equals(MediaTypes.ACCOUNT)) {
+      } else if (contentType.equals(MediaTypes.ACCOUNT)) {
         JSONObject json = new JSONObject(body);
         CdmiObject domain = null;
         if (requestedFields == null) {
@@ -547,11 +543,9 @@ public class CdmiRestController {
           } else if (field.startsWith("value:")) {
             String range = field.split("value:")[1];
             String[] rangeSplit = range.split("-");
-            requestedJson
-                .put("value",
-                    new String(Arrays.copyOfRange(object.getString("value").getBytes(),
-                        Integer.valueOf(rangeSplit[0].trim()),
-                        Integer.valueOf(rangeSplit[1].trim()))));
+            requestedJson.put("value",
+                new String(Arrays.copyOfRange(object.getString("value").getBytes(),
+                    Integer.valueOf(rangeSplit[0].trim()), Integer.valueOf(rangeSplit[1].trim()))));
           } else {
             throw new BadRequestException("Bad prefix");
           }
@@ -606,7 +600,7 @@ public class CdmiRestController {
       }
     } catch (Exception ex) {
       log.error("ERROR {}", ex.toString());
-      //ex.printStackTrace();
+      // ex.printStackTrace();
     }
     return false;
   }

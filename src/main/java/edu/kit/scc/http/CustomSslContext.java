@@ -113,7 +113,7 @@ public final class CustomSslContext {
         @Override
         public void checkClientTrusted(X509Certificate[] chain, String authType)
             throws CertificateException {}
-      }}, null);
+      } }, null);
     } catch (NoSuchAlgorithmException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
