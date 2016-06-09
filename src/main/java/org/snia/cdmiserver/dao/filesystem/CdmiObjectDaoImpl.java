@@ -31,7 +31,7 @@ import java.nio.file.StandardOpenOption;
 @Component
 public class CdmiObjectDaoImpl implements CdmiObjectDao {
 
-  private final static Logger log = LoggerFactory.getLogger(CdmiObjectDaoImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(CdmiObjectDaoImpl.class);
 
   @Value("${cdmi.data.rootObjectId}")
   private String rootObjectId;
@@ -45,14 +45,22 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
   @Value("${cdmi.data.baseDirectory}")
   private String baseDirectoryName;
 
+  /**
+   * Creates a new CDMI object with the given object id at the given path.
+   * 
+   * @param objectId the object's id
+   * @param path the file system path
+   * @return the created {@link CdmiObject}
+   */
   public CdmiObject createCdmiObject(CdmiObject objectId, String path) {
     try {
-      Path p = Paths.get(path.trim());
+      Path sanitizedPath = Paths.get(path.trim());
       Path newPath;
       try {
-        newPath = Paths.get(p.getParent().toString(), objectIdPrefix + p.getFileName().toString());
+        newPath = Paths.get(sanitizedPath.getParent().toString(),
+            objectIdPrefix + sanitizedPath.getFileName().toString());
       } catch (NullPointerException e) {
-        newPath = Paths.get(objectIdPrefix + p.getFileName().toString());
+        newPath = Paths.get(objectIdPrefix + sanitizedPath.getFileName().toString());
       }
       Files.write(newPath, objectId.toJson().toString().getBytes(), StandardOpenOption.WRITE,
           StandardOpenOption.CREATE_NEW);
@@ -93,14 +101,22 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
     return objectId;
   }
 
+  /**
+   * Updates the given CDMI object.
+   * 
+   * @param objectId the object's id
+   * @param path the object's file system path
+   * @return the updated {@link CdmiObject}
+   */
   public CdmiObject updateCdmiObject(CdmiObject objectId, String path) {
     try {
-      Path p = Paths.get(path.trim());
+      Path sanitizedPath = Paths.get(path.trim());
       Path newPath;
       try {
-        newPath = Paths.get(p.getParent().toString(), objectIdPrefix + p.getFileName().toString());
+        newPath = Paths.get(sanitizedPath.getParent().toString(),
+            objectIdPrefix + sanitizedPath.getFileName().toString());
       } catch (NullPointerException e) {
-        newPath = Paths.get(objectIdPrefix + p.getFileName().toString());
+        newPath = Paths.get(objectIdPrefix + sanitizedPath.getFileName().toString());
       }
       Files.write(newPath, objectId.toJson().toString().getBytes(), StandardOpenOption.WRITE,
           StandardOpenOption.TRUNCATE_EXISTING);
@@ -136,15 +152,22 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
     return objectId;
   }
 
+  /**
+   * Deletes a CdmiObject by path.
+   * 
+   * @param path the file system path to the CDMI object
+   * @return the deleted {@link CdmiObject}
+   */
   public CdmiObject deleteCdmiObjectByPath(String path) {
     CdmiObject object = getCdmiObjectByPath(path);
     if (object != null) {
-      Path p = Paths.get(path.trim());
+      Path sanitizedPath = Paths.get(path.trim());
       Path newPath;
       try {
-        newPath = Paths.get(p.getParent().toString(), objectIdPrefix + p.getFileName().toString());
+        newPath = Paths.get(sanitizedPath.getParent().toString(),
+            objectIdPrefix + sanitizedPath.getFileName().toString());
       } catch (NullPointerException e) {
-        newPath = Paths.get(objectIdPrefix + p.getFileName().toString());
+        newPath = Paths.get(objectIdPrefix + sanitizedPath.getFileName().toString());
       }
       try {
         boolean deleted = Files.deleteIfExists(newPath);
@@ -171,14 +194,21 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
     return object;
   }
 
+  /**
+   * Gets a CDMI object by path.
+   * 
+   * @param path the object's file system path
+   * @return the {@link CdmiObject}
+   */
   public CdmiObject getCdmiObjectByPath(String path) {
     CdmiObject object = null;
-    Path p = Paths.get(path.trim().replaceAll("/$", ""));
+    Path sanitizedPath = Paths.get(path.trim().replaceAll("/$", ""));
     Path newPath;
     try {
-      newPath = Paths.get(p.getParent().toString(), objectIdPrefix + p.getFileName().toString());
+      newPath = Paths.get(sanitizedPath.getParent().toString(),
+          objectIdPrefix + sanitizedPath.getFileName().toString());
     } catch (NullPointerException e) {
-      newPath = Paths.get(objectIdPrefix + p.getFileName().toString());
+      newPath = Paths.get(objectIdPrefix + sanitizedPath.getFileName().toString());
     }
     try {
       log.debug("path is {}", newPath);
@@ -187,12 +217,13 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
 
       String objectType = json.optString("objectType");
       if (objectType != null) {
-        if (objectType.equals(MediaTypes.CONTAINER))
+        if (objectType.equals(MediaTypes.CONTAINER)) {
           return new Container(json);
-        else if (objectType.equals(MediaTypes.DATA_OBJECT))
+        } else if (objectType.equals(MediaTypes.DATA_OBJECT)) {
           return new DataObject(json);
-        else if (objectType.equals(MediaTypes.ACCOUNT))
+        } else if (objectType.equals(MediaTypes.ACCOUNT)) {
           return new Domain(json);
+        }
       }
       object = new CdmiObject(json);
       log.debug("get objectId from file {}", object.toString());
@@ -215,10 +246,11 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
 
       String objectType = json.optString("objectType");
       if (objectType != null) {
-        if (objectType.equals(MediaTypes.CONTAINER))
+        if (objectType.equals(MediaTypes.CONTAINER)) {
           return new Container(json);
-        else if (objectType.equals(MediaTypes.DATA_OBJECT))
+        } else if (objectType.equals(MediaTypes.DATA_OBJECT)) {
           return new DataObject(json);
+        }
       }
       object = new CdmiObject(json);
       log.debug("get objectId from file {}", object.toString());

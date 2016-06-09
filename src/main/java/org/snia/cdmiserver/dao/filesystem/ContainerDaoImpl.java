@@ -92,6 +92,11 @@ public class ContainerDaoImpl implements ContainerDao {
   @Autowired
   private DomainDaoImpl domainDaoImpl;
 
+  /**
+   * Creates the root container for CDMI containers and data objects.
+   * 
+   * @return the {@link CdmiObject} for the root container
+   */
   public CdmiObject createRootContainer() {
     LOG.debug("create RootContainer {}", baseDirectoryName.trim());
 
@@ -125,9 +130,9 @@ public class ContainerDaoImpl implements ContainerDao {
 
           cdmiObjectDaoImpl.createCdmiObject(container);
 
-          if (cdmiObjectDaoImpl.createCdmiObject(container, directory.toString()) == null)
+          if (cdmiObjectDaoImpl.createCdmiObject(container, directory.toString()) == null) {
             cdmiObjectDaoImpl.updateCdmiObject(container, directory.toString());
-
+          }
           return container;
         }
       }
@@ -144,6 +149,11 @@ public class ContainerDaoImpl implements ContainerDao {
 
   }
 
+  /**
+   * Creates the root container for CDMI object id meta-data files.
+   * 
+   * @return the {@link Path} of the object id container
+   */
   public Path createRootIdContainer() {
 
     try {
@@ -167,8 +177,9 @@ public class ContainerDaoImpl implements ContainerDao {
     } else if (containerRequest.getMove() != null) {
       return move(containerRequest, containerRequest.getMove(), path);
     } else {
-      if (path.contains("?"))
+      if (path.contains("?")) {
         path = path.split(Pattern.quote("?"))[0];
+      }
       Container container = (Container) cdmiObjectDaoImpl.createCdmiObject(new Container());
 
       if (container != null) {
@@ -189,20 +200,22 @@ public class ContainerDaoImpl implements ContainerDao {
           container.setCapabilitiesURI(capabilitiesUri + "/container/default");
           if (containerRequest.getDomainURI() != null) {
             String domain = containerRequest.getDomainURI();
-            if (domainDaoImpl.findByPath(domain) != null)
+            if (domainDaoImpl.findByPath(domain) != null) {
               container.setDomainURI(domain);
-            else
+            } else {
               throw new BadRequestException("The specified domainURI doesn't exist");
-          } else
+            }
+          } else {
             container.setDomainURI(((Container) parentObject).getDomainURI());
+          }
           container.setMetadata(containerRequest.getMetadata());
           container.setCompletionStatus("Complete");
 
           cdmiObjectDaoImpl.updateCdmiObject(container);
 
-          if (cdmiObjectDaoImpl.createCdmiObject(container, directory.toString()) == null)
+          if (cdmiObjectDaoImpl.createCdmiObject(container, directory.toString()) == null) {
             cdmiObjectDaoImpl.updateCdmiObject(container, directory.toString());
-
+          }
           addChild(containerPath.getFileName().toString(), containerPath.getParent().toString());
 
           return container;
@@ -308,8 +321,9 @@ public class ContainerDaoImpl implements ContainerDao {
   private void addChild(String childname, String parentPath) {
     Container parentContainer = (Container) cdmiObjectDaoImpl.getCdmiObjectByPath(parentPath);
     List<Object> children = parentContainer.getChildren();
-    if (children == null)
+    if (children == null) {
       children = new ArrayList<Object>();
+    }
     children.add(childname);
     parentContainer.setChildren(children);
     parentContainer.setChildrenrange("0-" + String.valueOf(children.size() - 1));
@@ -319,8 +333,8 @@ public class ContainerDaoImpl implements ContainerDao {
 
 
   /**
-   * copies a Container with all or without any subcontainers to a new created or existing container
-   * at the specified path
+   * Copies a Container with all or without any subcontainers to a new created or existing container
+   * at the specified path.
    * 
    * @param containerRequest the {@link Container}
    * @param path the {@link String}
@@ -330,9 +344,10 @@ public class ContainerDaoImpl implements ContainerDao {
     // getting requested Fields
     String[] requestedFields = null;
     String sourcePath = containerRequest.getCopy().trim();
-    if (path.contains("?") && sourcePath.contains("?"))
+    if (path.contains("?") && sourcePath.contains("?")) {
       throw new BadRequestException(
-          "The destination container object URI and the copy source object URI both specify fields");
+          "The destination container object URI and the copy source object URI specify fields");
+    }
     if (sourcePath.contains("?")) {
       requestedFields = sourcePath.split(Pattern.quote("?"))[1].split(";");
       sourcePath = sourcePath.split(Pattern.quote("?"))[0];
@@ -381,8 +396,9 @@ public class ContainerDaoImpl implements ContainerDao {
             container.setDomainURI(oldContainer.getDomainURI());
             FileUtils.copyDirectory(source.toFile(), target.toFile());
             cdmiObjectDaoImpl.updateCdmiObject(container);
-            if (cdmiObjectDaoImpl.createCdmiObject(container, target.toString()) == null)
+            if (cdmiObjectDaoImpl.createCdmiObject(container, target.toString()) == null) {
               cdmiObjectDaoImpl.updateCdmiObject(container, target.toString());
+            }
             editCopiedIdsRecursivly(container, Paths.get(path));
             return container;
           } else {
@@ -393,9 +409,9 @@ public class ContainerDaoImpl implements ContainerDao {
         container.setChildrenrange("");
       }
       // copy children
-      if (copyChildren)
+      if (copyChildren) {
         FileUtils.copyDirectory(source.toFile(), target.toFile());
-
+      }
       Container parentObject =
           (Container) cdmiObjectDaoImpl.getCdmiObjectByPath(target.getParent().toString());
       LOG.debug("parent object {}", parentObject.toString());
@@ -404,8 +420,9 @@ public class ContainerDaoImpl implements ContainerDao {
       container.setParentURI(Paths.get(path).getParent().toString());
       container.setParentID(parentObject.getObjectId());
       container.setObjectType(MediaTypes.CONTAINER);
-      if (!update)
+      if (!update) {
         container.setCapabilitiesURI(oldContainer.getCapabilitiesURI());
+      }
       if (requestedFields == null) {
         container.setDomainURI(parentObject.getDomainURI());
         container.setMetadata(oldContainer.getMetadata());
@@ -427,11 +444,13 @@ public class ContainerDaoImpl implements ContainerDao {
               if (field.startsWith("metadata:")) {
                 String subfield = field.split(":")[1];
                 Map<String, Object> metadata = container.getMetadata();
-                if (metadata == null)
+                if (metadata == null) {
                   metadata = new HashMap<String, Object>();
+                }
                 Map<String, Object> oldMetadata = oldContainer.getMetadata();
-                if (oldMetadata == null)
+                if (oldMetadata == null) {
                   oldMetadata = new HashMap<String, Object>();
+                }
                 metadata.put(subfield, oldMetadata.get(subfield));
                 container.setMetadata(metadata);
                 LOG.trace("setting metadata field");
@@ -439,18 +458,21 @@ public class ContainerDaoImpl implements ContainerDao {
           }
         }
       }
-      if (containerRequest.getMetadata() != null && !containerRequest.getMetadata().isEmpty())
+      if (containerRequest.getMetadata() != null && !containerRequest.getMetadata().isEmpty()) {
         container.setMetadata(containerRequest.getMetadata());
-      if (containerRequest.getDomainURI() != null && !containerRequest.getDomainURI().isEmpty())
+      }
+      if (containerRequest.getDomainURI() != null && !containerRequest.getDomainURI().isEmpty()) {
         container.setDomainURI(containerRequest.getDomainURI());
+      }
       // update metadata-files
       cdmiObjectDaoImpl.updateCdmiObject(container);
-      if (cdmiObjectDaoImpl.createCdmiObject(container, target.toString()) == null)
+      if (cdmiObjectDaoImpl.createCdmiObject(container, target.toString()) == null) {
         cdmiObjectDaoImpl.updateCdmiObject(container, target.toString());
-
+      }
       // add child to parent
-      if (!update)
+      if (!update) {
         addChild(container.getObjectName(), target.getParent().toString());
+      }
       // add children
       if (copyChildren) {
         List<Object> children = oldContainer.getChildren();
@@ -464,8 +486,9 @@ public class ContainerDaoImpl implements ContainerDao {
         }
         try {
           // update ids and URIs of children
-          if (copyChildren)
+          if (copyChildren) {
             editCopiedIdsRecursivly((Container) findByPath(path), Paths.get(path));
+          }
         } catch (Exception e) {
           e.printStackTrace();
           FileUtils.deleteDirectory(target.toFile());
@@ -516,16 +539,18 @@ public class ContainerDaoImpl implements ContainerDao {
               cdmiObjectDaoImpl.updateCdmiObject(newContainer);
 
               if (cdmiObjectDaoImpl.createCdmiObject(newContainer,
-                  Paths.get(baseDirectoryName, newpath.toString()).toString()) == null)
+                  Paths.get(baseDirectoryName, newpath.toString()).toString()) == null) {
                 cdmiObjectDaoImpl.updateCdmiObject(newContainer,
                     Paths.get(baseDirectoryName, newpath.toString()).toString());
+              }
               editCopiedIdsRecursivly(child, newpath);
             }
           }
         }
       }
-    } else
+    } else {
       LOG.trace("PATH {} has no children", path);
+    }
   }
 
   private void deleteRecursivly(Container container, Path path) {
@@ -569,16 +594,17 @@ public class ContainerDaoImpl implements ContainerDao {
         container.setParentID(parentObject.getObjectId());
         container.setDomainURI(parentObject.getDomainURI());
 
-        if (containerRequest.getMetadata() != null && !containerRequest.getMetadata().isEmpty())
+        if (containerRequest.getMetadata() != null && !containerRequest.getMetadata().isEmpty()) {
           container.setMetadata(containerRequest.getMetadata());
-        if (containerRequest.getDomainURI() != null && !containerRequest.getDomainURI().isEmpty())
+        }
+        if (containerRequest.getDomainURI() != null && !containerRequest.getDomainURI().isEmpty()) {
           container.setDomainURI(containerRequest.getDomainURI());
-
+        }
         cdmiObjectDaoImpl.updateCdmiObject(container);
 
-        if (cdmiObjectDaoImpl.createCdmiObject(container, target.toString()) == null)
+        if (cdmiObjectDaoImpl.createCdmiObject(container, target.toString()) == null) {
           cdmiObjectDaoImpl.updateCdmiObject(container, target.toString());
-
+        }
         Container newContainer = (Container) findByPath(moveTo);
         if (newContainer != null) {
           cdmiObjectDaoImpl.deleteCdmiObjectByPath(source.toString());

@@ -26,7 +26,7 @@ public interface DomainDao {
    * @exception ConflictException if a Domain or data object at the specified path already exists
    * @exception IllegalArgumentException if an intermediate Domain does not exist
    */
-  public CdmiObject createByPath(String path, Domain DomainRequest);
+  public CdmiObject createByPath(String path, Domain domainRequest);
 
   /**
    * <p>

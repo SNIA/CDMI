@@ -446,7 +446,7 @@ public class PathResource {
 					dObj.setValue(new String(bytes));
 				}
 				LOG.trace("Calling createNonCDMIByPath");
-				dObj = dataObjectDao.createNonCDMIByPath(path, contentType, dObj);
+				dObj = dataObjectDao.createNonCcdmiByPath(path, contentType, dObj);
 				// return representation
 				// String respStr = dObj.toJson();
 				// return Response.ok(respStr).header(

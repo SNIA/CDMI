@@ -91,8 +91,9 @@ public class DataObjectDaoImpl implements DataObjectDao {
     } else if (dataObjectRequest.getMove() != null) {
       return move(dataObjectRequest, dataObjectRequest.getMove(), path);
     } else {
-      if (path.contains("?"))
+      if (path.contains("?")) {
         path = path.split(Pattern.quote("?"))[0];
+      }
       DataObject dataObject = (DataObject) cdmiObjectDaoImpl.createCdmiObject(new DataObject());
 
       if (dataObject != null) {
@@ -105,11 +106,11 @@ public class DataObjectDaoImpl implements DataObjectDao {
             DataObject copiedObject = findByPath(copyFrom);
             dataObject = createByPath(path, copiedObject);
           } else {
-            if (dataObjectRequest.getValue() == null)
+            if (dataObjectRequest.getValue() == null) {
               file = Files.createFile(objectPath);
-            else
+            } else {
               file = Files.write(objectPath, dataObjectRequest.getValue().getBytes());
-
+            }
             LOG.debug("created file {}", file.toString());
 
             CdmiObject parentObject =
@@ -123,12 +124,14 @@ public class DataObjectDaoImpl implements DataObjectDao {
             dataObject.setCapabilitiesURI(capabilitiesUri + "/dataobject/default");
             if (dataObjectRequest.getDomainURI() != null) {
               String domain = dataObjectRequest.getDomainURI();
-              if (domainDaoImpl.findByPath(domain) != null)
+              if (domainDaoImpl.findByPath(domain) != null) {
                 dataObject.setDomainURI(domain);
-              else
+              } else {
                 throw new BadRequestException("The specified domainURI doesn't exist");
-            } else
+              }
+            } else {
               dataObject.setDomainURI(((Container) parentObject).getDomainURI());
+            }
             dataObject.setMetadata(dataObjectRequest.getMetadata());
 
             // optional
@@ -139,9 +142,9 @@ public class DataObjectDaoImpl implements DataObjectDao {
 
             cdmiObjectDaoImpl.updateCdmiObject(dataObject);
 
-            if (cdmiObjectDaoImpl.createCdmiObject(dataObject, file.toString()) == null)
+            if (cdmiObjectDaoImpl.createCdmiObject(dataObject, file.toString()) == null) {
               cdmiObjectDaoImpl.updateCdmiObject(dataObject, file.toString());
-
+            }
             addChild(file.getFileName().toString(), objectPath.getParent().toString());
           }
           return dataObject;
@@ -171,13 +174,13 @@ public class DataObjectDaoImpl implements DataObjectDao {
   }
 
   @Override
-  public DataObject createNonCDMIByPath(String path, String contentType, DataObject dObj)
+  public DataObject createNonCcdmiByPath(String path, String contentType, DataObject dataObj)
       throws Exception {
     throw new UnsupportedOperationException("DataObjectDaoImpl.createNonCDMIByPath()");
   }
 
   @Override
-  public DataObject createById(String objectId, DataObject dObj) {
+  public DataObject createById(String objectId, DataObject dataObj) {
     throw new UnsupportedOperationException("DataObjectDaoImpl.createById()");
   }
 
@@ -265,8 +268,9 @@ public class DataObjectDaoImpl implements DataObjectDao {
   private void addChild(String childname, String parentPath) {
     Container parentContainer = (Container) cdmiObjectDaoImpl.getCdmiObjectByPath(parentPath);
     List<Object> children = parentContainer.getChildren();
-    if (children == null)
+    if (children == null) {
       children = new ArrayList<Object>();
+    }
     children.add(childname);
     parentContainer.setChildren(children);
     parentContainer.setChildrenrange("0-" + String.valueOf(children.size() - 1));
@@ -291,16 +295,18 @@ public class DataObjectDaoImpl implements DataObjectDao {
         dataObject.setParentID(parentObject.getObjectId());
         dataObject.setDomainURI(parentObject.getDomainURI());
 
-        if (dataobjectRequest.getMetadata() != null && !dataobjectRequest.getMetadata().isEmpty())
+        if (dataobjectRequest.getMetadata() != null && !dataobjectRequest.getMetadata().isEmpty()) {
           dataObject.setMetadata(dataobjectRequest.getMetadata());
-        if (dataobjectRequest.getDomainURI() != null && !dataobjectRequest.getDomainURI().isEmpty())
+        }
+        if (dataobjectRequest.getDomainURI() != null
+            && !dataobjectRequest.getDomainURI().isEmpty()) {
           dataObject.setDomainURI(dataobjectRequest.getDomainURI());
-
+        }
         cdmiObjectDaoImpl.updateCdmiObject(dataObject);
 
-        if (cdmiObjectDaoImpl.createCdmiObject(dataObject, target.toString()) == null)
+        if (cdmiObjectDaoImpl.createCdmiObject(dataObject, target.toString()) == null) {
           cdmiObjectDaoImpl.updateCdmiObject(dataObject, target.toString());
-
+        }
         DataObject newDataObject = (DataObject) findByPath(moveTo);
         if (newDataObject != null) {
           cdmiObjectDaoImpl.deleteCdmiObjectByPath(source.toString());
@@ -328,9 +334,10 @@ public class DataObjectDaoImpl implements DataObjectDao {
     // getting requested Fields
     String[] requestedFields = null;
     String sourcePath = dataobjectRequest.getCopy().trim();
-    if (path.contains("?") && sourcePath.contains("?"))
+    if (path.contains("?") && sourcePath.contains("?")) {
       throw new BadRequestException(
-          "The destination dataObject URI and the copy source object URI both specify fields");
+          "The destination dataObject URI and the copy source object URI specify fields");
+    }
     if (sourcePath.contains("?")) {
       requestedFields = sourcePath.split(Pattern.quote("?"))[1].split(";");
       sourcePath = sourcePath.split(Pattern.quote("?"))[0];
@@ -354,9 +361,6 @@ public class DataObjectDaoImpl implements DataObjectDao {
         object = (DataObject) cdmiObjectDaoImpl.createCdmiObject(new DataObject());
         update = false;
       }
-
-      Container parentObject =
-          (Container) cdmiObjectDaoImpl.getCdmiObjectByPath(target.getParent().toString());
 
       if (requestedFields == null) {
         Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
@@ -385,11 +389,13 @@ public class DataObjectDaoImpl implements DataObjectDao {
               if (field.startsWith("metadata:")) {
                 String subfield = field.split(":")[1];
                 Map<String, Object> metadata = object.getMetadata();
-                if (metadata == null)
+                if (metadata == null) {
                   metadata = new HashMap<String, Object>();
+                }
                 Map<String, Object> oldMetadata = sourceObject.getMetadata();
-                if (oldMetadata == null)
+                if (oldMetadata == null) {
                   oldMetadata = new HashMap<String, Object>();
+                }
                 metadata.put(subfield, oldMetadata.get(subfield));
                 object.setMetadata(metadata);
               }
@@ -397,6 +403,10 @@ public class DataObjectDaoImpl implements DataObjectDao {
 
         }
       }
+
+      Container parentObject =
+          (Container) cdmiObjectDaoImpl.getCdmiObjectByPath(target.getParent().toString());
+
       object.setCapabilitiesURI(sourceObject.getCapabilitiesURI());
       object.setCompletionStatus(sourceObject.getCompletionStatus());
       object.setObjectName(target.getFileName().toString());
@@ -404,25 +414,27 @@ public class DataObjectDaoImpl implements DataObjectDao {
       object.setParentID(parentObject.getObjectID());
       object.setObjectType(MediaTypes.DATA_OBJECT);
 
-      if (!Files.exists(target))
-          Files.write(target, "".getBytes(), StandardOpenOption.CREATE_NEW);
-
-      if (dataobjectRequest.getMetadata() != null && !dataobjectRequest.getMetadata().isEmpty())
+      if (!Files.exists(target)) {
+        Files.write(target, "".getBytes(), StandardOpenOption.CREATE_NEW);
+      }
+      if (dataobjectRequest.getMetadata() != null && !dataobjectRequest.getMetadata().isEmpty()) {
         object.setMetadata(dataobjectRequest.getMetadata());
-      if (dataobjectRequest.getDomainURI() != null && !dataobjectRequest.getDomainURI().isEmpty())
+      }
+      if (dataobjectRequest.getDomainURI() != null && !dataobjectRequest.getDomainURI().isEmpty()) {
         object.setDomainURI(dataobjectRequest.getDomainURI());
-      if (dataobjectRequest.getMimetype() != null && !dataobjectRequest.getMimetype().isEmpty())
+      }
+      if (dataobjectRequest.getMimetype() != null && !dataobjectRequest.getMimetype().isEmpty()) {
         object.setMimetype(dataobjectRequest.getMimetype());
-
+      }
       // update metadata-files
       cdmiObjectDaoImpl.updateCdmiObject(object);
-      if (cdmiObjectDaoImpl.createCdmiObject(object, target.toString()) == null)
+      if (cdmiObjectDaoImpl.createCdmiObject(object, target.toString()) == null) {
         cdmiObjectDaoImpl.updateCdmiObject(object, target.toString());
-
+      }
       // add child to parent
-      if (!update)
+      if (!update) {
         addChild(object.getObjectName(), target.getParent().toString());
-
+      }
       return findByPath(path);
     } catch (ClassCastException e) {
       e.printStackTrace();

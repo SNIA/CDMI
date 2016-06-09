@@ -60,7 +60,7 @@ public class CapabilityDaoImpl implements CapabilityDao {
   // -------------------------------------------------------------- Properties
 
   @Value("${cdmi.data.rootObjectId}")
-  private String ROOTobjectID;
+  private String rootObjectId;
 
   private JSONObject json;
   private JSONObject system;
@@ -87,7 +87,7 @@ public class CapabilityDaoImpl implements CapabilityDao {
     InputStream in = null;
     try {
       in = applicationConfiguration.getInputStream();
-      byte bt[] = new byte[(int) applicationConfiguration.contentLength()];
+      byte[] bt = new byte[(int) applicationConfiguration.contentLength()];
       in.read(bt);
 
       properties = new String(bt);
@@ -160,8 +160,9 @@ public class CapabilityDaoImpl implements CapabilityDao {
         if (object != null) {
           try {
             path = path.split("/cdmi_capabilities/" + request + "/")[1];
-            if (path.equals(""))
+            if (path.equals("")) {
               throw new IndexOutOfBoundsException();
+            }
             capability.setParentURI("cdmi_capabilities/" + request);
             rekursivGetCapability(capability, path, object);
           } catch (IndexOutOfBoundsException e) {
@@ -173,14 +174,16 @@ public class CapabilityDaoImpl implements CapabilityDao {
             Iterator<?> keys = object.keys();
             while (keys.hasNext()) {
               String child = (String) keys.next();
-              if (object.get(child) instanceof JSONObject)
+              if (object.get(child) instanceof JSONObject) {
                 capability.getChildren().add(child);
-              else
+              } else {
                 capability.getCapabilities().put(child, String.valueOf(object.get(child)));
+              }
             }
-            if (!capability.getChildren().isEmpty())
+            if (!capability.getChildren().isEmpty()) {
               capability
                   .setChildrenrange("0-" + String.valueOf(capability.getChildren().size() - 1));
+            }
           }
         }
       }
@@ -199,7 +202,7 @@ public class CapabilityDaoImpl implements CapabilityDao {
       capability.setObjectID(getIdByUri("cdmi_capabilities"));
       capability.setObjectName("cdmi_capabilities");
       capability.setParentURI("/");
-      capability.setParentID(ROOTobjectID);
+      capability.setParentID(rootObjectId);
     }
     capability.setObjectType(MediaTypes.CAPABILITY);
     return (capability);
@@ -208,8 +211,9 @@ public class CapabilityDaoImpl implements CapabilityDao {
 
   private Capability rekursivGetCapability(Capability capability, String path, JSONObject object) {
     Boolean end = false;
-    if (path.endsWith("/"))
+    if (path.endsWith("/")) {
       path = path.substring(0, path.length() - 1);
+    }
     String[] pathSplit = path.split("/", 2);
     String pathPart = pathSplit[0];
     try {
@@ -224,13 +228,15 @@ public class CapabilityDaoImpl implements CapabilityDao {
         Iterator<?> keys = newObject.keys();
         while (keys.hasNext()) {
           String cap = (String) keys.next();
-          if (newObject.get(cap) instanceof JSONObject)
+          if (newObject.get(cap) instanceof JSONObject) {
             capability.getChildren().add(cap);
-          else
+          } else {
             capability.getCapabilities().put(cap, String.valueOf(newObject.get(cap)));
+          }
         }
-        if (!capability.getChildren().isEmpty())
+        if (!capability.getChildren().isEmpty()) {
           capability.setChildrenrange("0-" + String.valueOf(capability.getChildren().size() - 1));
+        }
         String parentUri = capability.getParentURI();
         capability.setParentID(getIdByUri(parentUri));
         capability.setObjectName(pathPart);
@@ -250,12 +256,14 @@ public class CapabilityDaoImpl implements CapabilityDao {
   private String getIdByUri(String uri) {
     LOG.trace("InCapabilities.getIdByUri URI is {}", uri);
     String searchkey = uri.replace("/", ".");
-    if (searchkey.endsWith("."))
+    if (searchkey.endsWith(".")) {
       searchkey = searchkey + "ObjectId";
-    else
+    } else {
       searchkey = searchkey + ".ObjectId";
-    if (searchkey.startsWith("."))
+    }
+    if (searchkey.startsWith(".")) {
       searchkey = searchkey.substring(1, searchkey.length());
+    }
     int position = properties.toLowerCase().indexOf(searchkey.toLowerCase());
     if (position != -1) {
       int startindex = position + searchkey.length() + 1;
