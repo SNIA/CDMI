@@ -7,7 +7,7 @@ This project ports the SNIA CDMI-Server reference implementation to a Spring Boo
 * JDK 1.8+
 * [Maven 3+](https://maven.apache.org/)
 * cdmi-spi-\<VERSION\>.jar
-* 
+
 ## Build & Run & Configure
 
 The project uses the Maven build automation tool that will build one fat jar Spring Boot application.
