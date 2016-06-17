@@ -134,6 +134,8 @@
 			<groupId>edu.kit.scc</groupId>
 			<artifactId>cdmi-spi</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/libs/cdmi-spi-0.0.1-SNAPSHOT.jar</systemPath>
 		</dependency>
 		<!-- end::INDIGO[] -->
 
