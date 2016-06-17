@@ -9,147 +9,176 @@
 
 package org.snia.cdmiserver.dao.filesystem;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.CdmiObjectDao;
+import org.snia.cdmiserver.model.Capability;
 import org.snia.cdmiserver.model.CdmiObject;
 import org.snia.cdmiserver.model.Container;
 import org.snia.cdmiserver.model.DataObject;
 import org.snia.cdmiserver.model.Domain;
 import org.snia.cdmiserver.util.MediaTypes;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 
-@Component
+/**
+ * This is a prototype implementation of CdmiObject CRUD operations for a file system storage
+ * back-end.
+ * 
+ * @author benjamin
+ *
+ */
 public class CdmiObjectDaoImpl implements CdmiObjectDao {
 
   private static final Logger log = LoggerFactory.getLogger(CdmiObjectDaoImpl.class);
 
-  @Value("${cdmi.data.rootObjectId}")
-  private String rootObjectId;
-
-  @Value("${cdmi.data.objectPrefix}")
   private String objectIdPrefix;
+  private String baseDirectory;
+  private String objectIdDirectory;
 
-  @Value("${cdmi.data.objectidDirectory}")
-  private String objectIdDirectoryName;
+  public String getObjectIdPrefix() {
+    return objectIdPrefix;
+  }
 
-  @Value("${cdmi.data.baseDirectory}")
-  private String baseDirectoryName;
+  public void setObjectIdPrefix(String objectIdPrefix) {
+    this.objectIdPrefix = objectIdPrefix;
+  }
+
+  public String getBaseDirectory() {
+    return baseDirectory;
+  }
+
+  public void setBaseDirectory(String baseDirectory) {
+    this.baseDirectory = baseDirectory;
+  }
+
+  public String getObjectIdDirectory() {
+    return objectIdDirectory;
+  }
+
+  public void setObjectIdDirectory(String objectIdDirectory) {
+    this.objectIdDirectory = objectIdDirectory;
+  }
+
+  private Path getObjectPathForPath(String path) {
+    Path objectPath = Paths.get(path.trim());
+
+    if (objectPath.getFileName() == null) {
+      log.debug("system path {}",
+          Paths.get(baseDirectory.trim(), objectIdPrefix + baseDirectory.trim()).toString());
+      return Paths.get(baseDirectory.trim(), objectIdPrefix + baseDirectory.trim());
+    }
+    String fileName = objectIdPrefix + objectPath.getFileName();
+    Path parentPath = objectPath.getParent();
+    if (parentPath == null || parentPath.toString().equals("/")) {
+      log.debug("system path {}", Paths.get(baseDirectory.trim(), fileName).toString());
+      return Paths.get(baseDirectory.trim(), fileName);
+    }
+    log.debug("system path {}", Paths.get(objectPath.getParent().toString(), fileName).toString());
+    return Paths.get(objectPath.getParent().toString(), fileName);
+  }
+
+  private Path getObjectPathForId(String objectId) {
+    return Paths.get(baseDirectory.trim(), objectIdDirectory, objectId);
+  }
 
   /**
-   * Creates a new CDMI object with the given object id at the given path.
+   * Creates a new CDMI object with the given object id in the parent directory of the given path.
+   * The object's file name will be prefixed with the configured objectIdPrefix.
+   * <p>
+   * e.g. creating an object at baseDir/container1 will create a metadata file at baseDir with file
+   * name .cdmi_container1.
+   * </p>
    * 
-   * @param objectId the object's id
+   * @param object the object's id
    * @param path the file system path
    * @return the created {@link CdmiObject}
    */
-  public CdmiObject createCdmiObject(CdmiObject objectId, String path) {
-    try {
-      Path sanitizedPath = Paths.get(path.trim());
-      Path newPath;
-      try {
-        newPath = Paths.get(sanitizedPath.getParent().toString(),
-            objectIdPrefix + sanitizedPath.getFileName().toString());
-      } catch (NullPointerException e) {
-        newPath = Paths.get(objectIdPrefix + sanitizedPath.getFileName().toString());
-      }
-      Files.write(newPath, objectId.toJson().toString().getBytes(), StandardOpenOption.WRITE,
-          StandardOpenOption.CREATE_NEW);
+  @Override
+  public CdmiObject createCdmiObject(CdmiObject object, String path) {
+    CdmiObject objectById = createCdmiObject(object);
 
-      log.debug("create new objectId file {} {}", objectId.toString(), objectId.toJson());
-    } catch (JSONException e) {
-      log.error("could not format attribute map to JSON");
-      return null;
-    } catch (IOException e) {
-      log.error("ERROR: {}", e.getMessage());
-      // e.printStackTrace();
-      return null;
+    if (objectById != null) {
+      try {
+
+        Files.createLink(getObjectPathForPath(path), getObjectPathForId(objectById.getObjectId()));
+
+        // Files.write(getObjectPathForPath(path), object.toJson().toString().getBytes(),
+        // StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+
+        log.debug("create new objectId link {} to {}", getObjectPathForPath(path).toString(),
+            getObjectPathForId(objectById.getObjectId()).toString());
+
+      } catch (Exception ex) {
+        // ex.printStackTrace();
+        log.error("{} {}", ex.getClass().getName(), ex.getMessage());
+        deleteCdmiObject(objectById.getObjectId());
+        return null;
+      }
     }
-    return objectId;
+    return objectById;
   }
 
   @Override
-  public CdmiObject createCdmiObject(CdmiObject objectId) {
+  public CdmiObject createCdmiObject(CdmiObject object) {
     try {
-      Path path =
-          Paths.get(baseDirectoryName.trim(), objectIdDirectoryName.trim(), objectId.getObjectId());
-      if (!Files.exists(Paths.get(baseDirectoryName.trim(), objectIdDirectoryName.trim()))) {
-        Files.createDirectory(Paths.get(baseDirectoryName.trim(), objectIdDirectoryName.trim()));
-      }
-      log.debug("path is {}", path);
-      Files.write(path, objectId.toJson().toString().getBytes(), StandardOpenOption.WRITE,
-          StandardOpenOption.CREATE_NEW);
 
-      log.debug("create new objectId file {} {}", objectId.toString(), objectId.toJson());
-    } catch (JSONException e) {
-      log.error("could not format attribute map to JSON");
-      return null;
-    } catch (IOException e) {
-      log.error("ERROR: {}", e.getMessage());
-      // e.printStackTrace();
+      Files.write(getObjectPathForId(object.getObjectId()), object.toJson().toString().getBytes(),
+          StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+
+      log.debug("create new objectId file {} {}", object.toString(), object.toJson());
+
+    } catch (Exception ex) {
+      // ex.printStackTrace();
+      log.error("{} {}", ex.getClass().getName(), ex.getMessage());
       return null;
     }
-    return objectId;
+    return object;
   }
 
   /**
    * Updates the given CDMI object.
    * 
-   * @param objectId the object's id
+   * @param updateObject the updated object
    * @param path the object's file system path
    * @return the updated {@link CdmiObject}
    */
-  public CdmiObject updateCdmiObject(CdmiObject objectId, String path) {
+  @Override
+  public CdmiObject updateCdmiObject(CdmiObject updateObject, String path) {
     try {
-      Path sanitizedPath = Paths.get(path.trim());
-      Path newPath;
-      try {
-        newPath = Paths.get(sanitizedPath.getParent().toString(),
-            objectIdPrefix + sanitizedPath.getFileName().toString());
-      } catch (NullPointerException e) {
-        newPath = Paths.get(objectIdPrefix + sanitizedPath.getFileName().toString());
-      }
-      Files.write(newPath, objectId.toJson().toString().getBytes(), StandardOpenOption.WRITE,
-          StandardOpenOption.TRUNCATE_EXISTING);
 
-      log.debug("update objectId file {} {}", objectId.toString(), objectId.toJson());
-    } catch (JSONException e) {
-      log.error("could not format attribute map to JSON");
-      return null;
-    } catch (IOException e) {
-      log.error("ERROR: {}", e.getMessage());
-      // e.printStackTrace();
+      Files.write(getObjectPathForPath(path), updateObject.toJson().toString().getBytes(),
+          StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+
+      log.debug("update objectId file {} {}", updateObject.toString(), updateObject.toJson());
+
+    } catch (Exception ex) {
+      // ex.printStackTrace();
+      log.error("{} {}", ex.getClass().getName(), ex.getMessage());
       return null;
     }
-    return objectId;
+    return updateObject;
   }
 
   @Override
-  public CdmiObject updateCdmiObject(CdmiObject objectId) {
+  public CdmiObject updateCdmiObject(CdmiObject object) {
     try {
-      Path path =
-          Paths.get(baseDirectoryName.trim(), objectIdDirectoryName.trim(), objectId.getObjectId());
-      Files.write(path, objectId.toJson().toString().getBytes(), StandardOpenOption.WRITE,
-          StandardOpenOption.TRUNCATE_EXISTING);
 
-      log.debug("update objectId file {} {}", objectId.toString(), objectId.toJson());
-    } catch (JSONException e) {
-      log.error("could not format attribute map to JSON");
-      return null;
-    } catch (IOException e) {
-      log.error("ERROR: {}", e.getMessage());
+      Files.write(getObjectPathForId(object.getObjectId()), object.toJson().toString().getBytes(),
+          StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+
+      log.debug("update objectId file {} {}", object.toString(), object.toJson());
+
+    } catch (Exception ex) {
+      // ex.printStackTrace();
+      log.error("{} {}", ex.getClass().getName(), ex.getMessage());
       return null;
     }
-    return objectId;
+    return object;
   }
 
   /**
@@ -158,22 +187,22 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
    * @param path the file system path to the CDMI object
    * @return the deleted {@link CdmiObject}
    */
+  @Override
   public CdmiObject deleteCdmiObjectByPath(String path) {
     CdmiObject object = getCdmiObjectByPath(path);
     if (object != null) {
-      Path sanitizedPath = Paths.get(path.trim());
-      Path newPath;
       try {
-        newPath = Paths.get(sanitizedPath.getParent().toString(),
-            objectIdPrefix + sanitizedPath.getFileName().toString());
-      } catch (NullPointerException e) {
-        newPath = Paths.get(objectIdPrefix + sanitizedPath.getFileName().toString());
-      }
-      try {
-        boolean deleted = Files.deleteIfExists(newPath);
-        log.debug("delete objectId file {} success {}", object.toString(), deleted);
-      } catch (IOException e) {
-        log.error("ERROR: {}", e.getMessage());
+
+        boolean deleted = Files.deleteIfExists(getObjectPathForPath(path));
+
+        log.debug("delete objectId file {} success {}", path, deleted);
+
+        deleteCdmiObject(object.getObjectId());
+
+      } catch (Exception ex) {
+        // ex.printStackTrace();
+        log.error("{} {}", ex.getClass().getName(), ex.getMessage());
+        return null;
       }
     }
     return object;
@@ -183,12 +212,16 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
   public CdmiObject deleteCdmiObject(String objectId) {
     CdmiObject object = getCdmiObject(objectId);
     if (object != null) {
-      Path path = Paths.get(baseDirectoryName.trim(), objectIdDirectoryName.trim(), objectId);
       try {
-        boolean deleted = Files.deleteIfExists(path);
+
+        boolean deleted = Files.deleteIfExists(getObjectPathForId(objectId));
+
         log.debug("delete objectId file {} success {}", object.toString(), deleted);
-      } catch (IOException e) {
-        log.error("ERROR: {}", e.getMessage());
+
+      } catch (Exception ex) {
+        // ex.printStackTrace();
+        log.error("{} {}", ex.getClass().getName(), ex.getMessage());
+        return null;
       }
     }
     return object;
@@ -200,66 +233,59 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
    * @param path the object's file system path
    * @return the {@link CdmiObject}
    */
+  @Override
   public CdmiObject getCdmiObjectByPath(String path) {
-    CdmiObject object = null;
-    Path sanitizedPath = Paths.get(path.trim().replaceAll("/$", ""));
-    Path newPath;
     try {
-      newPath = Paths.get(sanitizedPath.getParent().toString(),
-          objectIdPrefix + sanitizedPath.getFileName().toString());
-    } catch (NullPointerException e) {
-      newPath = Paths.get(objectIdPrefix + sanitizedPath.getFileName().toString());
-    }
-    try {
-      log.debug("path is {}", newPath);
-      byte[] content = Files.readAllBytes(newPath);
+
+      byte[] content = Files.readAllBytes(getObjectPathForPath(path));
       JSONObject json = new JSONObject(new String(content));
 
       String objectType = json.optString("objectType");
       if (objectType != null) {
         if (objectType.equals(MediaTypes.CONTAINER)) {
-          return new Container(json);
+          return Container.fromJson(json);
         } else if (objectType.equals(MediaTypes.DATA_OBJECT)) {
-          return new DataObject(json);
+          return DataObject.fromJson(json);
         } else if (objectType.equals(MediaTypes.ACCOUNT)) {
           return new Domain(json);
+        } else if (objectType.equals(MediaTypes.CAPABILITY)) {
+          return Capability.fromJson(json);
+        } else {
+          return CdmiObject.fromJson(json);
         }
       }
-      object = new CdmiObject(json);
-      log.debug("get objectId from file {}", object.toString());
-    } catch (JSONException e) {
-      log.error("could not format attribute map to JSON");
-    } catch (IOException e) {
-      log.error("ERROR: {}", e.getMessage());
-      // e.printStackTrace();
+    } catch (Exception ex) {
+      // ex.printStackTrace();
+      log.error("{} {}", ex.getClass().getName(), ex.getMessage());
     }
-    return object;
+    return null;
   }
 
   @Override
   public CdmiObject getCdmiObject(String objectId) {
-    CdmiObject object = null;
-    Path path = Paths.get(baseDirectoryName.trim(), objectIdDirectoryName.trim(), objectId);
     try {
-      byte[] content = Files.readAllBytes(path);
+
+      byte[] content = Files.readAllBytes(getObjectPathForId(objectId));
       JSONObject json = new JSONObject(new String(content));
 
       String objectType = json.optString("objectType");
       if (objectType != null) {
         if (objectType.equals(MediaTypes.CONTAINER)) {
-          return new Container(json);
+          return Container.fromJson(json);
         } else if (objectType.equals(MediaTypes.DATA_OBJECT)) {
-          return new DataObject(json);
+          return DataObject.fromJson(json);
+        } else if (objectType.equals(MediaTypes.ACCOUNT)) {
+          return new Domain(json);
+        } else if (objectType.equals(MediaTypes.CAPABILITY)) {
+          return Capability.fromJson(json);
+        } else {
+          return CdmiObject.fromJson(json);
         }
       }
-      object = new CdmiObject(json);
-      log.debug("get objectId from file {}", object.toString());
-    } catch (JSONException e) {
-      log.error("could not format attribute map to JSON");
-    } catch (IOException e) {
-      log.error("ERROR: {}", e.getMessage());
+    } catch (Exception ex) {
+      // ex.printStackTrace();
+      log.error("{} {}", ex.getClass().getName(), ex.getMessage());
     }
-    return object;
+    return null;
   }
-
 }

@@ -28,6 +28,7 @@
 
 package org.snia.cdmiserver.dao;
 
+import org.snia.cdmiserver.exception.ConflictException;
 import org.snia.cdmiserver.model.Capability;
 
 /**
@@ -52,4 +53,16 @@ public interface CapabilityDao {
    * @param path Path to the requested {@link Capability}
    */
   public Capability findByPath(String path);
+
+  /**
+   * <p>
+   * Create a capability at the specified path. All intermediate capability must already exist.
+   * </p>
+   * 
+   * @param path Path to the new {@link Capability}
+   * 
+   * @exception ConflictException if a capability at the specified path already exists
+   * @exception IllegalArgumentException if an intermediate capability does not exist
+   */
+  public Capability createByPath(String path, Capability capabilityRequest);
 }

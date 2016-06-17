@@ -23,12 +23,12 @@ import org.snia.cdmiserver.resource.ObjectIdResource;
 import org.snia.cdmiserver.resource.PathResource;
 
 // @Configuration
+@Deprecated
 public class JerseyConfig extends ResourceConfig {
 
   /**
    * Used for SNIA endpoint configuration.
    */
-  @Deprecated
   public JerseyConfig() {
 
     register(BadRequestExceptionMapper.class);

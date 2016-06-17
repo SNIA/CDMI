@@ -1,105 +1,96 @@
-/*   Copyright 2016 Karlsruhe Institute of Technology (KIT)
-
-   Licensed under the Apache License, Version 2.0 (the "License");
-   you may not use this file except in compliance with the License.
-   You may obtain a copy of the License at
-
-       http://www.apache.org/licenses/LICENSE-2.0
+/*
+ * Copyright 2016 Karlsruhe Institute of Technology (KIT)
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
  */
+
 package org.snia.cdmiserver.model;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.snia.cdmiserver.util.ObjectID;
+import org.snia.cdmiserver.util.ObjectId;
 
 public class CdmiObject {
 
-	private static final Logger log = LoggerFactory.getLogger(CdmiObject.class);
+  @SuppressWarnings("unused")
+  private static final Logger log = LoggerFactory.getLogger(CdmiObject.class);
 
-	private static final int eNum = 8;
+  private static int eNum = 99999;
 
-	static final String objectId = "objectID";
-	private Map<String, Object> attributeMap;
+  private String objectId;
 
-	public CdmiObject() {
-		this.attributeMap = new HashMap<>();
-		this.attributeMap.put(CdmiObject.objectId, ObjectID.getObjectID(eNum));
-		log.debug("create new object {}", toString());
-	}
+  /**
+   * Creates a new CDMI object.
+   */
+  public CdmiObject() {
+    this.objectId = ObjectId.getObjectId(eNum);
+  }
 
-	public CdmiObject(Map<String, Object> attributeMap) {
-		if (attributeMap == null)
-			throw new IllegalArgumentException("attributeMap can't be null");
+  /**
+   * Creates a new CDMI object with the given object id.
+   * 
+   * @param objectId the object's id
+   */
+  public CdmiObject(String objectId) {
+    if (objectId != null && !objectId.equals("")) {
+      this.objectId = objectId;
+    } else {
+      this.objectId = ObjectId.getObjectId(eNum);
+    }
+  }
 
-		this.attributeMap = attributeMap;
+  public String getObjectId() {
+    return objectId;
+  }
 
-		// ensure objectID
-		if (attributeMap.get(CdmiObject.objectId) == null)
-			this.attributeMap.put(CdmiObject.objectId, ObjectID.getObjectID(eNum));
-		log.debug("create new object {}", toString());
-	}
+  public void setObjectId(String objectId) {
+    this.objectId = objectId;
+  }
 
-	public CdmiObject(String objectId) {
-		if (objectId == null)
-			throw new IllegalArgumentException("objectId can't be null");
+  /**
+   * Calculates the childrenrange parameter.
+   * 
+   * @param children the {@link JSONArray} of the object's children
+   * @return the children range as {@link String}
+   */
+  public static String getChildrenRange(JSONArray children) {
+    String childrenRange = "";
+    if (children != null && children.length() == 1) {
+      childrenRange = "0";
+    }
+    if (children != null && children.length() > 1) {
+      childrenRange = "0-" + String.valueOf(children.length() - 1);
+    }
+    return childrenRange;
+  }
 
-		this.attributeMap = new HashMap<>();
-		this.attributeMap.put(CdmiObject.objectId, objectId);
-		log.debug("create new object {}", toString());
-	}
+  /**
+   * Deserializes a CDMI object from the given JSON.
+   * 
+   * @param json a {@link JSONObject}
+   */
+  public static CdmiObject fromJson(JSONObject json) {
+    return new CdmiObject(json.optString("objectID"));
+  }
 
-	public CdmiObject(String objectId, Map<String, Object> attributeMap) {
-		if (objectId == null)
-			throw new IllegalArgumentException("objectId can't be null");
+  /**
+   * Serializes this object as a JSON object.
+   * 
+   * @return the serialized {@link JSONObject}
+   */
+  public JSONObject toJson() {
+    JSONObject json = new JSONObject();
+    json.put("objectID", objectId);
+    return json;
+  }
 
-		if (attributeMap == null)
-			throw new IllegalArgumentException("attributeMap can't be null");
-
-		this.attributeMap = attributeMap;
-
-		// ensure objectID
-		if (attributeMap.get(CdmiObject.objectId) == null)
-			this.attributeMap.put(CdmiObject.objectId, ObjectID.getObjectID(eNum));
-		log.debug("create new object {}", toString());
-	}
-
-	public CdmiObject(JSONObject json) {
-		this.attributeMap = new HashMap<>();
-		for (Object key : json.keySet())
-			this.attributeMap.put((String) key, json.get((String) key));
-
-		// ensure objectID
-		if (attributeMap.get(CdmiObject.objectId) == null)
-			this.attributeMap.put(CdmiObject.objectId, ObjectID.getObjectID(eNum));
-		log.debug("create new object {}", toString());
-	}
-
-	public String getObjectId() {
-		return (String) attributeMap.get(objectId);
-	}
-
-	public void setObjectId(String objectId) {
-		attributeMap.put(CdmiObject.objectId, objectId);
-	}
-
-	public Map<String, Object> getAttributeMap() {
-		return attributeMap;
-	}
-
-	public void setAttributeMap(Map<String, Object> attributeMap) {
-		this.attributeMap = attributeMap;
-	}
-
-	public JSONObject toJson() {
-		return new JSONObject(this.attributeMap);
-	}
-
-	@Override
-	public String toString() {
-		return "CdmiObject [" + (attributeMap != null ? "attributeMap=" + attributeMap : "") + "]";
-	}
+  @Override
+  public String toString() {
+    return "CdmiObject [" + (objectId != null ? "objectId=" + objectId : "") + "]";
+  }
 }

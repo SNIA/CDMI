@@ -11,188 +11,212 @@ package org.snia.cdmiserver.model;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
-
-import java.util.HashMap;
-import java.util.Map;
+import org.snia.cdmiserver.util.MediaTypes;
 
 public class Domain extends CdmiObject {
 
-  // DataObject creation fields
-  private static final String metadata = "metadata";
-  private static final String deserialize = "deserialize";
-  private static final String deserializevalue = "deserializevalue";
-  private static final String copy = "copy";
-  private static final String move = "move";
+  private String objectType;
+  private String objectName;
+  private String parentUri;
+  private String parentId;
+  private String domainUri;
+  private String capabilitiesUri;
 
+  private JSONObject metadata;
+  private String childrenrange;
+  private JSONArray children;
 
-  // DataObject representation fields
-  private static final String objectType = "objectType";
-  private static final String objectName = "objectName";
-  private static final String parentURI = "parentURI";
-  private static final String parentID = "parentID";
-  private static final String domainURI = "domainURI";
-  private static final String capabilitiesURI = "capabilitiesURI";
-  private static final String children = "children";
-  private static final String childrenrange = "childrenrange";
+  private String deserializevalue;
+  private String move;
+  private String copy;
+  private String deserialize;
 
-  private String ObjectURI;
-
-  public Domain() {
+  /**
+   * Creates a new domain with the mandatory fields.
+   * 
+   * @param objectName the domain's name
+   * @param parentUri the domain's parent URI
+   * @param parentId the domain's parent objectId
+   */
+  public Domain(String objectName, String parentUri, String parentId) {
     super();
+    this.objectName = objectName;
+    this.parentUri = parentUri;
+    this.parentId = parentId;
+    // default values
+    this.objectType = MediaTypes.ACCOUNT;
+    this.domainUri = "/cdmi_domains";
+    this.capabilitiesUri = "/cdmi_capabilities/domain";
+    this.metadata = new JSONObject();
   }
 
+  /**
+   * Creates a new Domain from the given JSON object.
+   * 
+   * @param json a {@link JSONObject}
+   */
   public Domain(JSONObject json) {
-    super(json);
-  }
-
-  public Domain(Map<String, Object> attributeMap) {
-    super(attributeMap);
-  }
-
-  public Map<String, Object> getMetadata() {
-    if (getAttributeMap().get(metadata) != null) {
-      try {
-        JSONObject json = (JSONObject) getAttributeMap().get(metadata);
-        HashMap<String, Object> map = new HashMap<>();
-        for (Object key : json.keySet()) {
-          map.put((String) key, json.get((String) key));
-        }
-        return map;
-      } catch (ClassCastException e) {
-        return (Map<String, Object>) getAttributeMap().get(metadata);
-      }
+    super(json.getString("objectID"));
+    this.objectName = json.getString("objectName");
+    this.parentUri = json.getString("parentURI");
+    this.parentId = json.getString("parentID");
+    // default values
+    this.objectType = MediaTypes.ACCOUNT;
+    this.domainUri = json.optString("domainURI", "/cdmi_domains");
+    this.capabilitiesUri = json.optString("capabilitiesURI", "/cdmi_capabilities/domain");
+    this.metadata = json.optJSONObject("metadata");
+    if (this.metadata == null) {
+      this.metadata = new JSONObject();
     }
-    return null;
-  }
-
-  public void setMetadata(Map<String, Object> metadata) {
-    getAttributeMap().put(Domain.metadata, metadata);
-  }
-
-  public String getCopy() {
-    return (String) getAttributeMap().get(copy);
-  }
-
-  public void setCopy(String copy) {
-    getAttributeMap().put(Domain.copy, copy);
-  }
-
-  public String getMove() {
-    return (String) getAttributeMap().get(move);
-  }
-
-  public void setMove(String move) {
-    getAttributeMap().put(Domain.move, move);
-  }
-
-  public String getDeserialize() {
-    return (String) getAttributeMap().get(deserialize);
-  }
-
-  public void setDeserialize(String deserialize) {
-    getAttributeMap().put(Domain.deserialize, deserialize);
-  }
-
-  public String getDeserializevalue() {
-    return (String) getAttributeMap().get(deserializevalue);
-  }
-
-  public void setDeserializevalue(String deserializevalue) {
-    getAttributeMap().put(Domain.deserializevalue, deserializevalue);
+    // optional values
+    this.childrenrange = json.optString("childrenrange");
+    this.children = json.optJSONArray("children");
+    this.deserializevalue = json.optString("deserializevalue");
+    this.move = json.optString("move");
+    this.copy = json.optString("copy");
+    this.deserialize = json.optString("deserialize");
   }
 
   public String getObjectType() {
-    return (String) getAttributeMap().get(objectType);
+    return objectType;
   }
 
   public void setObjectType(String objectType) {
-    getAttributeMap().put(Domain.objectType, objectType);
-  }
-
-  public String getObjectID() {
-    return super.getObjectId();
-  }
-
-  public void setObjectID(String objectID) {
-    super.setObjectId(objectID);
+    this.objectType = objectType;
   }
 
   public String getObjectName() {
-    return (String) getAttributeMap().get(objectName);
+    return objectName;
   }
 
   public void setObjectName(String objectName) {
-    getAttributeMap().put(Domain.objectName, objectName);
+    this.objectName = objectName;
   }
 
-  public String getParentURI() {
-    return (String) getAttributeMap().get(parentURI);
+  public String getParentUri() {
+    return parentUri;
   }
 
-  public void setParentURI(String parentURI) {
-    getAttributeMap().put(Domain.parentURI, parentURI);
+  public void setParentUri(String parentUri) {
+    this.parentUri = parentUri;
   }
 
-  public String getParentID() {
-    return (String) getAttributeMap().get(Domain.parentID);
+  public String getParentId() {
+    return parentId;
   }
 
-  public void setParentID(String parentID) {
-    getAttributeMap().put(Domain.parentID, parentID);
+  public void setParentId(String parentId) {
+    this.parentId = parentId;
   }
 
-  public String getDomainURI() {
-    return (String) getAttributeMap().get(domainURI);
+  public String getDomainUri() {
+    return domainUri;
   }
 
-  public void setDomainURI(String domainURI) {
-    getAttributeMap().put(Domain.domainURI, domainURI);
+  public void setDomainUri(String domainUri) {
+    this.domainUri = domainUri;
   }
 
-  public String getCapabilitiesURI() {
-    return (String) getAttributeMap().get(capabilitiesURI);
+  public String getCapabilitiesUri() {
+    return capabilitiesUri;
   }
 
-  public void setCapabilitiesURI(String capabilitiesURI) {
-    getAttributeMap().put(Domain.capabilitiesURI, capabilitiesURI);
+  public void setCapabilitiesUri(String capabilitiesUri) {
+    this.capabilitiesUri = capabilitiesUri;
+  }
+
+  public JSONObject getMetadata() {
+    return metadata;
+  }
+
+  public void setMetadata(JSONObject metadata) {
+    this.metadata = metadata;
   }
 
   public String getChildrenrange() {
-    return (String) getAttributeMap().get(childrenrange);
+    return childrenrange;
   }
 
   public void setChildrenrange(String childrenrange) {
-    getAttributeMap().put(Domain.childrenrange, childrenrange);
+    this.childrenrange = childrenrange;
   }
 
   public JSONArray getChildren() {
-    if (getAttributeMap().get(children) != null) {
-      JSONArray json = (JSONArray) getAttributeMap().get(children);
-      return json;
-    }
-    return null;
+    return children;
   }
 
-  public void setChildren(JSONArray children2) {
-    getAttributeMap().put(Domain.children, children2);
+  public void setChildren(JSONArray children) {
+    this.children = children;
   }
 
-  public String getObjectURI() {
-    return ObjectURI;
+  public String getDeserializedvalue() {
+    return deserializevalue;
   }
 
-  public void setObjectURI(String objectURI) {
-    ObjectURI = objectURI;
+  public void setDeserializedvalue(String deserializevalue) {
+    this.deserializevalue = deserializevalue;
   }
 
-  public Boolean hasChildren() {
-    JSONArray children = (JSONArray) getAttributeMap().get(Domain.children);
-    if (children == null)
-      return false;
-    if (children.length() == 0)
-      return false;
-    return true;
+  public String getMove() {
+    return move;
   }
 
+  public void setMove(String move) {
+    this.move = move;
+  }
 
+  public String getCopy() {
+    return copy;
+  }
+
+  public void setCopy(String copy) {
+    this.copy = copy;
+  }
+
+  public String getDeserialize() {
+    return deserialize;
+  }
+
+  public void setDeserialize(String deserialize) {
+    this.deserialize = deserialize;
+  }
+
+  @Override
+  public JSONObject toJson() {
+    JSONObject json = super.toJson();
+
+    json.putOpt("objectType", objectType);
+    json.putOpt("objectName", objectName);
+    json.putOpt("parentURI", parentUri);
+    json.putOpt("parentID", parentId);
+    json.putOpt("domainURI", domainUri);
+    json.putOpt("capabilitiesURI", capabilitiesUri);
+    json.putOpt("metadata", metadata);
+    json.putOpt("childrenrange", childrenrange);
+    json.putOpt("children", children);
+    json.putOpt("deserializevalue", deserializevalue);
+    json.putOpt("deserialize", deserialize);
+    json.putOpt("move", move);
+    json.putOpt("copy", copy);
+    json.putOpt("deserialize", deserialize);
+
+    return json;
+  }
+
+  @Override
+  public String toString() {
+    return "Domain [objectId=" + getObjectId() + ", "
+        + (objectType != null ? "objectType=" + objectType + ", " : "")
+        + (objectName != null ? "objectName=" + objectName + ", " : "")
+        + (parentUri != null ? "parentUri=" + parentUri + ", " : "")
+        + (parentId != null ? "parentId=" + parentId + ", " : "")
+        + (domainUri != null ? "domainUri=" + domainUri + ", " : "")
+        + (capabilitiesUri != null ? "capabilitiesUri=" + capabilitiesUri + ", " : "")
+        + (metadata != null ? "metadata=" + metadata + ", " : "")
+        + (childrenrange != null ? "childrenrange=" + childrenrange + ", " : "")
+        + (children != null ? "children=" + children + ", " : "")
+        + (deserializevalue != null ? "deserializevalue=" + deserializevalue + ", " : "")
+        + (move != null ? "move=" + move + ", " : "") + (copy != null ? "copy=" + copy + ", " : "")
+        + (deserialize != null ? "deserialize=" + deserialize : "") + "]";
+  }
 }
