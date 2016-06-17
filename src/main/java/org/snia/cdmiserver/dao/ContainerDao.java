@@ -30,7 +30,6 @@ package org.snia.cdmiserver.dao;
 
 import org.snia.cdmiserver.exception.ConflictException;
 import org.snia.cdmiserver.exception.NotFoundException;
-import org.snia.cdmiserver.model.CdmiObject;
 import org.snia.cdmiserver.model.Container;
 
 /**
@@ -50,7 +49,7 @@ public interface ContainerDao {
    * @exception ConflictException if a container or data object at the specified path already exists
    * @exception IllegalArgumentException if an intermediate container does not exist
    */
-  public CdmiObject createByPath(String path, Container containerRequest);
+  public Container createByPath(String path, Container containerRequest);
 
   /**
    * <p>
@@ -63,7 +62,7 @@ public interface ContainerDao {
    * @exception IllegalArgumentException if the specified path identifies a data object instead of a
    *            container
    */
-  public void deleteByPath(String path);
+  public Container deleteByPath(String path);
 
   /**
    * <p>
@@ -72,7 +71,7 @@ public interface ContainerDao {
    * 
    * @param objectId Object ID of the requested {@link Container}
    */
-  public CdmiObject findByObjectId(String objectId);
+  public Container findByObjectId(String objectId);
 
   /**
    * <p>
@@ -85,7 +84,7 @@ public interface ContainerDao {
    * @exception IllegalArgumentException if the specified path identifies a data object instead of a
    *            container
    */
-  public CdmiObject findByPath(String path);
+  public Container findByPath(String path);
 
   //
   public boolean isContainer(String path);

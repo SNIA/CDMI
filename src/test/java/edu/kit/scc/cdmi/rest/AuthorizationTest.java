@@ -7,7 +7,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package edu.kit.scc.rest;
+package edu.kit.scc.cdmi.rest;
 
 import static org.junit.Assert.assertTrue;
 

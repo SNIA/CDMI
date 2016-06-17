@@ -18,13 +18,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.snia.cdmiserver.dao.filesystem.CapabilityDaoImpl;
-import org.snia.cdmiserver.dao.filesystem.ContainerDaoImpl;
-import org.snia.cdmiserver.dao.filesystem.DataObjectDaoImpl;
-import org.snia.cdmiserver.dao.filesystem.DomainDaoImpl;
+import org.snia.cdmiserver.dao.CapabilityDao;
+import org.snia.cdmiserver.dao.CdmiObjectDao;
+import org.snia.cdmiserver.dao.ContainerDao;
+import org.snia.cdmiserver.dao.DataObjectDao;
 import org.snia.cdmiserver.exception.BadRequestException;
-import org.snia.cdmiserver.exception.ConflictException;
-import org.snia.cdmiserver.exception.NotFoundException;
 import org.snia.cdmiserver.model.Capability;
 import org.snia.cdmiserver.model.CdmiObject;
 import org.snia.cdmiserver.model.Container;
@@ -46,17 +44,13 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.List;
 
-import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 @RestController
 @ComponentScan(basePackages = {"edu.kit.scc", "org.snia.cdmiserver"})
@@ -65,22 +59,19 @@ public class CdmiRestController {
   private static final Logger log = LoggerFactory.getLogger(CdmiRestController.class);
 
   @Autowired
-  private CapabilityDaoImpl capabilityDaoImpl;
+  private CdmiObjectDao cdmiObjectDao;
 
   @Autowired
-  private ContainerDaoImpl containerDaoImpl;
+  private CapabilityDao capabilityDao;
 
   @Autowired
-  private DataObjectDaoImpl dataObjectDaoImpl;
+  private ContainerDao containerDao;
 
   @Autowired
-  private DomainDaoImpl domainDaoImpl;
+  private DataObjectDao dataObjectDao;
 
   @Autowired
   private HttpClient httpClient;
-
-  @Value("${cdmi.data.baseDirectory}")
-  private String baseDirectoryName;
 
   @Value("${rest.user}")
   private String restUser;
@@ -101,394 +92,277 @@ public class CdmiRestController {
   private String clientSecret;
 
   /**
-   * Init method to check and initialize the server.
-   */
-  @PostConstruct
-  public void init() {
-    log.debug("INIT");
-    Container rootContainer = containerDaoImpl.findByPath("/");
-    if (rootContainer == null) {
-      log.info("Rootcontainer wasn't created yet");
-      rootContainer = (Container) containerDaoImpl.createRootContainer();
-      if (rootContainer == null) {
-        log.error("ERROR: RootContainer Could Not Be Created!");
-      }
-    }
-
-    if (!Files.exists(Paths.get(baseDirectoryName, "/cdmi_objectid"))) {
-      log.info("objectid-Container wasn't created yet");
-      if (containerDaoImpl.createRootIdContainer() == null) {
-        log.error("ERROR: RootobjectIdContainer Could Not Be Created!");
-      }
-    }
-
-    Domain rootDomain = (Domain) domainDaoImpl.findByPath("/cdmi_domains");
-    if (rootDomain == null) {
-      log.info("RootDomain wasn't created yet");
-      if (domainDaoImpl.createRootdomain() == null) {
-        log.error("ERROR: RootDomain Could Not Be Created!");
-      }
-    }
-
-  }
-
-
-  /**
    * Domains endpoint.
    * 
    * @param request the {@link HttpServletRequest}
-   * @param response the {@link HttpServletResponse}
    * @return a JSON serialized {@link Domain} object
    */
   @RequestMapping(path = "/cdmi_domains/**", method = RequestMethod.GET,
-      produces = {"application/cdmi-domain", "application/json"})
-  public ResponseEntity<?> getDomainByPath(
-      @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request,
-      HttpServletResponse response) {
+      produces = {"application/cdmi-domain"})
+  public ResponseEntity<?> getDomains(@RequestHeader("Authorization") String authorizationHeader,
+      HttpServletRequest request) {
+
+    HttpHeaders responseHeaders = new HttpHeaders();
+    responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
+    responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
 
     if (!verifyAuthorization(authorizationHeader)) {
-      return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+      return new ResponseEntity<>(responseHeaders, HttpStatus.UNAUTHORIZED);
     }
 
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 
-    log.debug("Domain path {}", path);
+    log.debug("Requested domain path {}", path);
 
-    String[] requestedFields = parseFields(request);
-    CdmiObject domain = domainDaoImpl.findByPath(path);
-    response.addHeader("X-CDMI-Specification-Version", "1.1.1");
+    // TODO implement get domains
 
-    if (domain != null) {
-      HttpHeaders responseHeaders = new HttpHeaders();
-      responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
-      if (requestedFields == null) {
-        return new ResponseEntity<String>(domain.toJson().toString(), responseHeaders,
-            HttpStatus.OK);
-      } else {
-        String jsonString = getRequestedJson(domain.toJson(), requestedFields).toString();
-        return new ResponseEntity<String>(jsonString, responseHeaders, HttpStatus.OK);
-      }
-    }
-
-    return new ResponseEntity<String>("Domain not found", HttpStatus.NOT_FOUND);
+    return new ResponseEntity<String>("Domain not found", responseHeaders, HttpStatus.NOT_FOUND);
   }
 
   /**
    * Capabilities endpoint.
    * 
    * @param request the {@link HttpServletRequest}
-   * @param response the {@link HttpServletResponse}
    * @return a JSON serialized {@link Capability} object
    */
   @RequestMapping(path = "/cdmi_capabilities/**", method = RequestMethod.GET,
-      produces = {"application/cdmi-capability", "application/json"})
-  public ResponseEntity<?> capabilities(@RequestHeader("Authorization") String authorizationHeader,
-      HttpServletRequest request, HttpServletResponse response) {
+      produces = {"application/cdmi-capability"})
+  public ResponseEntity<?> getCapabilities(
+      @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request) {
+
+    HttpHeaders responseHeaders = new HttpHeaders();
+    responseHeaders.setContentType(new MediaType("application", "cdmi-capability"));
+    responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
 
     if (!verifyAuthorization(authorizationHeader)) {
-      return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+      return new ResponseEntity<>(responseHeaders, HttpStatus.UNAUTHORIZED);
     }
 
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-    log.debug("Capabilities path {}", path);
-    response.addHeader("X-CDMI-Specification-Version", "1.1.1");
+    log.debug("Requested capabilities path {}", path);
 
-    Capability capability = capabilityDaoImpl.findByPath(path);
-    String[] requestedFields = parseFields(request);
+    Capability capability = capabilityDao.findByPath(path);
+
     if (capability != null) {
-      HttpHeaders responseHeaders = new HttpHeaders();
-      responseHeaders.setContentType(new MediaType("application", "cdmi-capability"));
-      if (requestedFields == null) {
-        return new ResponseEntity<String>(capability.toJson().toString(), responseHeaders,
-            HttpStatus.OK);
-      } else {
-        String jsonString = getRequestedJson(capability.toJson(), requestedFields).toString();
-        return new ResponseEntity<String>(jsonString, responseHeaders, HttpStatus.OK);
-      }
+      return new ResponseEntity<String>(capability.toJson().toString(), responseHeaders,
+          HttpStatus.OK);
     }
-    return new ResponseEntity<String>("Capabilities not found", HttpStatus.NOT_FOUND);
+
+    return new ResponseEntity<String>("Capabilities not found", responseHeaders,
+        HttpStatus.NOT_FOUND);
   }
 
   /**
    * ObjectId endpoint.
    * 
    * @param request the {@link HttpServletRequest}
-   * @param response the {@link HttpServletResponse}
    * @return a JSON serialized {@link CdmiObject}
    */
   @RequestMapping(path = "/cdmi_objectid/{objectId}", method = RequestMethod.GET,
       produces = {"application/cdmi-object", "application/cdmi-container",
-          "application/cdmi-domain", "application/json"})
+          "application/cdmi-domain", "application/cdmi-capability"})
   public ResponseEntity<?> getCdmiObjectById(
       @RequestHeader("Authorization") String authorizationHeader, @PathVariable String objectId,
-      HttpServletRequest request, HttpServletResponse response) {
+      HttpServletRequest request) {
+
+    HttpHeaders responseHeaders = new HttpHeaders();
+    responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
+    responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
 
     if (!verifyAuthorization(authorizationHeader)) {
-      return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+      return new ResponseEntity<>(responseHeaders, HttpStatus.UNAUTHORIZED);
     }
 
     log.debug("Get objectID {}", objectId);
-    response.addHeader("X-CDMI-Specification-Version", "1.1.1");
 
-    String[] requestedFields = parseFields(request);
-    HttpHeaders responseHeaders = new HttpHeaders();
+    CdmiObject cdmiObject = cdmiObjectDao.getCdmiObject(objectId);
 
-    // look for container
-    try {
-      // CdmiObject container;
-      // if (objectId.equals(rootObjectId)) {
-      // container = containerDaoImpl.findByPath("/");
-      // } else {
-      CdmiObject container = containerDaoImpl.findByObjectId(objectId);
-      // }
-      if (container != null) {
+    if (cdmiObject != null) {
+      if (cdmiObject instanceof Container) {
         responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
-        if (requestedFields == null) {
-          return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
-              HttpStatus.OK);
-        } else {
-          String jsonString = getRequestedJson(container.toJson(), requestedFields).toString();
-          return new ResponseEntity<String>(jsonString, responseHeaders, HttpStatus.OK);
-        }
-      }
-    } catch (NotFoundException | ClassCastException e1) {
-      // look for dataobject
-      try {
-        DataObject dataObject = dataObjectDaoImpl.findByObjectId(objectId);
-        if (dataObject != null) {
-          String range = request.getHeader("Range");
-          if (range != null) {
-            byte[] content = dataObject.getValue().getBytes();
-            String[] ranges = range.split("-");
-            try {
-              content = Arrays.copyOfRange(content, Integer.valueOf(ranges[0].trim()),
-                  Integer.valueOf(ranges[1].trim()));
-              dataObject.setValue(new String(content));
-            } catch (NumberFormatException numberFormatException) {
-              return new ResponseEntity<String>("Bad range", HttpStatus.BAD_REQUEST);
-            }
-          }
-          responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
-          if (requestedFields == null) {
-            return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
-                HttpStatus.OK);
-          } else {
-            String jsonString = getRequestedJson(dataObject.toJson(), requestedFields).toString();
-            return new ResponseEntity<String>(jsonString, responseHeaders, HttpStatus.OK);
-          }
-        }
-      } catch (NotFoundException | ClassCastException e2) {
-        // look for domain
-        try {
-          CdmiObject domain = domainDaoImpl.findByObjectId(objectId);
-          if (domain != null) {
-            responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
-            if (requestedFields == null) {
-              return new ResponseEntity<String>(domain.toJson().toString(), responseHeaders,
-                  HttpStatus.OK);
-            } else {
-              String jsonString = getRequestedJson(domain.toJson(), requestedFields).toString();
-              return new ResponseEntity<String>(jsonString, responseHeaders, HttpStatus.OK);
-            }
-          }
-        } catch (NotFoundException | ClassCastException e3) {
-          return new ResponseEntity<String>("Object not found", HttpStatus.NOT_FOUND);
-        }
+        Container container = (Container) cdmiObject;
+        return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
+            HttpStatus.OK);
+      } else if (cdmiObject instanceof DataObject) {
+        responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
+        DataObject dataObject = (DataObject) cdmiObject;
+        return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
+            HttpStatus.OK);
+      } else if (cdmiObject instanceof Capability) {
+        responseHeaders.setContentType(new MediaType("application", "cdmi-capability"));
+        Capability capability = (Capability) cdmiObject;
+        return new ResponseEntity<String>(capability.toJson().toString(), responseHeaders,
+            HttpStatus.OK);
+      } else if (cdmiObject instanceof Domain) {
+        responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
+        Domain domain = (Domain) cdmiObject;
+        return new ResponseEntity<String>(domain.toJson().toString(), responseHeaders,
+            HttpStatus.OK);
       }
     }
-
-    return new ResponseEntity<String>("Object not found", HttpStatus.NOT_FOUND);
+    return new ResponseEntity<String>("Object not found", responseHeaders, HttpStatus.NOT_FOUND);
   }
 
   /**
    * Get path endpoint.
    * 
    * @param request the {@link HttpServletRequest}
-   * @param response the {@link HttpServletResponse}
    * @return a JSON serialized {@link Container} or {@link DataObject}
    */
   @RequestMapping(path = "/**", method = RequestMethod.GET,
-      produces = {"application/cdmi-object", "application/cdmi-container", "application/json"})
+      produces = {"application/cdmi-object", "application/cdmi-container"})
   public ResponseEntity<?> getCdmiObjectByPath(
-      @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request,
-      HttpServletResponse response) {
+      @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request) {
+
+    HttpHeaders responseHeaders = new HttpHeaders();
+    responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
+    responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
 
     if (!verifyAuthorization(authorizationHeader)) {
-      return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+      return new ResponseEntity<>(responseHeaders, HttpStatus.UNAUTHORIZED);
     }
 
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
+
     log.debug("Get path {}", path);
-    response.addHeader("X-CDMI-Specification-Version", "1.1.1");
 
-    String[] requestedFields = parseFields(request);
-    HttpHeaders responseHeaders = new HttpHeaders();
+    CdmiObject cdmiObject = cdmiObjectDao.getCdmiObjectByPath(path);
 
-    // look for container
-    try {
-      CdmiObject container = containerDaoImpl.findByPath(path);
-      if (container != null) {
+    if (cdmiObject != null) {
+      if (cdmiObject instanceof Container) {
         responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
-        if (requestedFields == null) {
-          return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
-              HttpStatus.OK);
-        } else {
-          String jsonString = getRequestedJson(container.toJson(), requestedFields).toString();
-          return new ResponseEntity<String>(jsonString, responseHeaders, HttpStatus.OK);
-        }
-      }
-    } catch (NotFoundException | ClassCastException e1) {
-      // look for dataobject
-      try {
-        DataObject dataObject = dataObjectDaoImpl.findByPath(path);
-        if (dataObject != null) {
-          responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
-          String range = request.getHeader("Range");
-          if (range != null) {
-            byte[] content = dataObject.getValue().getBytes();
-            String[] ranges = range.split("-");
-            try {
-              content = Arrays.copyOfRange(content, Integer.valueOf(ranges[0].trim()),
-                  Integer.valueOf(ranges[1].trim()));
-              dataObject.setValue(new String(content));
-            } catch (NumberFormatException numberFormatException) {
-              return new ResponseEntity<String>("Bad range", HttpStatus.BAD_REQUEST);
-            }
-          }
-          if (requestedFields == null) {
-            return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
-                HttpStatus.OK);
-          } else {
-            String jsonString = getRequestedJson(dataObject.toJson(), requestedFields).toString();
-            return new ResponseEntity<String>(jsonString, responseHeaders, HttpStatus.OK);
-          }
-        }
-      } catch (NotFoundException | ClassCastException e2) {
-        return new ResponseEntity<String>("Object not found", HttpStatus.NOT_FOUND);
+        Container container = (Container) cdmiObject;
+        return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
+            HttpStatus.OK);
+      } else if (cdmiObject instanceof DataObject) {
+        responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
+        DataObject dataObject = (DataObject) cdmiObject;
+        return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
+            HttpStatus.OK);
+      } else if (cdmiObject instanceof Capability) {
+        responseHeaders.setContentType(new MediaType("application", "cdmi-capability"));
+        Capability capability = (Capability) cdmiObject;
+        return new ResponseEntity<String>(capability.toJson().toString(), responseHeaders,
+            HttpStatus.OK);
+      } else if (cdmiObject instanceof Domain) {
+        responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
+        Domain domain = (Domain) cdmiObject;
+        return new ResponseEntity<String>(domain.toJson().toString(), responseHeaders,
+            HttpStatus.OK);
       }
     }
-    return new ResponseEntity<String>("Object not found", HttpStatus.NOT_FOUND);
+    return new ResponseEntity<String>("Object not found", responseHeaders, HttpStatus.NOT_FOUND);
   }
 
   /**
    * Put path endpoint.
    * 
    * @param request the {@link HttpServletRequest}
-   * @param response the {@link HttpServletResponse}
    * @return a JSON serialized {@link Container} or {@link DataObject}
    */
   @RequestMapping(path = "/**", method = RequestMethod.PUT,
-      consumes = {"application/cdmi-object", "application/cdmi-container",
-          "application/cdmi-domain", "application/json"},
-      produces = {"application/cdmi-object", "application/cdmi-container",
-          "application/cdmi-domain", "application/json"})
+      consumes = {"application/cdmi-object", "application/cdmi-container", "application/json"},
+      produces = {"application/cdmi-object", "application/cdmi-container"})
   public ResponseEntity<?> putCdmiObject(@RequestHeader("Authorization") String authorizationHeader,
       @RequestHeader("Content-Type") String contentType, @RequestBody String body,
-      HttpServletRequest request, HttpServletResponse response) {
+      HttpServletRequest request) {
+
+    HttpHeaders responseHeaders = new HttpHeaders();
+    responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
+    responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
 
     if (!verifyAuthorization(authorizationHeader)) {
-      return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+      return new ResponseEntity<>(responseHeaders, HttpStatus.UNAUTHORIZED);
     }
 
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-    log.debug("Create path {} as {}", path, contentType);
-    response.addHeader("X-CDMI-Specification-Version", "1.1.1");
 
-    String[] requestedFields = parseFields(request);
-    HttpHeaders responseHeaders = new HttpHeaders();
-    String requestPath = path;
-    if (request.getQueryString() != null) {
-      requestPath = path + "?" + request.getQueryString();
-    }
-    try {
-      // create container
-      if (contentType.equals(MediaTypes.CONTAINER)) {
-        JSONObject json = new JSONObject(body);
-        CdmiObject container = containerDaoImpl.createByPath(requestPath, new Container(json));
-        if (container != null) {
-          responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
-          return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
-              HttpStatus.CREATED);
-        }
-      } else if (contentType.equals(MediaTypes.DATA_OBJECT)) {
-        JSONObject json = new JSONObject(body);
-        DataObject dataObject = dataObjectDaoImpl.createByPath(requestPath, new DataObject(json));
-        if (dataObject != null) {
-          responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
-          return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
-              HttpStatus.CREATED);
-        }
-      } else if (contentType.equals(MediaTypes.ACCOUNT)) {
-        JSONObject json = new JSONObject(body);
-        CdmiObject domain = null;
-        if (requestedFields == null) {
-          domain = domainDaoImpl.createByPath(path, new Domain(json));
-        } else {
-          domain = domainDaoImpl.updateByPath(path, new Domain(json), requestedFields);
-        }
-        if (domain != null) {
-          responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
-          return new ResponseEntity<String>(domain.toJson().toString(), responseHeaders,
-              HttpStatus.CREATED);
-        }
-      } else if (contentType.equals("application/json")) {
-        return new ResponseEntity<String>("Specify CDMI content type", HttpStatus.BAD_REQUEST);
+    log.debug("Create path {} as {}", path, contentType);
+
+    if (contentType.contains(MediaTypes.CONTAINER)) {
+      log.debug("Create container...");
+      Container containerRequest = Container.fromJson(new JSONObject(body));
+
+      Container createdContainer = containerDao.createByPath(path, containerRequest);
+
+      if (createdContainer != null) {
+        return new ResponseEntity<String>(createdContainer.toJson().toString(), responseHeaders,
+            HttpStatus.CREATED);
       } else {
-        return new ResponseEntity<String>("Bad content type", HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<String>("Container could not be created", responseHeaders,
+            HttpStatus.CONFLICT);
       }
-    } catch (BadRequestException e) {
-      return new ResponseEntity<String>(e.getMessage(), HttpStatus.BAD_REQUEST);
-    } catch (NotFoundException e) {
-      return new ResponseEntity<String>(e.getMessage(), HttpStatus.NOT_FOUND);
-    } catch (ConflictException e) {
-      return new ResponseEntity<String>(e.getMessage(), HttpStatus.CONFLICT);
     }
-    return new ResponseEntity<String>("Bad request", HttpStatus.BAD_REQUEST);
+    if (contentType.contains(MediaTypes.DATA_OBJECT)) {
+      log.debug("Create data object...");
+      DataObject dataObjectRequest = DataObject.fromJson(new JSONObject(body));
+
+      DataObject createdObject = dataObjectDao.createByPath(path, dataObjectRequest);
+
+      if (createdObject != null) {
+        return new ResponseEntity<String>(createdObject.toJson().toString(), responseHeaders,
+            HttpStatus.CREATED);
+      } else {
+        return new ResponseEntity<String>("Container could not be created", responseHeaders,
+            HttpStatus.CONFLICT);
+      }
+    }
+    return new ResponseEntity<String>("Bad request", responseHeaders, HttpStatus.BAD_REQUEST);
   }
 
   /**
    * Delete path endpoint.
    * 
    * @param request the {@link HttpServletRequest}
-   * @param response the {@link HttpServletResponse}
    * @return a {@link ResponseEntity}
    */
   @RequestMapping(path = "/**", method = RequestMethod.DELETE)
   public ResponseEntity<?> deleteCdmiObject(
-      @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request,
-      HttpServletResponse response) {
+      @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request) {
+
+    HttpHeaders responseHeaders = new HttpHeaders();
+    responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
 
     if (!verifyAuthorization(authorizationHeader)) {
-      return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+      return new ResponseEntity<>(responseHeaders, HttpStatus.UNAUTHORIZED);
     }
 
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
-    log.debug("Delete path {}", path);
-    response.addHeader("X-CDMI-Specification-Version", "1.1.1");
 
-    try {
-      dataObjectDaoImpl.deleteByPath(path);
-      return new ResponseEntity<String>("Data object deleted", HttpStatus.NO_CONTENT);
-    } catch (NotFoundException | ClassCastException e1) {
-      try {
-        containerDaoImpl.deleteByPath(path);
-        return new ResponseEntity<String>("Container deleted", HttpStatus.NO_CONTENT);
-      } catch (NotFoundException | ClassCastException e2) {
-        try {
-          domainDaoImpl.deleteByPath(path);
-          return new ResponseEntity<String>("Domain deleted", HttpStatus.NO_CONTENT);
-        } catch (NotFoundException | ClassCastException e3) {
-          return new ResponseEntity<String>("Not found", HttpStatus.NOT_FOUND);
+    log.debug("Delete path {}", path);
+
+    CdmiObject cdmiObject = cdmiObjectDao.getCdmiObjectByPath(path);
+
+    if (cdmiObject != null) {
+      if (cdmiObject instanceof Container) {
+        Container container = containerDao.deleteByPath(path);
+        if (container != null) {
+          return new ResponseEntity<String>("Container deleted", responseHeaders,
+              HttpStatus.NO_CONTENT);
+        } else {
+          return new ResponseEntity<String>("Container could not be deleted", responseHeaders,
+              HttpStatus.CONFLICT);
+        }
+      } else if (cdmiObject instanceof DataObject) {
+        DataObject dataObject = dataObjectDao.deleteByPath(path);
+        if (dataObject != null) {
+          return new ResponseEntity<String>("Data object deleted", responseHeaders,
+              HttpStatus.NO_CONTENT);
+        } else {
+          return new ResponseEntity<String>("Data object could not be deleted", responseHeaders,
+              HttpStatus.CONFLICT);
         }
       }
     }
+    return new ResponseEntity<String>("Not found", responseHeaders, HttpStatus.NOT_FOUND);
   }
 
+  @SuppressWarnings("unused")
   private String[] parseFields(HttpServletRequest request) {
     Enumeration<String> attributes = request.getParameterNames();
     String[] requestedFields = null;
@@ -499,6 +373,7 @@ public class CdmiRestController {
     return requestedFields;
   }
 
+  @SuppressWarnings("unused")
   private JSONObject getRequestedJson(JSONObject object, String[] requestedFields) {
     JSONObject requestedJson = new JSONObject();
     try {

@@ -1,7 +1,9 @@
 /*
- * Copyright (c) 2010, Sun Microsystems, Inc. Copyright (c) 2010, The Storage Networking Industry
- * Association.
+ * Original work Copyright (c) 2010, Sun Microsystems, Inc. Copyright (c) 2010, The Storage
+ * Networking Industry Association.
  *
+ * Modified work Copyright (c) 2016, Karlsruhe Institute of Technology (KIT)
+ * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted
  * provided that the following conditions are met:
  *
@@ -32,11 +34,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import org.snia.cdmiserver.util.MediaTypes;
 
 /**
  * <p>
@@ -44,276 +42,309 @@ import java.util.Map;
  * </p>
  */
 public class Container extends CdmiObject {
+
+  @SuppressWarnings("unused")
   private static final Logger LOG = LoggerFactory.getLogger(Container.class);
 
-  // Container creation fields
-  private static final String metadata = "metadata";
-  private static final String exports = "exports";
-  private static final String copy = "copy";
-  private static final String move = "move";
-  private static final String reference = "reference";
-  private static final String snapshot = "snapshot";
-  private static final String deserialize = "deserialize";
-  private static final String deserializevalue = "deserializevalue";
+  private String objectType;
+  private String objectName;
+  private String parentUri;
+  private String parentId;
+  private String domainUri;
+  private String capabilitiesUri;
+  private String completionStatus;
 
-  // Container representation fields
-  private static final String objectType = "objectType";
-  private static final String objectName = "objectName";
-  private static final String parentURI = "parentURI";
-  private static final String parentID = "parentID";
-  private static final String domainURI = "domainURI";
-  private static final String capabilitiesURI = "capabilitiesURI";
-  private static final String completionStatus = "completionStatus";
-  private static final String percentComplete = "percentComplete";
-  private static final String snapshots = "snapshots";
-  private static final String childrenrange = "childrenrange";
-  private static final String children = "children";
+  private String percentComplete;
+  private JSONObject metadata;
+  private JSONObject exports;
+  private JSONArray snapshots;
+  private String childrenrange;
+  private JSONArray children;
 
-  private String ObjectURI;
+  private String deserializevalue;
+  private String reference;
+  private String move;
+  private String copy;
+  private String deserialize;
 
-  public Container() {
+  private Container() {}
+
+  /**
+   * Creates a new container with the mandatory fields.
+   * 
+   * @param objectName the container's name
+   * @param parentUri the container's parent URI
+   * @param parentId the container's parent objectId
+   */
+  public Container(String objectName, String parentUri, String parentId) {
     super();
-  }
-
-  public Container(JSONObject json) {
-    super(json);
-  }
-
-  public Container(Map<String, Object> attributeMap) {
-    super(attributeMap);
-  }
-
-  public Map<String, Object> getMetadata() {
-    if (getAttributeMap().get(metadata) != null) {
-      try {
-        JSONObject json = (JSONObject) getAttributeMap().get(metadata);
-        HashMap<String, Object> map = new HashMap<>();
-        for (Object key : json.keySet()) {
-          map.put((String) key, json.get((String) key));
-        }
-        return map;
-      } catch (ClassCastException e) {
-        return (Map<String, Object>) getAttributeMap().get(metadata);
-      }
-    }
-    return null;
-  }
-
-  public void setMetadata(Map<String, Object> metadata) {
-    getAttributeMap().put(Container.metadata, metadata);
-  }
-
-  public Map<String, Object> getExports() {
-    if (getAttributeMap().get(exports) != null) {
-      JSONObject json = (JSONObject) getAttributeMap().get(exports);
-      HashMap<String, Object> map = new HashMap<>();
-      for (Object key : json.keySet()) {
-        map.put((String) key, json.get((String) key));
-      }
-      return map;
-    }
-    return null;
-  }
-
-  public void setExports(Map<String, Object> exports) {
-    getAttributeMap().put(Container.exports, exports);
-  }
-
-  public String getCopy() {
-    return (String) getAttributeMap().get(copy);
-  }
-
-  public void setCopy(String copy) {
-    getAttributeMap().put(Container.copy, copy);
-  }
-
-  public String getMove() {
-    return (String) getAttributeMap().get(move);
-  }
-
-  public void setMove(String move) {
-    getAttributeMap().put(Container.move, move);
-  }
-
-  public String getReference() {
-    return (String) getAttributeMap().get(reference);
-  }
-
-  public void setReference(String reference) {
-    getAttributeMap().put(Container.reference, reference);
-  }
-
-  public String getSnapshot() {
-    return (String) getAttributeMap().get(snapshot);
-  }
-
-  public void setSnapshot(String snapshot) {
-    getAttributeMap().put(Container.snapshot, snapshot);
-  }
-
-  public String getDeserialize() {
-    return (String) getAttributeMap().get(deserialize);
-  }
-
-  public void setDeserialize(String deserialize) {
-    getAttributeMap().put(Container.deserialize, deserialize);
-  }
-
-  public String getDeserializevalue() {
-    return (String) getAttributeMap().get(deserializevalue);
-  }
-
-  public void setDeserializevalue(String deserializevalue) {
-    getAttributeMap().put(Container.deserializevalue, deserializevalue);
+    this.objectName = objectName;
+    this.parentUri = parentUri;
+    this.parentId = parentId;
+    // default values
+    this.objectType = MediaTypes.CONTAINER;
+    this.domainUri = "/cdmi_domains";
+    this.capabilitiesUri = "/cdmi_capabilities/container";
+    this.completionStatus = "Complete";
+    this.metadata = new JSONObject();
+    this.children = new JSONArray();
+    this.childrenrange = "";
   }
 
   public String getObjectType() {
-    return (String) getAttributeMap().get(objectType);
+    return objectType;
   }
 
   public void setObjectType(String objectType) {
-    getAttributeMap().put(Container.objectType, objectType);
-  }
-
-  public String getObjectID() {
-    return super.getObjectId();
-  }
-
-  public void setObjectID(String objectID) {
-    super.setObjectId(objectID);
+    this.objectType = objectType;
   }
 
   public String getObjectName() {
-    return (String) getAttributeMap().get(objectName);
+    return objectName;
   }
 
   public void setObjectName(String objectName) {
-    getAttributeMap().put(Container.objectName, objectName);
+    this.objectName = objectName;
   }
 
-  public String getParentURI() {
-    return (String) getAttributeMap().get(parentURI);
+  public String getParentUri() {
+    return parentUri;
   }
 
-  public void setParentURI(String parentURI) {
-    getAttributeMap().put(Container.parentURI, parentURI);
+  public void setParentUri(String parentUri) {
+    this.parentUri = parentUri;
   }
 
-  public String getParentID() {
-    return (String) getAttributeMap().get(Container.parentID);
+  public String getParentId() {
+    return parentId;
   }
 
-  public void setParentID(String parentID) {
-    getAttributeMap().put(Container.parentID, parentID);
+  public void setParentId(String parentId) {
+    this.parentId = parentId;
   }
 
-  public String getDomainURI() {
-    return (String) getAttributeMap().get(domainURI);
+  public String getDomainUri() {
+    return domainUri;
   }
 
-  public void setDomainURI(String domainURI) {
-    getAttributeMap().put(Container.domainURI, domainURI);
+  public void setDomainUri(String domainUri) {
+    this.domainUri = domainUri;
   }
 
-  public String getCapabilitiesURI() {
-    return (String) getAttributeMap().get(capabilitiesURI);
+  public String getCapabilitiesUri() {
+    return capabilitiesUri;
   }
 
-  public void setCapabilitiesURI(String capabilitiesURI) {
-    getAttributeMap().put(Container.capabilitiesURI, capabilitiesURI);
+  public void setCapabilitiesUri(String capabilitiesUri) {
+    this.capabilitiesUri = capabilitiesUri;
   }
 
   public String getCompletionStatus() {
-    return (String) getAttributeMap().get(completionStatus);
+    return completionStatus;
   }
 
   public void setCompletionStatus(String completionStatus) {
-    getAttributeMap().put(Container.completionStatus, completionStatus);
+    this.completionStatus = completionStatus;
   }
 
   public String getPercentComplete() {
-    return (String) getAttributeMap().get(percentComplete);
+    return percentComplete;
   }
 
   public void setPercentComplete(String percentComplete) {
-    getAttributeMap().put(Container.percentComplete, percentComplete);
+    this.percentComplete = percentComplete;
   }
 
-  public List<Object> getSnapshots() {
-    if (getAttributeMap().get(snapshots) != null) {
-      JSONObject json = (JSONObject) getAttributeMap().get(snapshots);
-      ArrayList<Object> list = new ArrayList<>();
-      for (Object key : json.keySet()) {
-        list.add(json.get((String) key));
-      }
-      return list;
-    }
-    return null;
+  public JSONObject getMetadata() {
+    return metadata;
   }
 
-  public void setSnapshots(List<Object> snapshots) {
-    getAttributeMap().put(Container.snapshots, snapshots);
+  public void setMetadata(JSONObject metadata) {
+    this.metadata = metadata;
+  }
+
+  public JSONObject getExports() {
+    return exports;
+  }
+
+  public void setExports(JSONObject exports) {
+    this.exports = exports;
+  }
+
+  public JSONArray getSnapshots() {
+    return snapshots;
+  }
+
+  public void setSnapshots(JSONArray snapshots) {
+    this.snapshots = snapshots;
   }
 
   public String getChildrenrange() {
-    return (String) getAttributeMap().get(childrenrange);
+    return childrenrange;
   }
 
   public void setChildrenrange(String childrenrange) {
-    getAttributeMap().put(Container.childrenrange, childrenrange);
+    this.childrenrange = childrenrange;
   }
 
-  public List<Object> getChildren() {
-    if (getAttributeMap().get(children) != null) {
-      try {
-        JSONArray json = (JSONArray) getAttributeMap().get(children);
-        ArrayList<Object> list = new ArrayList<>();
-        for (int i = 0; i < json.length(); i++) {
-          list.add(json.get(i));
-        }
-        return list;
-      } catch (ClassCastException e) {
-        return (List<Object>) getAttributeMap().get(children);
-      }
+  public JSONArray getChildren() {
+    return children;
+  }
+
+  public void setChildren(JSONArray children) {
+    this.children = children;
+  }
+
+  public String getDeserializedvalue() {
+    return deserializevalue;
+  }
+
+  public void setDeserializedvalue(String deserializevalue) {
+    this.deserializevalue = deserializevalue;
+  }
+
+  public String getReference() {
+    return reference;
+  }
+
+  public void setReference(String reference) {
+    this.reference = reference;
+  }
+
+  public String getMove() {
+    return move;
+  }
+
+  public void setMove(String move) {
+    this.move = move;
+  }
+
+  public String getCopy() {
+    return copy;
+  }
+
+  public void setCopy(String copy) {
+    this.copy = copy;
+  }
+
+  public String getDeserialize() {
+    return deserialize;
+  }
+
+  public void setDeserialize(String deserialize) {
+    this.deserialize = deserialize;
+  }
+
+  /**
+   * Deserializes a container from the given JSON object.
+   * 
+   * @param json a {@link JSONObject}
+   */
+  public static Container fromJson(JSONObject json) {
+    Container container = new Container();
+
+    if (json.has("objectID")) {
+      container.setObjectId(json.optString("objectID"));
     }
-    return null;
-  }
-
-  public void setChildren(List<Object> children) {
-    getAttributeMap().put(Container.children, children);
-  }
-
-  public String getObjectURI() {
-    return ObjectURI;
-  }
-
-  public void setObjectURI(String objectURI) {
-    ObjectURI = objectURI;
-  }
-
-  @Deprecated
-  public void fromJson(byte[] bytes, boolean bool) {
-
-  }
-
-  @Deprecated
-  public String toJson(boolean bool) {
-    return null;
-  }
-
-  public boolean hasChildren() {
-    try {
-      JSONArray children = (JSONArray) getAttributeMap().get(Container.children);
-      if (children == null)
-        return false;
-      if (children.length() == 0)
-        return false;
-      return true;
-    } catch (ClassCastException e) {
-      List<Object> children = (List<Object>) getAttributeMap().get(Container.children);
-      if (children == null || children.isEmpty() || children.size() == 0)
-        return false;
-      return true;
+    if (json.has("objectName")) {
+      container.objectName = json.optString("objectName");
     }
+    if (json.has("parentURI")) {
+      container.parentUri = json.optString("parentURI");
+    }
+    if (json.has("parentID")) {
+      container.parentId = json.optString("parentID");
+    }
+    // default values
+    container.objectType = MediaTypes.CONTAINER;
+
+    container.domainUri = json.optString("domainURI", "/cdmi_domains");
+    container.capabilitiesUri = json.optString("capabilitiesURI", "/cdmi_capabilities/container");
+    container.completionStatus = json.optString("completionStatus", "Processing");
+    container.metadata = json.optJSONObject("metadata");
+    if (container.metadata == null) {
+      container.metadata = new JSONObject();
+    }
+    // optional values
+    if (json.has("percentComplete")) {
+      container.percentComplete = json.optString("percentComplete");
+    }
+    if (json.has("exports")) {
+      container.exports = json.optJSONObject("exports");
+    }
+    if (json.has("snapshots")) {
+      container.snapshots = json.optJSONArray("snapshots");
+    }
+    if (json.has("childrenrange")) {
+      container.childrenrange = json.optString("childrenrange");
+    }
+    if (json.has("children")) {
+      container.children = json.optJSONArray("children");
+    }
+    if (json.has("deserializevalue")) {
+      container.deserializevalue = json.optString("deserializevalue");
+    }
+    if (json.has("reference")) {
+      container.reference = json.optString("reference");
+    }
+    if (json.has("move")) {
+      container.move = json.optString("move");
+    }
+    if (json.has("copy")) {
+      container.copy = json.optString("copy");
+    }
+    if (json.has("deserialize")) {
+      container.deserialize = json.optString("deserialize");
+    }
+
+    return container;
+  }
+
+  @Override
+  public JSONObject toJson() {
+    JSONObject json = super.toJson();
+
+    json.putOpt("objectType", objectType);
+    json.putOpt("objectName", objectName);
+    json.putOpt("parentURI", parentUri);
+    json.putOpt("parentID", parentId);
+    json.putOpt("domainURI", domainUri);
+    json.putOpt("capabilitiesURI", capabilitiesUri);
+    json.putOpt("completionStatus", completionStatus);
+    json.putOpt("percentComplete", percentComplete);
+    json.putOpt("metadata", metadata);
+    json.putOpt("exports", exports);
+    json.putOpt("snapshots", snapshots);
+    json.putOpt("childrenrange", childrenrange);
+    json.putOpt("children", children);
+    json.putOpt("deserializevalue", deserializevalue);
+    json.putOpt("reference", reference);
+    json.putOpt("move", move);
+    json.putOpt("copy", copy);
+    json.putOpt("deserialize", deserialize);
+
+    return json;
+  }
+
+  @Override
+  public String toString() {
+    return "Container [objectId=" + getObjectId() + ", "
+        + (objectType != null ? "objectType=" + objectType + ", " : "")
+        + (objectName != null ? "objectName=" + objectName + ", " : "")
+        + (parentUri != null ? "parentUri=" + parentUri + ", " : "")
+        + (parentId != null ? "parentId=" + parentId + ", " : "")
+        + (domainUri != null ? "domainUri=" + domainUri + ", " : "")
+        + (capabilitiesUri != null ? "capabilitiesUri=" + capabilitiesUri + ", " : "")
+        + (completionStatus != null ? "completionStatus=" + completionStatus + ", " : "")
+        + (percentComplete != null ? "percentComplete=" + percentComplete + ", " : "")
+        + (metadata != null ? "metadata=" + metadata + ", " : "")
+        + (exports != null ? "exports=" + exports + ", " : "")
+        + (snapshots != null ? "snapshots=" + snapshots + ", " : "")
+        + (childrenrange != null ? "childrenrange=" + childrenrange + ", " : "")
+        + (children != null ? "children=" + children + ", " : "")
+        + (deserializevalue != null ? "deserializevalue=" + deserializevalue + ", " : "")
+        + (reference != null ? "reference=" + reference + ", " : "")
+        + (move != null ? "move=" + move + ", " : "") + (copy != null ? "copy=" + copy + ", " : "")
+        + (deserialize != null ? "deserialize=" + deserialize : "") + "]";
   }
 }

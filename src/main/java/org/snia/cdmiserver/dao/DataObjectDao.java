@@ -1,6 +1,8 @@
 /*
- * Copyright (c) 2010, Sun Microsystems, Inc. Copyright (c) 2010, The Storage Networking Industry
- * Association.
+ * Original work Copyright (c) 2010, Sun Microsystems, Inc. Copyright (c) 2010, The Storage
+ * Networking Industry Association.
+ * 
+ * Modified work Copyright (c) 2016, Karlsruhe Institute of Technology (KIT)
  * 
  * Redistribution and use in source and binary forms, with or without modification, are permitted
  * provided that the following conditions are met:
@@ -43,13 +45,10 @@ public interface DataObjectDao {
    * </p>
    * 
    * @param path Path to the new {@link DataObject}
-   * 
-   * @exception IllegalArgumentException if an intermediate container does not exist
    */
-  public DataObject createByPath(String path, DataObject dataObj) throws Exception;
+  public DataObject createByPath(String path, DataObject dataObj);
 
-  public DataObject createNonCcdmiByPath(String path, String contentType, DataObject dataObj)
-      throws Exception;
+  public DataObject createNonCdmiByPath(String path, String contentType, DataObject dataObj);
 
   public DataObject createById(String objectId, DataObject dataObj);
 
@@ -59,12 +58,8 @@ public interface DataObjectDao {
    * </p>
    * 
    * @param path Path to the requested {@link DataObject}
-   * 
-   * @exception NotFoundException if the specified path does not identify a valid resource
-   * @exception IllegalArgumentException if the specified path identifies a container instead of a
-   *            data object
    */
-  public void deleteByPath(String path);
+  public DataObject deleteByPath(String path);
 
   /**
    * <p>

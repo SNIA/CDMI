@@ -62,4 +62,15 @@ public interface DomainDao {
    *            Domain
    */
   public CdmiObject findByPath(String path);
+
+  /**
+   * <p>
+   * Update a Domain at the specified path.
+   * </p>
+   * 
+   * @param path Path to the new {@link Domain}
+   * @param domain {@link Domain}
+   * @param requestedFields requested fields
+   */
+  public CdmiObject updateByPath(String path, Domain domain, String[] requestedFields);
 }
