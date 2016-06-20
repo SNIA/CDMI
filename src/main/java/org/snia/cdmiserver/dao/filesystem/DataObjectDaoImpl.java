@@ -44,6 +44,7 @@ import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 
 /**
  * <p>
@@ -86,6 +87,11 @@ public class DataObjectDaoImpl implements DataObjectDao {
     try {
       Files.createFile(dataObjectPath);
       LOG.debug("create data object {} {}", path.trim(), dataObjectRequest.toString());
+
+      if (dataObjectRequest.getValue() != null) {
+        Files.write(dataObjectPath, dataObjectRequest.getValue().getBytes());
+        LOG.debug("writing value to data object");
+      }
     } catch (FileAlreadyExistsException ex) {
       LOG.error(ex.getMessage());
       return null;
@@ -192,5 +198,27 @@ public class DataObjectDaoImpl implements DataObjectDao {
       e.printStackTrace();
     }
     return content;
+  }
+
+  @Override
+  public DataObject updateContent(String path, byte[] content) {
+    if (path == null) {
+      return null;
+    }
+
+    Path objectPath = Paths.get(baseDirectoryName.trim(), path.trim());
+    DataObject dataObject = (DataObject) cdmiObjectDao.getCdmiObjectByPath(objectPath.toString());
+
+    if (dataObject != null) {
+      try {
+        Files.write(objectPath, content, StandardOpenOption.WRITE,
+            StandardOpenOption.TRUNCATE_EXISTING);
+        LOG.debug("writing value to data object");
+      } catch (IOException ex) {
+        // ex.printStackTrace();
+        LOG.error("ERROR {}", ex.getMessage());
+      }
+    }
+    return dataObject;
   }
 }

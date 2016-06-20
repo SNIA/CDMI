@@ -13,43 +13,35 @@ import org.indigo.cdmi.BackEndException;
 import org.indigo.cdmi.BackendCapability;
 import org.indigo.cdmi.BackendCapability.CapabilityType;
 import org.indigo.cdmi.CdmiObjectStatus;
+import org.indigo.cdmi.Status;
 import org.indigo.cdmi.spi.StorageBackend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.snia.cdmiserver.dao.CapabilityDao;
-import org.snia.cdmiserver.dao.CdmiObjectDao;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class FilesystemBackend implements StorageBackend {
 
-  @SuppressWarnings("unused")
   private static final Logger log = LoggerFactory.getLogger(FilesystemBackend.class);
 
-  private CdmiObjectDao cdmiObjectDao;
-  private CapabilityDao capabilityDao;
+  // simulates monitored attributes
+  private HashMap<String, String> monitoredAttributes = new HashMap<>();
 
-  public CdmiObjectDao getCdmiObjectDao() {
-    return cdmiObjectDao;
-  }
+  // simulates transitions of QoS
+  private HashMap<String, String> transitionMap = new HashMap<>();
 
-  public void setCdmiObjectDao(CdmiObjectDao cdmiObjectDao) {
-    this.cdmiObjectDao = cdmiObjectDao;
-  }
+  // simulates storage back-end capabilities
+  private HashMap<String, String> capabilities = new HashMap<>();
+  HashMap<String, String> metadata = new HashMap<>();
 
-  public CapabilityDao getCapabilityDao() {
-    return capabilityDao;
-  }
-
-  public void setCapabilityDao(CapabilityDao capabilityDao) {
-    this.capabilityDao = capabilityDao;
-  }
-
-  @Override
-  public List<BackendCapability> getCapabilities() {
-    HashMap<String, String> capabilities = new HashMap<>();
+  /**
+   * Constructs a dummy file-system module with dummy values.
+   */
+  public FilesystemBackend() {
     capabilities.put("cdmi_capabilities_templates", "true");
     capabilities.put("cdmi _capabilities_exact_inherit", "true");
     capabilities.put("cdmi_data_redundancy", "true");
@@ -57,11 +49,17 @@ public class FilesystemBackend implements StorageBackend {
     capabilities.put("cdmi_latency", "true");
     capabilities.put("cdmi_capabilities_allowed", "");
 
-    HashMap<String, String> metadata = new HashMap<>();
     metadata.put("cdmi_data_redundancy", "4");
     metadata.put("cdmi_geographic_placement", "[DE, FR]");
     metadata.put("cdmi_latency", "100");
 
+    monitoredAttributes.put("cdmi_data_redundancy_provided", "4");
+    monitoredAttributes.put("cdmi_geographic_placement_provided", "[DE, FR]");
+    monitoredAttributes.put("cdmi_latency_provided", "100");
+  }
+
+  @Override
+  public List<BackendCapability> getCapabilities() {
     BackendCapability containerCapabilities =
         new BackendCapability("profile1", CapabilityType.CONTAINER);
     containerCapabilities.setMetadata(metadata);
@@ -77,14 +75,28 @@ public class FilesystemBackend implements StorageBackend {
 
   @Override
   public void updateCdmiObject(String path, String capabilitiesUri) throws BackEndException {
-    // TODO Auto-generated method stub
+    log.debug("Simulate QoS transition for {} to {}", path, capabilitiesUri);
+    transitionMap.put(path, capabilitiesUri);
 
+    // simulates a 10 sec transition
+    long delay = 10 * 1000;
+    Timer timer = new Timer();
+    timer.schedule(new TimerTask() {
+      @Override
+      public void run() {
+        transitionMap.remove(path);
+        log.debug("Simulated QoS transition for {} to {} finished", path, capabilitiesUri);
+      }
+    }, delay);
   }
 
   @Override
   public CdmiObjectStatus getCurrentStatus(String path) {
-    // TODO Auto-generated method stub
-    return null;
+    if (transitionMap.containsKey(path)) {
+      // object still in transition;
+      String transitionUri = transitionMap.get(path);
+      return new CdmiObjectStatus(Status.TRANSITION, monitoredAttributes, transitionUri);
+    }
+    return new CdmiObjectStatus(Status.OK, monitoredAttributes, null);
   }
-
 }

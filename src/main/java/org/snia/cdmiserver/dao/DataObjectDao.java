@@ -52,6 +52,8 @@ public interface DataObjectDao {
 
   public DataObject createById(String objectId, DataObject dataObj);
 
+  public DataObject updateContent(String path, byte[] content);
+
   /**
    * <p>
    * Delete the data object at the specified path.
