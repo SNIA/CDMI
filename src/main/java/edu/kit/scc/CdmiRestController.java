@@ -183,30 +183,47 @@ public class CdmiRestController {
 
     log.debug("Get objectID {}", objectId);
 
+    String query = request.getQueryString();
+    log.debug("Requested capabilities query {}", query);
+
     CdmiObject cdmiObject = cdmiObjectDao.getCdmiObject(objectId);
 
     if (cdmiObject != null) {
+      String objectString = "";
       if (cdmiObject instanceof Container) {
         responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
         Container container = (Container) cdmiObject;
-        return new ResponseEntity<String>(container.toJson().toString(), responseHeaders,
-            HttpStatus.OK);
+        if (query != null) {
+          objectString = filterQueryFields(container.toJson(), query).toString();
+        } else {
+          objectString = container.toJson().toString();
+        }
       } else if (cdmiObject instanceof DataObject) {
         responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
         DataObject dataObject = (DataObject) cdmiObject;
-        return new ResponseEntity<String>(dataObject.toJson().toString(), responseHeaders,
-            HttpStatus.OK);
+        if (query != null) {
+          objectString = filterQueryFields(dataObject.toJson(), query).toString();
+        } else {
+          objectString = dataObject.toJson().toString();
+        }
       } else if (cdmiObject instanceof Capability) {
         responseHeaders.setContentType(new MediaType("application", "cdmi-capability"));
         Capability capability = (Capability) cdmiObject;
-        return new ResponseEntity<String>(capability.toJson().toString(), responseHeaders,
-            HttpStatus.OK);
+        if (query != null) {
+          objectString = filterQueryFields(capability.toJson(), query).toString();
+        } else {
+          objectString = capability.toJson().toString();
+        }
       } else if (cdmiObject instanceof Domain) {
         responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
         Domain domain = (Domain) cdmiObject;
-        return new ResponseEntity<String>(domain.toJson().toString(), responseHeaders,
-            HttpStatus.OK);
+        if (query != null) {
+          objectString = filterQueryFields(domain.toJson(), query).toString();
+        } else {
+          objectString = domain.toJson().toString();
+        }
       }
+      return new ResponseEntity<String>(objectString, responseHeaders, HttpStatus.OK);
     }
     return new ResponseEntity<String>("Object not found", responseHeaders, HttpStatus.NOT_FOUND);
   }
