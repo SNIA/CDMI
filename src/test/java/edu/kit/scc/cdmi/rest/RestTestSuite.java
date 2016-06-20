@@ -24,8 +24,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Properties;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({AuthorizationTest.class, CapabilitiesTest.class, CdmiObjectTest.class,
-    ContainerTest.class, DataObjectTest.class, DomainTest.class})
+@Suite.SuiteClasses({AuthorizationTest.class, FilterJsonTest.class, CapabilitiesTest.class,
+    CdmiObjectTest.class, ContainerTest.class, DataObjectTest.class, DomainTest.class})
 public class RestTestSuite {
 
   @AfterClass
