@@ -22,7 +22,6 @@ import org.snia.cdmiserver.dao.CapabilityDao;
 import org.snia.cdmiserver.dao.CdmiObjectDao;
 import org.snia.cdmiserver.dao.ContainerDao;
 import org.snia.cdmiserver.dao.DataObjectDao;
-import org.snia.cdmiserver.exception.BadRequestException;
 import org.snia.cdmiserver.model.Capability;
 import org.snia.cdmiserver.model.CdmiObject;
 import org.snia.cdmiserver.model.Container;
@@ -44,10 +43,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Enumeration;
-import java.util.Iterator;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -143,11 +139,21 @@ public class CdmiRestController {
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
     log.debug("Requested capabilities path {}", path);
 
+    String query = request.getQueryString();
+    log.debug("Requested capabilities query {}", query);
+
     Capability capability = capabilityDao.findByPath(path);
 
     if (capability != null) {
-      return new ResponseEntity<String>(capability.toJson().toString(), responseHeaders,
-          HttpStatus.OK);
+      JSONObject capabilityJson = capability.toJson();
+
+      if (query != null) {
+        return new ResponseEntity<String>(filterQueryFields(capabilityJson, query).toString(),
+            responseHeaders, HttpStatus.OK);
+      } else {
+        return new ResponseEntity<String>(capabilityJson.toString(), responseHeaders,
+            HttpStatus.OK);
+      }
     }
 
     return new ResponseEntity<String>("Capabilities not found", responseHeaders,
@@ -362,83 +368,6 @@ public class CdmiRestController {
     return new ResponseEntity<String>("Not found", responseHeaders, HttpStatus.NOT_FOUND);
   }
 
-  @SuppressWarnings("unused")
-  private String[] parseFields(HttpServletRequest request) {
-    Enumeration<String> attributes = request.getParameterNames();
-    String[] requestedFields = null;
-    while (attributes.hasMoreElements()) {
-      String attributeName = attributes.nextElement();
-      requestedFields = attributeName.split(";");
-    }
-    return requestedFields;
-  }
-
-  @SuppressWarnings("unused")
-  private JSONObject getRequestedJson(JSONObject object, String[] requestedFields) {
-    JSONObject requestedJson = new JSONObject();
-    try {
-      for (int i = 0; i < requestedFields.length; i++) {
-        String field = requestedFields[i];
-        if (!field.contains(":")) {
-          requestedJson.put(field, object.get(field));
-        } else {
-          String[] fieldsplit = field.split(":");
-          if (object.get(fieldsplit[0]) instanceof JSONObject) {
-            JSONObject fieldObject = new JSONObject();
-            String prefix = fieldsplit[1];
-            String fieldname = fieldsplit[0];
-            if (requestedJson.has(fieldname)) {
-              fieldObject = requestedJson.getJSONObject(fieldname);
-            }
-            Iterator<?> keys = object.getJSONObject(fieldname).keys();
-            while (keys.hasNext()) {
-              String key = (String) keys.next();
-              if (key.startsWith(prefix)) {
-                fieldObject.put(key, object.getJSONObject(fieldname).get(key));
-              }
-            }
-            if (fieldObject.length() != 0) {
-              requestedJson.put(fieldname, fieldObject);
-            }
-          } else if (field.startsWith("children:")) {
-            String range = field.split("children:")[1];
-            String[] rangeSplit = range.split("-");
-            List<String> requestedChildren = new ArrayList<String>();
-            JSONArray children = object.getJSONArray("children");
-            int startIndex = Integer.valueOf(rangeSplit[0]);
-            if (rangeSplit.length > 1) {
-              int endIndex = Integer.valueOf(rangeSplit[1]);
-              for (int j = startIndex; j <= endIndex; j++) {
-                requestedChildren.add(children.getString(j));
-              }
-            } else {
-              requestedChildren.add(children.getString(startIndex));
-            }
-            requestedJson.put("children", requestedChildren);
-          } else if (field.startsWith("value:")) {
-            String range = field.split("value:")[1];
-            String[] rangeSplit = range.split("-");
-            requestedJson.put("value",
-                new String(Arrays.copyOfRange(object.getString("value").getBytes(),
-                    Integer.valueOf(rangeSplit[0].trim()), Integer.valueOf(rangeSplit[1].trim()))));
-          } else {
-            throw new BadRequestException("Bad prefix");
-          }
-
-        }
-      }
-      if (requestedJson.has("childrenrange") && requestedJson.has("children")) {
-        requestedJson.put("childrenrange",
-            "0-" + String.valueOf(requestedJson.getJSONArray("children").length() - 1));
-      }
-    } catch (JSONException e) {
-      throw new BadRequestException("bad field");
-    } catch (IndexOutOfBoundsException | NumberFormatException e) {
-      throw new BadRequestException("bad range");
-    }
-    return requestedJson;
-  }
-
   /**
    * Verifies the authorization according to the authorization header.
    * 
@@ -480,4 +409,58 @@ public class CdmiRestController {
     return false;
   }
 
+  /**
+   * Filters the requested JSON object according to the query parameters.
+   * 
+   * @param json the requested {@link JSONObject}
+   * @param query the given query parameters
+   * @return the filtered {@link JSONObject}
+   */
+  public JSONObject filterQueryFields(JSONObject json, String query) {
+    String[] queryFields = query.split(";");
+    List<String> queryList = Arrays.asList(queryFields);
+
+    JSONArray names = json.names();
+    JSONArray children = json.optJSONArray("children");
+
+    for (int i = 0; i < names.length(); i++) {
+      String name = names.getString(i);
+      if (!queryList.contains(name)) {
+        json.remove(name);
+      }
+    }
+
+    if (children != null) {
+      for (String queryField : queryList) {
+        if (queryField.contains("children:")) {
+          String[] childrenRange = queryField.split(":");
+          String range = childrenRange[1];
+          String[] rangeValues = range.split("-");
+
+          JSONArray returnChildren = new JSONArray();
+          int rangeStart = Integer.valueOf(rangeValues[0]);
+
+          if (rangeValues.length > 1) {
+            int rangeStop = Integer.valueOf(rangeValues[1]);
+            for (int i = rangeStart; i <= rangeStop; i++) {
+              try {
+                returnChildren.put(children.get(i));
+              } catch (JSONException ex) {
+                log.warn("Requested range out of bounds, {}", i);
+              }
+            }
+          } else {
+            try {
+              returnChildren.put(children.get(rangeStart));
+            } catch (JSONException ex) {
+              log.warn("Requested range out of bounds, {}", rangeStart);
+            }
+          }
+          json.put("children", returnChildren);
+          break;
+        }
+      }
+    }
+    return json;
+  }
 }
