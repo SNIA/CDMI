@@ -103,6 +103,14 @@
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.7.7.201606060606</version>
+				<configuration>
+					<excludes>
+						<exclude>**/cdmiserver/exception/*</exclude>
+						<exclude>**/cdmiserver/provider/*</exclude>
+						<exclude>**/cdmiserver/resource/*</exclude>
+						<exclude>**/cdmiserver/filter/*</exclude>
+					</excludes>
+				</configuration>
 				<executions>
 					<execution>
 						<id>default-prepare-agent</id>
