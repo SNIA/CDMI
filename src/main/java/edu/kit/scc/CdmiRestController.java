@@ -13,6 +13,10 @@ import edu.kit.scc.http.HttpClient;
 import edu.kit.scc.http.HttpResponse;
 
 import org.apache.commons.codec.binary.Base64;
+import org.indigo.cdmi.BackEndException;
+import org.indigo.cdmi.CdmiObjectStatus;
+import org.indigo.cdmi.ConfigurableStorageBackend;
+import org.indigo.cdmi.spi.StorageBackend;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -45,7 +49,9 @@ import org.springframework.web.servlet.HandlerMapping;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map.Entry;
 
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 
 @RestController
@@ -86,6 +92,21 @@ public class CdmiRestController {
 
   @Value("${oidc.clientsecret}")
   private String clientSecret;
+
+  @Value("${cdmi.qos.backend.type}")
+  private String backendType;
+
+  private StorageBackend storageBackend;
+
+  @PostConstruct
+  void init() {
+    log.debug("Create RestController with storage-backend {}", backendType);
+    try {
+      storageBackend = ConfigurableStorageBackend.createStorageBackend(backendType, null);
+    } catch (IllegalArgumentException ex) {
+      log.warn("ERROR: {}", ex.getMessage());
+    }
+  }
 
   /**
    * Domains endpoint.
@@ -262,6 +283,13 @@ public class CdmiRestController {
       if (cdmiObject instanceof Container) {
         responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
         Container container = (Container) cdmiObject;
+        // add information from storage back-end
+        if (storageBackend != null) {
+          CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
+          for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
+            container.getMetadata().put(entry.getKey(), entry.getValue());
+          }
+        }
         if (query != null) {
           objectString = filterQueryFields(container.toJson(), query).toString();
         } else {
@@ -270,6 +298,13 @@ public class CdmiRestController {
       } else if (cdmiObject instanceof DataObject) {
         responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
         DataObject dataObject = (DataObject) cdmiObject;
+        // add information from storage back-end
+        if (storageBackend != null) {
+          CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
+          for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
+            dataObject.getMetadata().put(entry.getKey(), entry.getValue());
+          }
+        }
         if (query != null) {
           objectString = filterQueryFields(dataObject.toJson(), query).toString();
         } else {
@@ -321,34 +356,91 @@ public class CdmiRestController {
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 
-    log.debug("Create path {} as {}", path, contentType);
+    log.debug("Create or update path {} as {}", path, contentType);
+
+    CdmiObject cdmiObject = cdmiObjectDao.getCdmiObjectByPath(path);
 
     if (contentType.contains(MediaTypes.CONTAINER)) {
-      log.debug("Create container...");
-      Container containerRequest = Container.fromJson(new JSONObject(body));
-
-      Container createdContainer = containerDao.createByPath(path, containerRequest);
-
-      if (createdContainer != null) {
-        return new ResponseEntity<String>(createdContainer.toJson().toString(), responseHeaders,
-            HttpStatus.CREATED);
+      if (cdmiObject != null && (cdmiObject instanceof Container)) {
+        log.debug("Update container...");
+        Container existingContainer = (Container) cdmiObject;
+        // update allowed for "metadata" and "capabilitiesURI"
+        JSONObject updateJson = new JSONObject(body);
+        if (updateJson.has("metadata")) {
+          existingContainer.setMetadata(updateJson.getJSONObject("metadata"));
+        }
+        if (updateJson.has("capabilitiesURI")) {
+          // Change of QoS
+          try {
+            storageBackend.updateCdmiObject(path, updateJson.getString("capabilitiesURI"));
+            existingContainer.getMetadata().put("cdmi_capabilities_target",
+                updateJson.getString("capabilitiesURI"));
+          } catch (JSONException ex) {
+            ex.printStackTrace();
+          } catch (BackEndException ex) {
+            ex.printStackTrace();
+          } catch (Exception ex) {
+            ex.printStackTrace();
+          }
+        }
+        Container updatedContainer = (Container) cdmiObjectDao.updateCdmiObject(existingContainer);
+        return new ResponseEntity<String>(updatedContainer.toJson().toString(), responseHeaders,
+            HttpStatus.ACCEPTED);
       } else {
-        return new ResponseEntity<String>("Container could not be created", responseHeaders,
-            HttpStatus.CONFLICT);
+        log.debug("Create container...");
+        Container containerRequest = Container.fromJson(new JSONObject(body));
+        Container createdContainer = containerDao.createByPath(path, containerRequest);
+        if (createdContainer != null) {
+          return new ResponseEntity<String>(createdContainer.toJson().toString(), responseHeaders,
+              HttpStatus.CREATED);
+        } else {
+          return new ResponseEntity<String>("Container could not be created", responseHeaders,
+              HttpStatus.CONFLICT);
+        }
       }
     }
     if (contentType.contains(MediaTypes.DATA_OBJECT)) {
-      log.debug("Create data object...");
-      DataObject dataObjectRequest = DataObject.fromJson(new JSONObject(body));
-
-      DataObject createdObject = dataObjectDao.createByPath(path, dataObjectRequest);
-
-      if (createdObject != null) {
-        return new ResponseEntity<String>(createdObject.toJson().toString(), responseHeaders,
-            HttpStatus.CREATED);
+      if (cdmiObject != null && (cdmiObject instanceof DataObject)) {
+        log.debug("Update data object...");
+        DataObject existingDataObject = (DataObject) cdmiObject;
+        // update allowed for "value", "metadata" and "capabilitiesURI"
+        JSONObject updateJson = new JSONObject(body);
+        if (updateJson.has("metadata")) {
+          existingDataObject.setMetadata(updateJson.getJSONObject("metadata"));
+        }
+        if (updateJson.has("capabilitiesURI")) {
+          // Change of QoS
+          try {
+            storageBackend.updateCdmiObject(path, updateJson.getString("capabilitiesURI"));
+            existingDataObject.getMetadata().put("cdmi_capabilities_target",
+                updateJson.getString("capabilitiesURI"));
+          } catch (JSONException ex) {
+            ex.printStackTrace();
+          } catch (BackEndException ex) {
+            ex.printStackTrace();
+          } catch (Exception ex) {
+            ex.printStackTrace();
+          }
+        }
+        if (updateJson.has("value")) {
+          // Change of content
+          dataObjectDao.updateContent(path, updateJson.getString("value").getBytes());
+        }
+        DataObject updatedDataObject =
+            (DataObject) cdmiObjectDao.updateCdmiObject(existingDataObject);
+        return new ResponseEntity<String>(updatedDataObject.toJson().toString(), responseHeaders,
+            HttpStatus.ACCEPTED);
       } else {
-        return new ResponseEntity<String>("Container could not be created", responseHeaders,
-            HttpStatus.CONFLICT);
+        log.debug("Create data object...");
+        DataObject dataObjectRequest = DataObject.fromJson(new JSONObject(body));
+        DataObject createdObject = dataObjectDao.createByPath(path, dataObjectRequest);
+        if (createdObject != null) {
+          return new ResponseEntity<String>(createdObject.toJson().toString(), responseHeaders,
+              HttpStatus.CREATED);
+        } else {
+          return new ResponseEntity<String>("Data object could not be created", responseHeaders,
+              HttpStatus.CONFLICT);
+        }
       }
     }
     return new ResponseEntity<String>("Bad request", responseHeaders, HttpStatus.BAD_REQUEST);
