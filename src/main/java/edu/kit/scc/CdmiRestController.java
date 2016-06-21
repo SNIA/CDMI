@@ -13,7 +13,6 @@ import edu.kit.scc.http.HttpClient;
 import edu.kit.scc.http.HttpResponse;
 
 import org.apache.commons.codec.binary.Base64;
-import org.indigo.cdmi.BackEndException;
 import org.indigo.cdmi.CdmiObjectStatus;
 import org.indigo.cdmi.ConfigurableStorageBackend;
 import org.indigo.cdmi.spi.StorageBackend;
@@ -47,6 +46,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
 
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
@@ -114,8 +114,7 @@ public class CdmiRestController {
    * @param request the {@link HttpServletRequest}
    * @return a JSON serialized {@link Domain} object
    */
-  @RequestMapping(path = "/cdmi_domains/**", method = RequestMethod.GET,
-      produces = {"application/cdmi-domain"})
+  @RequestMapping(path = "/cdmi_domains/**", method = RequestMethod.GET)
   public ResponseEntity<?> getDomains(@RequestHeader("Authorization") String authorizationHeader,
       HttpServletRequest request) {
 
@@ -143,8 +142,7 @@ public class CdmiRestController {
    * @param request the {@link HttpServletRequest}
    * @return a JSON serialized {@link Capability} object
    */
-  @RequestMapping(path = "/cdmi_capabilities/**", method = RequestMethod.GET,
-      produces = {"application/cdmi-capability"})
+  @RequestMapping(path = "/cdmi_capabilities/**", method = RequestMethod.GET)
   public ResponseEntity<?> getCapabilities(
       @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request) {
 
@@ -187,9 +185,7 @@ public class CdmiRestController {
    * @param request the {@link HttpServletRequest}
    * @return a JSON serialized {@link CdmiObject}
    */
-  @RequestMapping(path = "/cdmi_objectid/{objectId}", method = RequestMethod.GET,
-      produces = {"application/cdmi-object", "application/cdmi-container",
-          "application/cdmi-domain", "application/cdmi-capability"})
+  @RequestMapping(path = "/cdmi_objectid/{objectId}", method = RequestMethod.GET)
   public ResponseEntity<?> getCdmiObjectById(
       @RequestHeader("Authorization") String authorizationHeader, @PathVariable String objectId,
       HttpServletRequest request) {
@@ -214,6 +210,10 @@ public class CdmiRestController {
       if (cdmiObject instanceof Container) {
         responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
         Container container = (Container) cdmiObject;
+
+        // storage back-end integration
+        getCurrentStatusFromStorageBackend(container);
+
         if (query != null) {
           objectString = filterQueryFields(container.toJson(), query).toString();
         } else {
@@ -222,6 +222,10 @@ public class CdmiRestController {
       } else if (cdmiObject instanceof DataObject) {
         responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
         DataObject dataObject = (DataObject) cdmiObject;
+
+        // storage back-end integration
+        getCurrentStatusFromStorageBackend(dataObject);
+
         if (query != null) {
           objectString = filterQueryFields(dataObject.toJson(), query).toString();
         } else {
@@ -255,8 +259,7 @@ public class CdmiRestController {
    * @param request the {@link HttpServletRequest}
    * @return a JSON serialized {@link Container} or {@link DataObject}
    */
-  @RequestMapping(path = "/**", method = RequestMethod.GET,
-      produces = {"application/cdmi-object", "application/cdmi-container"})
+  @RequestMapping(path = "/**", method = RequestMethod.GET)
   public ResponseEntity<?> getCdmiObjectByPath(
       @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request) {
 
@@ -283,13 +286,10 @@ public class CdmiRestController {
       if (cdmiObject instanceof Container) {
         responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
         Container container = (Container) cdmiObject;
-        // add information from storage back-end
-        if (storageBackend != null) {
-          CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
-          for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
-            container.getMetadata().put(entry.getKey(), entry.getValue());
-          }
-        }
+
+        // storage back-end integration
+        getCurrentStatusFromStorageBackend(container);
+
         if (query != null) {
           objectString = filterQueryFields(container.toJson(), query).toString();
         } else {
@@ -298,13 +298,10 @@ public class CdmiRestController {
       } else if (cdmiObject instanceof DataObject) {
         responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
         DataObject dataObject = (DataObject) cdmiObject;
-        // add information from storage back-end
-        if (storageBackend != null) {
-          CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
-          for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
-            dataObject.getMetadata().put(entry.getKey(), entry.getValue());
-          }
-        }
+
+        // storage back-end integration
+        getCurrentStatusFromStorageBackend(dataObject);
+
         if (query != null) {
           objectString = filterQueryFields(dataObject.toJson(), query).toString();
         } else {
@@ -339,8 +336,7 @@ public class CdmiRestController {
    * @return a JSON serialized {@link Container} or {@link DataObject}
    */
   @RequestMapping(path = "/**", method = RequestMethod.PUT,
-      consumes = {"application/cdmi-object", "application/cdmi-container", "application/json"},
-      produces = {"application/cdmi-object", "application/cdmi-container"})
+      consumes = {"application/cdmi-object", "application/cdmi-container", "application/json"})
   public ResponseEntity<?> putCdmiObject(@RequestHeader("Authorization") String authorizationHeader,
       @RequestHeader("Content-Type") String contentType, @RequestBody String body,
       HttpServletRequest request) {
@@ -360,88 +356,26 @@ public class CdmiRestController {
 
     CdmiObject cdmiObject = cdmiObjectDao.getCdmiObjectByPath(path);
 
-    if (contentType.contains(MediaTypes.CONTAINER)) {
-      if (cdmiObject != null && (cdmiObject instanceof Container)) {
-        log.debug("Update container...");
-        Container existingContainer = (Container) cdmiObject;
-        // update allowed for "metadata" and "capabilitiesURI"
-        JSONObject updateJson = new JSONObject(body);
-        if (updateJson.has("metadata")) {
-          existingContainer.setMetadata(updateJson.getJSONObject("metadata"));
-        }
-        if (updateJson.has("capabilitiesURI")) {
-          // Change of QoS
-          try {
-            storageBackend.updateCdmiObject(path, updateJson.getString("capabilitiesURI"));
-            existingContainer.getMetadata().put("cdmi_capabilities_target",
-                updateJson.getString("capabilitiesURI"));
-          } catch (JSONException ex) {
-            ex.printStackTrace();
-          } catch (BackEndException ex) {
-            ex.printStackTrace();
-          } catch (Exception ex) {
-            ex.printStackTrace();
-          }
-        }
-        Container updatedContainer = (Container) cdmiObjectDao.updateCdmiObject(existingContainer);
-        return new ResponseEntity<String>(updatedContainer.toJson().toString(), responseHeaders,
-            HttpStatus.ACCEPTED);
-      } else {
-        log.debug("Create container...");
-        Container containerRequest = Container.fromJson(new JSONObject(body));
-        Container createdContainer = containerDao.createByPath(path, containerRequest);
-        if (createdContainer != null) {
-          return new ResponseEntity<String>(createdContainer.toJson().toString(), responseHeaders,
-              HttpStatus.CREATED);
-        } else {
-          return new ResponseEntity<String>("Container could not be created", responseHeaders,
-              HttpStatus.CONFLICT);
-        }
+    CdmiObject newCdmiObject = updateOrCreate(cdmiObject, path, body, contentType);
+
+    if (newCdmiObject instanceof Container) {
+      if (cdmiObject instanceof Container) {
+        return new ResponseEntity<String>(((Container) newCdmiObject).toJson().toString(),
+            responseHeaders, HttpStatus.ACCEPTED);
       }
+      return new ResponseEntity<String>(((Container) newCdmiObject).toJson().toString(),
+          responseHeaders, HttpStatus.CREATED);
+    } else if (newCdmiObject instanceof DataObject) {
+      if (cdmiObject instanceof DataObject) {
+        return new ResponseEntity<String>(((DataObject) newCdmiObject).toJson().toString(),
+            responseHeaders, HttpStatus.ACCEPTED);
+      }
+      return new ResponseEntity<String>(((DataObject) newCdmiObject).toJson().toString(),
+          responseHeaders, HttpStatus.CREATED);
     }
-    if (contentType.contains(MediaTypes.DATA_OBJECT)) {
-      if (cdmiObject != null && (cdmiObject instanceof DataObject)) {
-        log.debug("Update data object...");
-        DataObject existingDataObject = (DataObject) cdmiObject;
-        // update allowed for "value", "metadata" and "capabilitiesURI"
-        JSONObject updateJson = new JSONObject(body);
-        if (updateJson.has("metadata")) {
-          existingDataObject.setMetadata(updateJson.getJSONObject("metadata"));
-        }
-        if (updateJson.has("capabilitiesURI")) {
-          // Change of QoS
-          try {
-            storageBackend.updateCdmiObject(path, updateJson.getString("capabilitiesURI"));
-            existingDataObject.getMetadata().put("cdmi_capabilities_target",
-                updateJson.getString("capabilitiesURI"));
-          } catch (JSONException ex) {
-            ex.printStackTrace();
-          } catch (BackEndException ex) {
-            ex.printStackTrace();
-          } catch (Exception ex) {
-            ex.printStackTrace();
-          }
-        }
-        if (updateJson.has("value")) {
-          // Change of content
-          dataObjectDao.updateContent(path, updateJson.getString("value").getBytes());
-        }
-        DataObject updatedDataObject =
-            (DataObject) cdmiObjectDao.updateCdmiObject(existingDataObject);
-        return new ResponseEntity<String>(updatedDataObject.toJson().toString(), responseHeaders,
-            HttpStatus.ACCEPTED);
-      } else {
-        log.debug("Create data object...");
-        DataObject dataObjectRequest = DataObject.fromJson(new JSONObject(body));
-        DataObject createdObject = dataObjectDao.createByPath(path, dataObjectRequest);
-        if (createdObject != null) {
-          return new ResponseEntity<String>(createdObject.toJson().toString(), responseHeaders,
-              HttpStatus.CREATED);
-        } else {
-          return new ResponseEntity<String>("Data object could not be created", responseHeaders,
-              HttpStatus.CONFLICT);
-        }
-      }
+    if (newCdmiObject == null) {
+      return new ResponseEntity<String>("Object could not be created", responseHeaders,
+          HttpStatus.CONFLICT);
     }
     return new ResponseEntity<String>("Bad request", responseHeaders, HttpStatus.BAD_REQUEST);
   }
@@ -492,6 +426,112 @@ public class CdmiRestController {
       }
     }
     return new ResponseEntity<String>("Not found", responseHeaders, HttpStatus.NOT_FOUND);
+  }
+
+  private CdmiObject updateOrCreate(CdmiObject cdmiObject, String path, String body,
+      String contentType) {
+    // create or update container
+    if (contentType.contains(MediaTypes.CONTAINER)) {
+      if (cdmiObject != null && (cdmiObject instanceof Container)) {
+        log.debug("Update container...");
+        Container existingContainer = (Container) cdmiObject;
+        // update allowed for "metadata" and "capabilitiesURI"
+        JSONObject updateJson = new JSONObject(body);
+        if (updateJson.has("metadata")) {
+          existingContainer.setMetadata(updateJson.getJSONObject("metadata"));
+        }
+        if (updateJson.has("capabilitiesURI")) {
+          // Change of QoS
+          try {
+            storageBackend.updateCdmiObject(path, existingContainer.getCapabilitiesUri(),
+                updateJson.getString("capabilitiesURI"));
+            existingContainer.setCapabilitiesUri(updateJson.getString("capabilitiesURI"));
+          } catch (Exception ex) {
+            ex.printStackTrace();
+            log.warn("WARNING: could not trigger QoS change for configured storage back-end {}",
+                backendType);
+          }
+        }
+        Container updatedContainer = (Container) cdmiObjectDao.updateCdmiObject(existingContainer);
+        return updatedContainer;
+      } else {
+        log.debug("Create container...");
+        Container containerRequest = Container.fromJson(new JSONObject(body));
+        Container createdContainer = containerDao.createByPath(path, containerRequest);
+        return createdContainer;
+      }
+    }
+    // create or update data object
+    if (contentType.contains(MediaTypes.DATA_OBJECT)) {
+      if (cdmiObject != null && (cdmiObject instanceof DataObject)) {
+        log.debug("Update data object...");
+        DataObject existingDataObject = (DataObject) cdmiObject;
+        // update allowed for "value", "metadata" and "capabilitiesURI"
+        JSONObject updateJson = new JSONObject(body);
+        if (updateJson.has("metadata")) {
+          existingDataObject.setMetadata(updateJson.getJSONObject("metadata"));
+        }
+        if (updateJson.has("capabilitiesURI")) {
+          // Change of QoS
+          try {
+            storageBackend.updateCdmiObject(path, existingDataObject.getCapabilitiesUri(),
+                updateJson.getString("capabilitiesURI"));
+            existingDataObject.setCapabilitiesUri(updateJson.getString("capabilitiesURI"));
+          } catch (Exception ex) {
+            ex.printStackTrace();
+            log.warn("WARNING: could not trigger QoS change for configured storage back-end {}",
+                backendType);
+          }
+        }
+        if (updateJson.has("value")) {
+          // Change of content
+          dataObjectDao.updateContent(path, updateJson.getString("value").getBytes());
+        }
+        DataObject updatedDataObject =
+            (DataObject) cdmiObjectDao.updateCdmiObject(existingDataObject);
+        return updatedDataObject;
+      } else {
+        log.debug("Create data object...");
+        DataObject dataObjectRequest = DataObject.fromJson(new JSONObject(body));
+        DataObject createdObject = dataObjectDao.createByPath(path, dataObjectRequest);
+        return createdObject;
+      }
+    }
+    return null;
+  }
+
+  private void getCurrentStatusFromStorageBackend(DataObject dataObject) {
+    // add information from storage back-end
+    if (storageBackend != null) {
+      String path = Paths.get(dataObject.getParentUri(), dataObject.getObjectName()).toString();
+      CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
+      // update monitored attributes
+      for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
+        dataObject.getMetadata().put(entry.getKey(), entry.getValue());
+      }
+      // update QoS transition information
+      if (status.getStatus().equals(org.indigo.cdmi.Status.TRANSITION)) {
+        dataObject.getMetadata().put("cdmi_capabilities_target", status.getTargetCapabilitiesUri());
+        dataObject.setCapabilitiesUri(status.getCurrentCapabilitiesUri());
+      }
+    }
+  }
+
+  private void getCurrentStatusFromStorageBackend(Container container) {
+    // add information from storage back-end
+    if (storageBackend != null) {
+      String path = Paths.get(container.getParentUri(), container.getObjectName()).toString();
+      CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
+      // update monitored attributes
+      for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
+        container.getMetadata().put(entry.getKey(), entry.getValue());
+      }
+      // update QoS transition information
+      if (status.getStatus().equals(org.indigo.cdmi.Status.TRANSITION)) {
+        container.getMetadata().put("cdmi_capabilities_target", status.getTargetCapabilitiesUri());
+        container.setCapabilitiesUri(status.getCurrentCapabilitiesUri());
+      }
+    }
   }
 
   /**
