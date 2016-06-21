@@ -1,0 +1,11 @@
+Package: cdmi-server
+Version: 1.0
+Section: web
+Priority: optional
+Architecture: all
+Maintainer: INDIGO DataCloud
+Depends: default-jre | java8-runtime
+Description: SNIA CDMI server reference implementation.
+ .
+ Standalone Spring Boot application version.
+ .
