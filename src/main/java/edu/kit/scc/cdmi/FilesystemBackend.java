@@ -32,7 +32,7 @@ public class FilesystemBackend implements StorageBackend {
   private HashMap<String, String> monitoredAttributes = new HashMap<>();
 
   // simulates transitions of QoS
-  private HashMap<String, String> transitionMap = new HashMap<>();
+  private HashMap<String, String[]> transitionMap = new HashMap<>();
 
   // simulates storage back-end capabilities
   private HashMap<String, String> capabilities = new HashMap<>();
@@ -74,9 +74,11 @@ public class FilesystemBackend implements StorageBackend {
   }
 
   @Override
-  public void updateCdmiObject(String path, String capabilitiesUri) throws BackEndException {
-    log.debug("Simulate QoS transition for {} to {}", path, capabilitiesUri);
-    transitionMap.put(path, capabilitiesUri);
+  public void updateCdmiObject(String path, String currentCapabilitiesUri,
+      String targetCapabilitiesUri) throws BackEndException {
+    log.debug("Simulate QoS transition for {} from {} to {}", path, currentCapabilitiesUri,
+        targetCapabilitiesUri);
+    transitionMap.put(path, new String[] {currentCapabilitiesUri, targetCapabilitiesUri});
 
     // simulates a 10 sec transition
     long delay = 10 * 1000;
@@ -85,7 +87,8 @@ public class FilesystemBackend implements StorageBackend {
       @Override
       public void run() {
         transitionMap.remove(path);
-        log.debug("Simulated QoS transition for {} to {} finished", path, capabilitiesUri);
+        log.debug("Simulated QoS transition for {} from {} to {} finished", path,
+            currentCapabilitiesUri, targetCapabilitiesUri);
       }
     }, delay);
   }
@@ -94,9 +97,12 @@ public class FilesystemBackend implements StorageBackend {
   public CdmiObjectStatus getCurrentStatus(String path) {
     if (transitionMap.containsKey(path)) {
       // object still in transition;
-      String transitionUri = transitionMap.get(path);
-      return new CdmiObjectStatus(Status.TRANSITION, monitoredAttributes, transitionUri);
+      String[] transitionUris = transitionMap.get(path);
+      String currentUri = transitionUris[0];
+      String transitionUri = transitionUris[1];
+      return new CdmiObjectStatus(Status.TRANSITION, monitoredAttributes, currentUri,
+          transitionUri);
     }
-    return new CdmiObjectStatus(Status.OK, monitoredAttributes, null);
+    return new CdmiObjectStatus(Status.OK, monitoredAttributes, null, null);
   }
 }
