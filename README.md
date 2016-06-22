@@ -14,14 +14,16 @@ The project uses the Maven build automation tool that will build one fat jar Spr
 
 It depends on the cdmi-spi Java SPI [cdmi-spi](https://github.com/indigo-dc/cdmi-spi) library.
 
-You should first install the cdmi-spi-\<VERSION\>.jar into your local Maven repository, e.g.
-
-```
-mvn install:install-file -Dfile=cdmi-spi-0.0.1-SNAPSHOT.jar
-```
+The cdmi-spi library is provided at http://cdmi-qos.data.kit.edu/maven/ and should be included automatically.
 
 ```
 mvn clean package
+```
+
+(optional) if you have problems you can also install the cdmi-spi-\<VERSION\>.jar into your local Maven repository, e.g.
+
+```
+mvn install:install-file -Dfile=cdmi-spi-0.0.1-SNAPSHOT.jar
 ```
 
 The CDMI server can run without any additional server deployment (Tomcat, JBoss, etc.).
