@@ -31,9 +31,12 @@ public class DomainTest {
   @Value("${rest.pass}")
   private String restPassword;
 
+  @Value("${server.port}")
+  private int serverPort;
+
   @Before
   public void setUpEach() {
-    RestAssured.baseURI = "http://localhost:8080";
+    RestAssured.baseURI = "http://localhost:" + String.valueOf(serverPort);
   }
 
   @Test
