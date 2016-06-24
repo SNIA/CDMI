@@ -69,55 +69,52 @@ public class FilesystemConfiguration {
     if (!Files.exists(path)) {
       Files.createDirectories(Paths.get(baseDirectory, "cdmi_objectid"));
       log.debug("root directory {} created", path.toString());
-
-      Container rootContainer = new Container("/", "/", rootObject.getObjectId());
-      rootContainer.setObjectId(rootObject.getObjectId());
-
-      cdmiObjectDao.createCdmiObject(rootContainer, baseDirectory);
     }
+    Container rootContainer = new Container("/", "/", rootObject.getObjectId());
+    rootContainer.setObjectId(rootObject.getObjectId());
+
+    cdmiObjectDao.createCdmiObject(rootContainer, baseDirectory);
 
     path = Paths.get(baseDirectory, "cdmi_capabilities");
     if (!Files.exists(path)) {
       Files.createDirectory(Paths.get(baseDirectory, "cdmi_capabilities"));
-
-      rootObject = cdmiObjectDao.getCdmiObjectByPath(baseDirectory);
-
-      Capability rootCapability =
-          new Capability("cdmi_capabilities", "/", rootObject.getObjectId());
-      cdmiObjectDao.createCdmiObject(rootCapability,
-          Paths.get(baseDirectory, "cdmi_capabilities").toString());
-
-      Capability containerCapability =
-          new Capability("container", "/cdmi_capabilities", rootCapability.getObjectId());
-      capabilityDao.createByPath(Paths.get("cdmi_capabilities", "container").toString(),
-          containerCapability);
-
-      Capability dataObjectCapability =
-          new Capability("dataobject", "/cdmi_capabilities", rootCapability.getObjectId());
-      capabilityDao.createByPath(Paths.get("cdmi_capabilities", "dataobject").toString(),
-          dataObjectCapability);
+      log.debug("capabilities directory {} created", path.toString());
     }
+
+    rootObject = cdmiObjectDao.getCdmiObjectByPath(baseDirectory);
+
+    Capability rootCapability = new Capability("cdmi_capabilities", "/", rootObject.getObjectId());
+    cdmiObjectDao.createCdmiObject(rootCapability,
+        Paths.get(baseDirectory, "cdmi_capabilities").toString());
+
+    Capability containerCapability =
+        new Capability("container", "/cdmi_capabilities", rootCapability.getObjectId());
+    capabilityDao.createByPath(Paths.get("cdmi_capabilities", "container").toString(),
+        containerCapability);
+
+    Capability dataObjectCapability =
+        new Capability("dataobject", "/cdmi_capabilities", rootCapability.getObjectId());
+    capabilityDao.createByPath(Paths.get("cdmi_capabilities", "dataobject").toString(),
+        dataObjectCapability);
 
     path = Paths.get(baseDirectory, "cdmi_domains");
     if (!Files.exists(path)) {
       Files.createDirectory(path);
       log.debug("domain directory {} created", path.toString());
-
-      rootObject = cdmiObjectDao.getCdmiObjectByPath(baseDirectory);
-
-      Domain rootDomain = new Domain("cdmi_domains", "/", rootObject.getObjectId());
-
-      cdmiObjectDao.createCdmiObject(rootDomain,
-          Paths.get(baseDirectory, "cdmi_domains").toString());
     }
+    rootObject = cdmiObjectDao.getCdmiObjectByPath(baseDirectory);
 
-    Capability containerCapability =
+    Domain rootDomain = new Domain("cdmi_domains", "/", rootObject.getObjectId());
+
+    cdmiObjectDao.createCdmiObject(rootDomain, Paths.get(baseDirectory, "cdmi_domains").toString());
+
+    Capability defaultContainerCapability =
         capabilityDao.findByPath(Paths.get("cdmi_capabilities", "container").toString());
-    log.debug(containerCapability.toString());
+    log.debug(defaultContainerCapability.toString());
 
-    Capability dataObjectCapability =
+    Capability defaultDataObjectCapability =
         capabilityDao.findByPath(Paths.get("cdmi_capabilities", "dataobject").toString());
-    log.debug(dataObjectCapability.toString());
+    log.debug(defaultDataObjectCapability.toString());
 
     // Connect to a specific file system storage back-end implementation.
     //
@@ -132,7 +129,7 @@ public class FilesystemConfiguration {
 
         if (capability.getType().equals(CapabilityType.CONTAINER)) {
           Capability providedCapability = new Capability(capability.getName(),
-              "/cdmi_capabilities/container", containerCapability.getObjectId());
+              "/cdmi_capabilities/container", defaultContainerCapability.getObjectId());
           providedCapability.setCapabilities(new JSONObject(capability.getCapabilities()));
           providedCapability.setMetadata(new JSONObject(capability.getMetadata()));
           capabilityDao.createByPath(
@@ -141,7 +138,7 @@ public class FilesystemConfiguration {
         }
         if (capability.getType().equals(CapabilityType.DATAOBJECT)) {
           Capability providedCapability = new Capability(capability.getName(),
-              "/cdmi_capabilities/dataobject", dataObjectCapability.getObjectId());
+              "/cdmi_capabilities/dataobject", defaultContainerCapability.getObjectId());
           providedCapability.setCapabilities(new JSONObject(capability.getCapabilities()));
           providedCapability.setMetadata(new JSONObject(capability.getMetadata()));
           capabilityDao.createByPath(
