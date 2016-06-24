@@ -43,7 +43,7 @@ public class FilesystemBackend implements StorageBackend {
    */
   public FilesystemBackend() {
     capabilities.put("cdmi_capabilities_templates", "true");
-    capabilities.put("cdmi _capabilities_exact_inherit", "true");
+    capabilities.put("cdmi_capabilities_exact_inherit", "true");
     capabilities.put("cdmi_data_redundancy", "true");
     capabilities.put("cdmi_geographic_placement", "true");
     capabilities.put("cdmi_latency", "true");
