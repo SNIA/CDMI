@@ -16,9 +16,6 @@ import org.snia.cdmiserver.dao.DomainDao;
 import org.snia.cdmiserver.model.CdmiObject;
 import org.snia.cdmiserver.model.Domain;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 public class DomainDaoImpl implements DomainDao {
 
   private static final Logger LOG = LoggerFactory.getLogger(DomainDaoImpl.class);
@@ -63,9 +60,8 @@ public class DomainDaoImpl implements DomainDao {
 
   @Override
   public CdmiObject findByPath(String path) {
-    Path domainPath = Paths.get(baseDirectoryName.trim(), path.trim());
     LOG.debug("path is {}", path);
-    return (Domain) cdmiObjectDao.getCdmiObjectByPath(domainPath.toString());
+    return (Domain) cdmiObjectDao.getCdmiObjectByPath(path.trim());
   }
 
   @Override

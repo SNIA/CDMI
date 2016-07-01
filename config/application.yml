@@ -1,0 +1,20 @@
+spring:
+  profiles:
+    active: filesystem
+    
+server:
+  port: 8888
+
+rest:
+  user: restadmin
+  pass: restadmin
+---
+spring:
+  profiles: filesystem
+cdmi:
+  data:
+    baseDirectory: /tmp/cdmi
+    objectIdPrefix: .cdmi_
+  qos:
+    backend:
+      type: dummy_filesystem

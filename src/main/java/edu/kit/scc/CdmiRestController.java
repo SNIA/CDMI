@@ -564,6 +564,7 @@ public class CdmiRestController {
         String body = "token=" + encodedCredentials;
         response = httpClient.makeHttpsPostRequest(clientId, clientSecret, body, tokenInfo);
         if (response.statusCode == HttpStatus.OK.value()) {
+          log.debug("Token info {}", response.getResponseString());
           // TODO set client ACLs
           return true;
         }

@@ -89,10 +89,7 @@
 				<configuration>
 					<skipTests>false</skipTests>
 					<includes>
-						<include>edu.kit.scc.cdmi.filesystem.FileSystemTestSuite.java</include>
-						<include>edu.kit.scc.cdmi.rest.RestTestSuite.java</include>
-						<include>edu.kit.scc.TestSuite.java</include>
-						<include>edu.kit.scc.http.client.HttpTestSuite.java</include>
+						<include>edu.kit.scc.test.TestSuite.java</include>
 					</includes>
 				</configuration>
 			</plugin>

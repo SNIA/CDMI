@@ -22,6 +22,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.boot.test.WebIntegrationTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.jayway.restassured.RestAssured;
@@ -30,6 +31,7 @@ import com.jayway.restassured.response.Response;
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
 @WebIntegrationTest
+@ActiveProfiles("test")
 public class ContainerTest {
 
   private static final Logger log = LoggerFactory.getLogger(ContainerTest.class);
@@ -84,7 +86,7 @@ public class ContainerTest {
   @Test
   public void testGetRootContainer() {
     String authString = Base64.encodeBase64String((restUser + ":" + restPassword).getBytes());
-
+    log.debug(authString);
     Response response = given().header("Authorization", "Basic " + authString).and()
         .header("Content-Type", "application/cdmi-object").when().get("/").then()
         .statusCode(org.apache.http.HttpStatus.SC_OK).extract().response();

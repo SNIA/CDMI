@@ -7,7 +7,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package edu.kit.scc.cdmi.rest;
+package edu.kit.scc.utils;
 
 import org.junit.AfterClass;
 import org.junit.runner.RunWith;
@@ -24,9 +24,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Properties;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({AuthorizationTest.class, FilterJsonTest.class, CapabilitiesTest.class,
-    CdmiObjectTest.class, ContainerTest.class, DataObjectTest.class, DomainTest.class})
-public class RestTestSuite {
+@Suite.SuiteClasses({UtilsTest.class})
+public class UtilsTestSuite {
 
   @AfterClass
   public static void destroy() throws IOException {

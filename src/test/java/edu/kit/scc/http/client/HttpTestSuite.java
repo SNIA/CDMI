@@ -9,11 +9,64 @@
 
 package edu.kit.scc.http.client;
 
+import org.junit.AfterClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Properties;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({HttpClientTest.class})
 public class HttpTestSuite {
 
+  private static final Logger log = LoggerFactory.getLogger(HttpTestSuite.class);
+
+  @AfterClass
+  public static void destroy() throws IOException {
+    Properties props = new Properties();
+    InputStream is = ClassLoader.getSystemResourceAsStream("application-test.properties");
+    try {
+      props.load(is);
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+
+    String baseDirectoryName = props.getProperty("cdmi.data.baseDirectory");
+
+    Path start = Paths.get(baseDirectoryName);
+
+    try {
+      Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
+        @Override
+        public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+          Files.delete(file);
+          return FileVisitResult.CONTINUE;
+        }
+
+        @Override
+        public FileVisitResult postVisitDirectory(Path dir, IOException ex) throws IOException {
+          if (ex == null) {
+            Files.delete(dir);
+            return FileVisitResult.CONTINUE;
+          } else {
+            // directory iteration failed
+            throw ex;
+          }
+        }
+      });
+    } catch (Exception ex) {
+      log.warn("failed to delete test directory {} with error {}", baseDirectoryName,
+          ex.toString());
+    }
+  }
 }

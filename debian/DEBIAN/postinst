@@ -1,0 +1,30 @@
+#!/bin/sh
+
+NAME=cdmi-server
+VERSION=0.1
+USER=cdmi
+
+count=`egrep -c "^${USER}:" /etc/group`
+if [ $count -eq 0 ]; then
+  echo "No ${USER} group found ... create group"
+  addgroup --system $USER
+fi
+
+/usr/bin/id -u $USER > /dev/null 2>&1
+if [ $? -eq 1 ]; then
+  echo "No ${USER} user found .. create user"
+  adduser --system $USER --ingroup $USER
+fi
+
+if [ -f /var/lib/$NAME/$NAME-$VERSION-SNAPSHOT.jar ]; then
+  chmod +x /var/lib/$NAME/$NAME-$VERSION-SNAPSHOT.jar
+fi
+
+chown -R $USER:$USER /var/lib/$NAME/
+
+if [ ! -L /etc/init.d/$NAME ]; then
+  ln -s /var/lib/$NAME/$NAME-$VERSION-SNAPSHOT.jar /etc/init.d/$NAME
+fi
+
+service $NAME start
+update-rc.d $NAME defaults 99

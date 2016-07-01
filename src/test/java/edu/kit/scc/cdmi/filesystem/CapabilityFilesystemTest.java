@@ -14,7 +14,6 @@ import static org.junit.Assert.assertNotNull;
 import edu.kit.scc.CdmiServerApplication;
 
 import org.json.JSONObject;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,7 +35,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
-@ActiveProfiles("filesystem")
+@ActiveProfiles("test")
 public class CapabilityFilesystemTest {
 
   @Value("${cdmi.data.objectIdPrefix}")
