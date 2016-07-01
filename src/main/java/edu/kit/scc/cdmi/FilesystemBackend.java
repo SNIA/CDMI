@@ -32,7 +32,7 @@ public class FilesystemBackend implements StorageBackend {
   private HashMap<String, String> monitoredAttributes = new HashMap<>();
 
   // simulates transitions of QoS
-  private HashMap<String, String[]> transitionMap = new HashMap<>();
+  private HashMap<String, CdmiObjectStatus> transitionMap = new HashMap<>();
 
   // simulates storage back-end capabilities
   private HashMap<String, String> capabilities = new HashMap<>();
@@ -42,12 +42,13 @@ public class FilesystemBackend implements StorageBackend {
    * Constructs a dummy file-system module with dummy values.
    */
   public FilesystemBackend() {
+
     capabilities.put("cdmi_capabilities_templates", "true");
     capabilities.put("cdmi_capabilities_exact_inherit", "true");
     capabilities.put("cdmi_data_redundancy", "true");
     capabilities.put("cdmi_geographic_placement", "true");
     capabilities.put("cdmi_latency", "true");
-    capabilities.put("cdmi_capabilities_allowed", "");
+    capabilities.put("cdmi_capabilities_allowed", "profile1 profile2");
 
     metadata.put("cdmi_data_redundancy", "4");
     metadata.put("cdmi_geographic_placement", "[DE, FR]");
@@ -56,6 +57,7 @@ public class FilesystemBackend implements StorageBackend {
     monitoredAttributes.put("cdmi_data_redundancy_provided", "4");
     monitoredAttributes.put("cdmi_geographic_placement_provided", "[DE, FR]");
     monitoredAttributes.put("cdmi_latency_provided", "100");
+
   }
 
   @Override
@@ -74,11 +76,18 @@ public class FilesystemBackend implements StorageBackend {
   }
 
   @Override
-  public void updateCdmiObject(String path, String currentCapabilitiesUri,
-      String targetCapabilitiesUri) throws BackEndException {
+  public void updateCdmiObject(String path, String targetCapabilitiesUri) throws BackEndException {
+    if (!transitionMap.containsKey(path)) {
+      transitionMap.put(path,
+          new CdmiObjectStatus(Status.OK, monitoredAttributes, "profile1", null));
+    }
+
+    String currentCapabilitiesUri = transitionMap.get(path).getCurrentCapabilitiesUri();
+
     log.debug("Simulate QoS transition for {} from {} to {}", path, currentCapabilitiesUri,
         targetCapabilitiesUri);
-    transitionMap.put(path, new String[] {currentCapabilitiesUri, targetCapabilitiesUri});
+    transitionMap.put(path, new CdmiObjectStatus(Status.TRANSITION, monitoredAttributes,
+        currentCapabilitiesUri, targetCapabilitiesUri));
 
     // simulates a 10 sec transition
     long delay = 10 * 1000;
@@ -86,9 +95,10 @@ public class FilesystemBackend implements StorageBackend {
     timer.schedule(new TimerTask() {
       @Override
       public void run() {
-        transitionMap.remove(path);
         log.debug("Simulated QoS transition for {} from {} to {} finished", path,
             currentCapabilitiesUri, targetCapabilitiesUri);
+        transitionMap.put(path,
+            new CdmiObjectStatus(Status.OK, monitoredAttributes, targetCapabilitiesUri, null));
       }
     }, delay);
   }
@@ -96,13 +106,8 @@ public class FilesystemBackend implements StorageBackend {
   @Override
   public CdmiObjectStatus getCurrentStatus(String path) {
     if (transitionMap.containsKey(path)) {
-      // object still in transition;
-      String[] transitionUris = transitionMap.get(path);
-      String currentUri = transitionUris[0];
-      String transitionUri = transitionUris[1];
-      return new CdmiObjectStatus(Status.TRANSITION, monitoredAttributes, currentUri,
-          transitionUri);
+      return transitionMap.get(path);
     }
-    return new CdmiObjectStatus(Status.OK, monitoredAttributes, null, null);
+    return new CdmiObjectStatus(Status.OK, monitoredAttributes, "profile1", null);
   }
 }

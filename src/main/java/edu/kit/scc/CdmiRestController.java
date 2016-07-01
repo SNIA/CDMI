@@ -13,6 +13,7 @@ import edu.kit.scc.http.HttpClient;
 import edu.kit.scc.http.HttpResponse;
 
 import org.apache.commons.codec.binary.Base64;
+import org.indigo.cdmi.BackEndException;
 import org.indigo.cdmi.CdmiObjectStatus;
 import org.indigo.cdmi.ConfigurableStorageBackend;
 import org.indigo.cdmi.spi.StorageBackend;
@@ -48,6 +49,7 @@ import org.springframework.web.servlet.HandlerMapping;
 
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
@@ -102,7 +104,8 @@ public class CdmiRestController {
   void init() {
     log.debug("Create RestController with storage-backend {}", backendType);
     try {
-      storageBackend = ConfigurableStorageBackend.createStorageBackend(backendType, null);
+      storageBackend = ConfigurableStorageBackend.createStorageBackend(backendType,
+          new HashMap<String, String>());
     } catch (IllegalArgumentException ex) {
       log.warn("ERROR: {}", ex.getMessage());
     }
@@ -443,8 +446,7 @@ public class CdmiRestController {
         if (updateJson.has("capabilitiesURI")) {
           // Change of QoS
           try {
-            storageBackend.updateCdmiObject(path, existingContainer.getCapabilitiesUri(),
-                updateJson.getString("capabilitiesURI"));
+            storageBackend.updateCdmiObject(path, updateJson.getString("capabilitiesURI"));
             existingContainer.setCapabilitiesUri(updateJson.getString("capabilitiesURI"));
           } catch (Exception ex) {
             ex.printStackTrace();
@@ -474,8 +476,7 @@ public class CdmiRestController {
         if (updateJson.has("capabilitiesURI")) {
           // Change of QoS
           try {
-            storageBackend.updateCdmiObject(path, existingDataObject.getCapabilitiesUri(),
-                updateJson.getString("capabilitiesURI"));
+            storageBackend.updateCdmiObject(path, updateJson.getString("capabilitiesURI"));
             existingDataObject.setCapabilitiesUri(updateJson.getString("capabilitiesURI"));
           } catch (Exception ex) {
             ex.printStackTrace();
@@ -502,35 +503,45 @@ public class CdmiRestController {
 
   private void getCurrentStatusFromStorageBackend(DataObject dataObject) {
     // add information from storage back-end
-    if (storageBackend != null) {
-      String path = Paths.get(dataObject.getParentUri(), dataObject.getObjectName()).toString();
-      CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
-      // update monitored attributes
-      for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
-        dataObject.getMetadata().put(entry.getKey(), entry.getValue());
+    try {
+      if (storageBackend != null) {
+        String path = Paths.get(dataObject.getParentUri(), dataObject.getObjectName()).toString();
+        CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
+        // update monitored attributes
+        for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
+          dataObject.getMetadata().put(entry.getKey(), entry.getValue());
+        }
+        // update QoS transition information
+        if (status.getStatus().equals(org.indigo.cdmi.Status.TRANSITION)) {
+          dataObject.getMetadata().put("cdmi_capabilities_target",
+              status.getTargetCapabilitiesUri());
+          dataObject.setCapabilitiesUri(status.getCurrentCapabilitiesUri());
+        }
       }
-      // update QoS transition information
-      if (status.getStatus().equals(org.indigo.cdmi.Status.TRANSITION)) {
-        dataObject.getMetadata().put("cdmi_capabilities_target", status.getTargetCapabilitiesUri());
-        dataObject.setCapabilitiesUri(status.getCurrentCapabilitiesUri());
-      }
+    } catch (BackEndException ex) {
+      log.warn("ERROR: {}", ex.getMessage());
     }
   }
 
   private void getCurrentStatusFromStorageBackend(Container container) {
     // add information from storage back-end
-    if (storageBackend != null) {
-      String path = Paths.get(container.getParentUri(), container.getObjectName()).toString();
-      CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
-      // update monitored attributes
-      for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
-        container.getMetadata().put(entry.getKey(), entry.getValue());
+    try {
+      if (storageBackend != null) {
+        String path = Paths.get(container.getParentUri(), container.getObjectName()).toString();
+        CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
+        // update monitored attributes
+        for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
+          container.getMetadata().put(entry.getKey(), entry.getValue());
+        }
+        // update QoS transition information
+        if (status.getStatus().equals(org.indigo.cdmi.Status.TRANSITION)) {
+          container.getMetadata().put("cdmi_capabilities_target",
+              status.getTargetCapabilitiesUri());
+          container.setCapabilitiesUri(status.getCurrentCapabilitiesUri());
+        }
       }
-      // update QoS transition information
-      if (status.getStatus().equals(org.indigo.cdmi.Status.TRANSITION)) {
-        container.getMetadata().put("cdmi_capabilities_target", status.getTargetCapabilitiesUri());
-        container.setCapabilitiesUri(status.getCurrentCapabilitiesUri());
-      }
+    } catch (BackEndException ex) {
+      log.warn("ERROR: {}", ex.getMessage());
     }
   }
 
