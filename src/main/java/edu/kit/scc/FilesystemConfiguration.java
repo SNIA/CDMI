@@ -9,6 +9,7 @@
 
 package edu.kit.scc;
 
+import org.indigo.cdmi.BackEndException;
 import org.indigo.cdmi.BackendCapability;
 import org.indigo.cdmi.BackendCapability.CapabilityType;
 import org.indigo.cdmi.ConfigurableStorageBackend;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
@@ -116,8 +118,8 @@ public class FilesystemConfiguration {
     //
     // Creates the provided for this specific storage back-end capabilities.
     try {
-      StorageBackend storageBackend =
-          ConfigurableStorageBackend.createStorageBackend(backendType, null);
+      StorageBackend storageBackend = ConfigurableStorageBackend.createStorageBackend(backendType,
+          new HashMap<String, String>());
 
       List<BackendCapability> capabilities = storageBackend.getCapabilities();
       for (BackendCapability capability : capabilities) {
@@ -142,7 +144,7 @@ public class FilesystemConfiguration {
               providedCapability);
         }
       }
-    } catch (IllegalArgumentException ex) {
+    } catch (IllegalArgumentException | BackEndException ex) {
       log.warn("ERROR: {}", ex.getMessage());
     }
   }
