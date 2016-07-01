@@ -54,7 +54,7 @@ import java.nio.file.StandardOpenOption;
  */
 public class DataObjectDaoImpl implements DataObjectDao {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DataObjectDaoImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(DataObjectDaoImpl.class);
 
   private String baseDirectoryName;
 
@@ -78,50 +78,50 @@ public class DataObjectDaoImpl implements DataObjectDao {
 
   @Override
   public DataObject createByPath(String path, DataObject dataObjectRequest) {
-    if (path == null) {
-      return null;
-    }
-
-    final Path dataObjectPath = Paths.get(baseDirectoryName.trim(), path.trim());
-
     try {
+      final Path dataObjectPath = Paths.get(baseDirectoryName.trim(), path.trim());
+      // create the data object file
       Files.createFile(dataObjectPath);
-      LOG.debug("create data object {} {}", path.trim(), dataObjectRequest.toString());
-
+      log.debug("create data object {} {}", path.trim(), dataObjectRequest.toString());
+      log.debug("create file {}", dataObjectPath.toString());
       if (dataObjectRequest.getValue() != null) {
         Files.write(dataObjectPath, dataObjectRequest.getValue().getBytes());
-        LOG.debug("writing value to data object");
+        log.debug("writing value to data object");
       }
     } catch (FileAlreadyExistsException ex) {
-      LOG.error(ex.getMessage());
-      return null;
+      log.error(ex.getMessage());
     } catch (Exception ex) {
-      LOG.error(ex.getMessage());
+      log.error(ex.getMessage());
       return null;
     }
 
-    String objectName = dataObjectPath.getFileName().toString();
-    String parentUri = Paths.get(path.trim()).getParent() == null ? "/"
-        : Paths.get(path.trim()).getParent().toString();
-    String parentPath = dataObjectPath.getParent() == null ? baseDirectoryName
-        : dataObjectPath.getParent().toString();
+    Path urlPath = Paths.get(path.trim());
+    Path parentPath = urlPath.getParent();
+    if (parentPath == null) {
+      // root container
+      return null;
+    }
 
+    // create the data object meta-data files
     Container parentContainer =
         (Container) cdmiObjectDao.getCdmiObjectByPath(parentPath.toString());
 
-    DataObject dataObject = new DataObject(objectName, parentUri, parentContainer.getObjectId());
+    DataObject dataObject = new DataObject(urlPath.getFileName().toString(), parentPath.toString(),
+        parentContainer.getObjectId());
 
     if (parentContainer.getChildren() == null) {
       parentContainer.setChildren(new JSONArray());
     }
+
     parentContainer.getChildren().put(dataObject.getObjectName());
     String childrenRange = CdmiObject.getChildrenRange(parentContainer.getChildren());
     parentContainer.setChildrenrange(childrenRange);
 
     dataObject.setCompletionStatus("Complete");
     dataObject.setMetadata(dataObjectRequest.getMetadata());
+    // dataObject.setCapabilitiesUri(dataObjectRequest.getCapabilitiesUri());
 
-    cdmiObjectDao.createCdmiObject(dataObject, dataObjectPath.toString());
+    dataObject = (DataObject) cdmiObjectDao.createCdmiObject(dataObject, urlPath.toString());
     cdmiObjectDao.updateCdmiObject(parentContainer);
 
     return dataObject;
@@ -139,39 +139,32 @@ public class DataObjectDaoImpl implements DataObjectDao {
 
   @Override
   public DataObject deleteByPath(String path) {
-    if (path == null) {
-      return null;
-    }
-    LOG.debug("delete data object {}", path.trim());
+    DataObject dataObject = null;
+    try {
+      log.debug("delete data object {}", path.trim());
 
-    final Path objectPath = Paths.get(baseDirectoryName.trim(), path.trim());
-    DataObject dataObject = (DataObject) cdmiObjectDao.getCdmiObjectByPath(objectPath.toString());
+      dataObject = (DataObject) cdmiObjectDao.getCdmiObjectByPath(path.trim());
 
-    if (dataObject != null) {
-      try {
-        LOG.debug("delete file {}", objectPath.toString());
+      if (dataObject != null) {
+        final Path objectPath = Paths.get(baseDirectoryName.trim(), path.trim());
+
+        log.debug("delete file {}", objectPath.toString());
         Files.delete(objectPath);
 
         cdmiObjectDao.deleteCdmiObject(dataObject.getObjectId());
-        cdmiObjectDao.deleteCdmiObjectByPath(objectPath.toString());
+        cdmiObjectDao.deleteCdmiObjectByPath(path.trim());
 
         // removeChild(objectPath.getFileName().toString(), objectPath.getParent().toString());
-
-      } catch (Exception e) {
-        LOG.error("ERROR: {}", e.getMessage());
       }
+    } catch (Exception e) {
+      log.error("ERROR: {}", e.getMessage());
     }
     return dataObject;
   }
 
   @Override
   public DataObject findByPath(String path) {
-    if (path == null) {
-      return null;
-    }
-
-    Path objectPath = Paths.get(baseDirectoryName.trim(), path.trim());
-    DataObject dataObject = (DataObject) cdmiObjectDao.getCdmiObjectByPath(objectPath.toString());
+    DataObject dataObject = (DataObject) cdmiObjectDao.getCdmiObjectByPath(path.trim());
     // if (dataObject != null) {
     // dataObject.setValue(new String(getDataObjectContent(path)));
     // }
@@ -202,21 +195,17 @@ public class DataObjectDaoImpl implements DataObjectDao {
 
   @Override
   public DataObject updateContent(String path, byte[] content) {
-    if (path == null) {
-      return null;
-    }
-
-    Path objectPath = Paths.get(baseDirectoryName.trim(), path.trim());
-    DataObject dataObject = (DataObject) cdmiObjectDao.getCdmiObjectByPath(objectPath.toString());
+    DataObject dataObject = (DataObject) cdmiObjectDao.getCdmiObjectByPath(path.trim());
 
     if (dataObject != null) {
       try {
+        Path objectPath = Paths.get(baseDirectoryName.trim(), path.trim());
         Files.write(objectPath, content, StandardOpenOption.WRITE,
             StandardOpenOption.TRUNCATE_EXISTING);
-        LOG.debug("writing value to data object");
+        log.debug("writing value to data object");
       } catch (IOException ex) {
         // ex.printStackTrace();
-        LOG.error("ERROR {}", ex.getMessage());
+        log.error("ERROR {}", ex.getMessage());
       }
     }
     return dataObject;

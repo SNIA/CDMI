@@ -1,10 +1,14 @@
 #!/bin/bash
 
+VERSION=0.1
+NAME=cdmi-server
+
 mvn clean package
 
-mkdir -p debian/usr/lib/cdmi-server
-cp target/cdmi-server-0.1-SNAPSHOT.jar debian/usr/lib/cdmi-server
+mkdir -p debian/var/lib/$NAME/config/
+cp config/application.yml debian/var/lib/$NAME/config/
+cp target/$NAME-$VERSION-SNAPSHOT.jar debian/var/lib/$NAME/
 
 dpkg --build debian
 
-mv debian.deb cdmi-server-1.0.deb
+mv debian.deb $NAME-$VERSION.deb

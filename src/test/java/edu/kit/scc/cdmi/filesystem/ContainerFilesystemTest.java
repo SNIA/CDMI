@@ -9,6 +9,7 @@
 
 package edu.kit.scc.cdmi.filesystem;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -17,7 +18,6 @@ import static org.junit.Assert.assertTrue;
 import edu.kit.scc.CdmiServerApplication;
 
 import org.json.JSONObject;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -41,7 +41,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
-@ActiveProfiles("filesystem")
+@ActiveProfiles("test")
 public class ContainerFilesystemTest {
 
   @Autowired
@@ -83,23 +83,23 @@ public class ContainerFilesystemTest {
   }
 
   @Test
-  public void testCreateContainerFailIfExists() {
+  public void testCreateContainerIfExists() {
     String containerName = "existingContainer";
 
     Container containerRequest = Container.fromJson(new JSONObject("{}"));
-    Container container =
+    Container container1 =
         containerDao.createByPath(Paths.get("/", containerName).toString(), containerRequest);
 
-    assertNotNull(container);
+    assertNotNull(container1);
 
-    container =
+    Container container2 =
         containerDao.createByPath(Paths.get("/", containerName).toString(), containerRequest);
 
-    assertTrue(container == null);
+    assertEquals(container1.toString(), container2.toString());
   }
 
   @Test
-  public void testCreateContainerFails() {
+  public void testCreateRootContainer() {
     Container containerRequest = Container.fromJson(new JSONObject("{}"));
     Container container = containerDao.createByPath(null, containerRequest);
 
@@ -107,7 +107,7 @@ public class ContainerFilesystemTest {
 
     container = containerDao.createByPath("/", null);
 
-    assertTrue(container == null);
+    assertNotNull(container);
   }
 
   @Test

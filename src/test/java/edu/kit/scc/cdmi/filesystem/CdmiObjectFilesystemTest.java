@@ -15,7 +15,6 @@ import static org.junit.Assert.assertTrue;
 
 import edu.kit.scc.CdmiServerApplication;
 
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -39,7 +38,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
-@ActiveProfiles("filesystem")
+@ActiveProfiles("test")
 public class CdmiObjectFilesystemTest {
 
   @Value("${cdmi.data.objectIdPrefix}")
@@ -115,8 +114,7 @@ public class CdmiObjectFilesystemTest {
 
     CdmiObject updatedObject = new CdmiObject("myId");
 
-    updatedObject = cdmiObjectDao.updateCdmiObject(updatedObject,
-        Paths.get(baseDirectoryName, objectName).toString());
+    updatedObject = cdmiObjectDao.updateCdmiObject(updatedObject, objectName);
 
     assertNotNull(updatedObject);
     assertTrue(updatedObject.getObjectId().equals("myId"));

@@ -1,13 +1,18 @@
-/*
- * Copyright 2016 Karlsruhe Institute of Technology (KIT)
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- * 
- * http://www.apache.org/licenses/LICENSE-2.0
- */
+package edu.kit.scc.test;
 
-package edu.kit.scc.cdmi.rest;
+import edu.kit.scc.cdmi.filesystem.CapabilityFilesystemTest;
+import edu.kit.scc.cdmi.filesystem.CdmiObjectFilesystemTest;
+import edu.kit.scc.cdmi.filesystem.ContainerFilesystemTest;
+import edu.kit.scc.cdmi.filesystem.DataObjectFilesystemTest;
+import edu.kit.scc.cdmi.rest.AuthorizationTest;
+import edu.kit.scc.cdmi.rest.CapabilitiesTest;
+import edu.kit.scc.cdmi.rest.CdmiObjectTest;
+import edu.kit.scc.cdmi.rest.ContainerTest;
+import edu.kit.scc.cdmi.rest.DataObjectTest;
+import edu.kit.scc.cdmi.rest.DomainTest;
+import edu.kit.scc.cdmi.rest.FilterJsonTest;
+import edu.kit.scc.http.client.HttpClientTest;
+import edu.kit.scc.utils.UtilsTest;
 
 import org.junit.AfterClass;
 import org.junit.runner.RunWith;
@@ -24,9 +29,11 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Properties;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({AuthorizationTest.class, FilterJsonTest.class, CapabilitiesTest.class,
-    CdmiObjectTest.class, ContainerTest.class, DataObjectTest.class, DomainTest.class})
-public class RestTestSuite {
+@Suite.SuiteClasses({CapabilityFilesystemTest.class, CdmiObjectFilesystemTest.class,
+    ContainerFilesystemTest.class, DataObjectFilesystemTest.class, AuthorizationTest.class,
+    CapabilitiesTest.class, CdmiObjectTest.class, ContainerTest.class, DataObjectTest.class,
+    DomainTest.class, FilterJsonTest.class, HttpClientTest.class, UtilsTest.class})
+public class TestSuite {
 
   @AfterClass
   public static void destroy() throws IOException {

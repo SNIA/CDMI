@@ -21,7 +21,6 @@ import org.snia.cdmiserver.dao.CdmiObjectDao;
 import org.snia.cdmiserver.model.Capability;
 import org.snia.cdmiserver.model.CdmiObject;
 import org.snia.cdmiserver.model.Container;
-import org.snia.cdmiserver.model.Domain;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
@@ -37,7 +36,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 @Component
-@Profile("filesystem")
+@Profile({"filesystem", "test"})
 public class FilesystemConfiguration {
 
   private static final Logger log = LoggerFactory.getLogger(FilesystemConfiguration.class);
@@ -63,29 +62,37 @@ public class FilesystemConfiguration {
   public void init() throws IOException {
     log.debug("Set-up root container...");
 
-    CdmiObject rootObject = new CdmiObject();
-
     Path path = Paths.get(baseDirectory);
     if (!Files.exists(path)) {
-      Files.createDirectories(Paths.get(baseDirectory, "cdmi_objectid"));
+      Files.createDirectory(Paths.get(baseDirectory));
       log.debug("root directory {} created", path.toString());
     }
-    Container rootContainer = new Container("/", "/", rootObject.getObjectId());
-    rootContainer.setObjectId(rootObject.getObjectId());
 
-    cdmiObjectDao.createCdmiObject(rootContainer, baseDirectory);
+    path = Paths.get(baseDirectory, "cdmi_objectid");
+    if (!Files.exists(path)) {
+      Files.createDirectory(path);
+      log.debug("cdmi objectid directory {} created", path.toString());
+    }
 
     path = Paths.get(baseDirectory, "cdmi_capabilities");
     if (!Files.exists(path)) {
-      Files.createDirectory(Paths.get(baseDirectory, "cdmi_capabilities"));
-      log.debug("capabilities directory {} created", path.toString());
+      Files.createDirectory(path);
+      log.debug("cdmi objectid directory {} created", path.toString());
     }
 
-    rootObject = cdmiObjectDao.getCdmiObjectByPath(baseDirectory);
+    CdmiObject rootObject = new CdmiObject();
+    Container rootContainer = new Container("/", "/", rootObject.getObjectId());
+    rootContainer.setObjectId(rootObject.getObjectId());
+
+    rootContainer = (Container) cdmiObjectDao.createCdmiObject(rootContainer, "/");
+    log.debug("root container created {}", rootContainer.toString());
+
+    rootObject = cdmiObjectDao.getCdmiObjectByPath("/");
 
     Capability rootCapability = new Capability("cdmi_capabilities", "/", rootObject.getObjectId());
-    cdmiObjectDao.createCdmiObject(rootCapability,
-        Paths.get(baseDirectory, "cdmi_capabilities").toString());
+    rootCapability =
+        (Capability) cdmiObjectDao.createCdmiObject(rootCapability, "/cdmi_capabilities");
+    log.debug("root capability created {}", rootCapability.toString());
 
     Capability containerCapability =
         new Capability("container", "/cdmi_capabilities", rootCapability.getObjectId());
@@ -96,17 +103,6 @@ public class FilesystemConfiguration {
         new Capability("dataobject", "/cdmi_capabilities", rootCapability.getObjectId());
     capabilityDao.createByPath(Paths.get("cdmi_capabilities", "dataobject").toString(),
         dataObjectCapability);
-
-    path = Paths.get(baseDirectory, "cdmi_domains");
-    if (!Files.exists(path)) {
-      Files.createDirectory(path);
-      log.debug("domain directory {} created", path.toString());
-    }
-    rootObject = cdmiObjectDao.getCdmiObjectByPath(baseDirectory);
-
-    Domain rootDomain = new Domain("cdmi_domains", "/", rootObject.getObjectId());
-
-    cdmiObjectDao.createCdmiObject(rootDomain, Paths.get(baseDirectory, "cdmi_domains").toString());
 
     Capability defaultContainerCapability =
         capabilityDao.findByPath(Paths.get("cdmi_capabilities", "container").toString());

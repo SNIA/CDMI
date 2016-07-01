@@ -51,7 +51,7 @@ import java.nio.file.Paths;
  */
 public class CapabilityDaoImpl implements CapabilityDao {
 
-  private static final Logger LOG = LoggerFactory.getLogger(CapabilityDaoImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(CapabilityDaoImpl.class);
 
   private String baseDirectory;
 
@@ -80,41 +80,41 @@ public class CapabilityDaoImpl implements CapabilityDao {
 
   @Override
   public Capability findByPath(String path) {
-    return (Capability) cdmiObjectDao
-        .getCdmiObjectByPath(Paths.get(baseDirectory.trim(), path.trim()).toString());
+    return (Capability) cdmiObjectDao.getCdmiObjectByPath(path.trim());
   }
 
   @Override
   public Capability createByPath(String path, Capability capabilityRequest) {
-    if (path == null) {
-      return null;
-    }
-
-    // TODO: only allow paths containing "cdmi_capabilities"
-
-    final Path capabilityPath = Paths.get(baseDirectory.trim(), path.trim());
-
     try {
+      final Path capabilityPath = Paths.get(baseDirectory.trim(), path.trim());
+      // create the capability directory
       Files.createDirectory(capabilityPath);
-      LOG.debug("create capability object {}", path.trim());
+      log.debug("create capability object {} {}", path.trim(), capabilityRequest.toString());
+      log.debug("create directory {}", capabilityPath.toString());
     } catch (FileAlreadyExistsException ex) {
-      LOG.error(ex.getMessage());
-      return null;
+      log.error(ex.getMessage());
     } catch (Exception ex) {
-      LOG.error(ex.getMessage());
+      log.error(ex.getMessage());
       return null;
     }
 
-    String objectName = capabilityPath.getFileName().toString();
-    String parentUri = Paths.get(path.trim()).getParent().toString();
-    String parentPath = capabilityPath.getParent().toString();
+    Path urlPath = Paths.get(path.trim());
+    Path parentPath = urlPath.getParent();
+    if (parentPath == null) {
+      return null;
+    }
+
+    // create the capability meta-data files
     Capability parentCapability =
         (Capability) cdmiObjectDao.getCdmiObjectByPath(parentPath.toString());
 
-    Capability capability = new Capability(objectName, parentUri, parentCapability.getObjectId());
+    Capability capability = new Capability(urlPath.getFileName().toString(), parentPath.toString(),
+        parentCapability.getObjectId());
+
     if (parentCapability.getChildren() == null) {
       parentCapability.setChildren(new JSONArray());
     }
+
     parentCapability.getChildren().put(capability.getObjectName());
     String childrenRange = CdmiObject.getChildrenRange(parentCapability.getChildren());
     parentCapability.setChildrenrange(childrenRange);
@@ -122,10 +122,11 @@ public class CapabilityDaoImpl implements CapabilityDao {
     capability.setMetadata(capabilityRequest.getMetadata());
     capability.setCapabilities(capabilityRequest.getCapabilities());
 
-    cdmiObjectDao.createCdmiObject(capability, capabilityPath.toString());
+    if (cdmiObjectDao.createCdmiObject(capability, urlPath.toString()) == null) {
+      return (Capability) cdmiObjectDao.deleteCdmiObjectByPath(urlPath.toString());
+    }
     cdmiObjectDao.updateCdmiObject(parentCapability);
 
     return capability;
   }
-
 }

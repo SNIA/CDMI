@@ -58,7 +58,7 @@ import java.nio.file.Paths;
  */
 public class ContainerDaoImpl implements ContainerDao {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ContainerDaoImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(ContainerDaoImpl.class);
 
   private String baseDirectoryName;
 
@@ -82,47 +82,46 @@ public class ContainerDaoImpl implements ContainerDao {
 
   @Override
   public Container createByPath(String path, Container containerRequest) {
-    if (path == null) {
-      return null;
-    }
-
-    final Path containerPath = Paths.get(baseDirectoryName.trim(), path.trim());
-
     try {
+      final Path containerPath = Paths.get(baseDirectoryName.trim(), path.trim());
       // create the container directory
       Files.createDirectory(containerPath);
-      LOG.debug("create container {} {}", path.trim(), containerRequest.toString());
+      log.debug("create container {} {}", path.trim(), containerRequest.toString());
+      log.debug("create directory {}", containerPath.toString());
     } catch (FileAlreadyExistsException ex) {
-      LOG.error("File already exists {}", ex.getMessage());
-      return null;
+      log.error("File already exists {}", ex.getMessage());
     } catch (Exception ex) {
-      LOG.error(ex.getMessage());
+      log.error(ex.getMessage());
       return null;
     }
 
-    // generate the container meta-data
-    String containerName = containerPath.getFileName().toString();
-    String parentUri = Paths.get(path.trim()).getParent() == null ? "/"
-        : Paths.get(path.trim()).getParent().toString();
-    String parentPath = containerPath.getParent() == null ? baseDirectoryName
-        : containerPath.getParent().toString();
+    Path urlPath = Paths.get(path.trim());
+    Path parentPath = urlPath.getParent();
+    if (parentPath == null) {
+      // return root container
+      return (Container) cdmiObjectDao.getCdmiObjectByPath("/");
+    }
 
+    // create the container meta-data files
     Container parentContainer =
         (Container) cdmiObjectDao.getCdmiObjectByPath(parentPath.toString());
 
-    Container container = new Container(containerName, parentUri, parentContainer.getObjectId());
+    Container container = new Container(urlPath.getFileName().toString(), parentPath.toString(),
+        parentContainer.getObjectId());
 
     if (parentContainer.getChildren() == null) {
       parentContainer.setChildren(new JSONArray());
     }
+
     parentContainer.getChildren().put(container.getObjectName());
     String childrenRange = CdmiObject.getChildrenRange(parentContainer.getChildren());
     parentContainer.setChildrenrange(childrenRange);
 
     container.setCompletionStatus("Complete");
     container.setMetadata(containerRequest.getMetadata());
+    // container.setCapabilitiesUri(containerRequest.getCapabilitiesUri());
 
-    cdmiObjectDao.createCdmiObject(container, containerPath.toString());
+    container = (Container) cdmiObjectDao.createCdmiObject(container, urlPath.toString());
     cdmiObjectDao.updateCdmiObject(parentContainer);
 
     return container;
@@ -130,28 +129,26 @@ public class ContainerDaoImpl implements ContainerDao {
 
   @Override
   public Container deleteByPath(String path) {
-    if (path == null) {
-      return null;
-    }
-    LOG.debug("delete container {}", path.trim());
+    Container container = null;
+    try {
+      log.debug("delete container {}", path.trim());
 
-    final Path containerPath = Paths.get(baseDirectoryName.trim(), path.trim());
-    Container container = (Container) cdmiObjectDao.getCdmiObjectByPath(containerPath.toString());
+      container = (Container) cdmiObjectDao.getCdmiObjectByPath(path.trim());
 
-    if (container != null) {
-      try {
-        LOG.debug("delete directory {}", containerPath.toString());
+      if (container != null) {
+        final Path containerPath = Paths.get(baseDirectoryName.trim(), path.trim());
+
+        log.debug("delete directory {}", containerPath.toString());
         Files.delete(containerPath);
 
         cdmiObjectDao.deleteCdmiObject(container.getObjectId());
-        cdmiObjectDao.deleteCdmiObjectByPath(containerPath.toString());
+        cdmiObjectDao.deleteCdmiObjectByPath(path.trim());
 
         // removeChild(containerPath.getFileName().toString(),
         // containerPath.getParent().toString());
-
-      } catch (Exception ex) {
-        LOG.error("ERROR: {}", ex.getMessage());
       }
+    } catch (Exception ex) {
+      log.error("ERROR: {}", ex.getMessage());
     }
     return container;
   }
@@ -163,8 +160,7 @@ public class ContainerDaoImpl implements ContainerDao {
 
   @Override
   public Container findByPath(String path) {
-    return (Container) cdmiObjectDao
-        .getCdmiObjectByPath(Paths.get(baseDirectoryName.trim(), path.trim()).toString());
+    return (Container) cdmiObjectDao.getCdmiObjectByPath(path.trim());
   }
 
   @Override

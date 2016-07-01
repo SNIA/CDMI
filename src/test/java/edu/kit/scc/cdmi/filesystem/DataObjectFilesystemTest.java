@@ -9,14 +9,13 @@
 
 package edu.kit.scc.cdmi.filesystem;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import edu.kit.scc.CdmiServerApplication;
 
 import org.json.JSONObject;
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,7 +39,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
-@ActiveProfiles("filesystem")
+@ActiveProfiles("test")
 public class DataObjectFilesystemTest {
 
   static String baseDirectoryName;
@@ -169,20 +168,20 @@ public class DataObjectFilesystemTest {
   }
 
   @Test
-  public void testCreateDataObjectFailsIfAlreadyExists() {
+  public void testCreateDataObjectIfAlreadyExists() {
     String dataObjectName = "existing";
 
     DataObject dataObjectRequest = DataObject.fromJson(new JSONObject("{}"));
 
-    DataObject dataObject =
+    DataObject dataObject1 =
         dataObjectDao.createByPath(Paths.get("/", dataObjectName).toString(), dataObjectRequest);
 
-    assertNotNull(dataObject);
+    assertNotNull(dataObject1);
 
-    dataObject =
+    DataObject dataObject2 =
         dataObjectDao.createByPath(Paths.get("/", dataObjectName).toString(), dataObjectRequest);
 
-    assertNull(dataObject);
+    assertEquals(dataObject1.toString(), dataObject2.toString());
   }
 
   // @AfterClass

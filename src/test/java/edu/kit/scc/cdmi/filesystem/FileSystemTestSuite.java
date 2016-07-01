@@ -31,7 +31,7 @@ public class FileSystemTestSuite {
   @AfterClass
   public static void destroy() throws IOException {
     Properties props = new Properties();
-    InputStream is = ClassLoader.getSystemResourceAsStream("application.properties");
+    InputStream is = ClassLoader.getSystemResourceAsStream("application-test.properties");
     try {
       props.load(is);
     } catch (IOException e) {

@@ -20,6 +20,7 @@ import org.snia.cdmiserver.model.DataObject;
 import org.snia.cdmiserver.model.Domain;
 import org.snia.cdmiserver.util.MediaTypes;
 
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -64,25 +65,24 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
     this.objectIdDirectory = objectIdDirectory;
   }
 
-  private Path getObjectPathForPath(String path) {
-    Path objectPath = Paths.get(path.trim());
+  private Path getCdmiObjectFilePathByUrl(String path) {
+    Path fileSystemRoot = Paths.get(baseDirectory.trim());
+    Path fileSystemPath = Paths.get(baseDirectory.trim(), path.trim());
 
-    if (objectPath.getFileName() == null) {
-      log.debug("system path {}",
-          Paths.get(baseDirectory.trim(), objectIdPrefix + baseDirectory.trim()).toString());
-      return Paths.get(baseDirectory.trim(), objectIdPrefix + baseDirectory.trim());
+    Path returnPath = null;
+
+    if (fileSystemPath.compareTo(fileSystemRoot) == 0) {
+      returnPath = fileSystemRoot.resolve(objectIdPrefix);
+    } else {
+      String name = objectIdPrefix + fileSystemPath.getFileName();
+      returnPath = fileSystemPath.getParent().resolve(name);
     }
-    String fileName = objectIdPrefix + objectPath.getFileName();
-    Path parentPath = objectPath.getParent();
-    if (parentPath == null || parentPath.toString().equals("/")) {
-      log.debug("system path {}", Paths.get(baseDirectory.trim(), fileName).toString());
-      return Paths.get(baseDirectory.trim(), fileName);
-    }
-    log.debug("system path {}", Paths.get(objectPath.getParent().toString(), fileName).toString());
-    return Paths.get(objectPath.getParent().toString(), fileName);
+
+    log.debug("return cdmi object file path {} for uri {}", returnPath.toString(), path);
+    return returnPath;
   }
 
-  private Path getObjectPathForId(String objectId) {
+  private Path getObjectIdFilePath(String objectId) {
     return Paths.get(baseDirectory.trim(), objectIdDirectory, objectId);
   }
 
@@ -95,7 +95,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
    * </p>
    * 
    * @param object the object's id
-   * @param path the file system path
+   * @param path the CDMI URL path
    * @return the created {@link CdmiObject}
    */
   @Override
@@ -105,14 +105,19 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
     if (objectById != null) {
       try {
 
-        Files.createLink(getObjectPathForPath(path), getObjectPathForId(objectById.getObjectId()));
+        Files.createLink(getCdmiObjectFilePathByUrl(path),
+            getObjectIdFilePath(objectById.getObjectId()));
 
         // Files.write(getObjectPathForPath(path), object.toJson().toString().getBytes(),
         // StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
 
-        log.debug("create new objectId link {} to {}", getObjectPathForPath(path).toString(),
-            getObjectPathForId(objectById.getObjectId()).toString());
-
+        log.debug("create new objectId link {} to {}", getCdmiObjectFilePathByUrl(path).toString(),
+            getObjectIdFilePath(objectById.getObjectId()).toString());
+      } catch (FileAlreadyExistsException ex) {
+        log.error("{} {}", ex.getClass().getName(), ex.getMessage());
+        deleteCdmiObject(objectById.getObjectId());
+        log.debug("return existing object {}", getCdmiObjectByPath(path).toString());
+        return getCdmiObjectByPath(path);
       } catch (Exception ex) {
         // ex.printStackTrace();
         log.error("{} {}", ex.getClass().getName(), ex.getMessage());
@@ -127,7 +132,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
   public CdmiObject createCdmiObject(CdmiObject object) {
     try {
 
-      Files.write(getObjectPathForId(object.getObjectId()), object.toJson().toString().getBytes(),
+      Files.write(getObjectIdFilePath(object.getObjectId()), object.toJson().toString().getBytes(),
           StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
 
       log.debug("create new objectId file {} {}", object.toString(), object.toJson());
@@ -144,14 +149,14 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
    * Updates the given CDMI object.
    * 
    * @param updateObject the updated object
-   * @param path the object's file system path
+   * @param path the CDMI URL path
    * @return the updated {@link CdmiObject}
    */
   @Override
   public CdmiObject updateCdmiObject(CdmiObject updateObject, String path) {
     try {
 
-      Files.write(getObjectPathForPath(path), updateObject.toJson().toString().getBytes(),
+      Files.write(getCdmiObjectFilePathByUrl(path), updateObject.toJson().toString().getBytes(),
           StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
 
       log.debug("update objectId file {} {}", updateObject.toString(), updateObject.toJson());
@@ -168,7 +173,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
   public CdmiObject updateCdmiObject(CdmiObject object) {
     try {
 
-      Files.write(getObjectPathForId(object.getObjectId()), object.toJson().toString().getBytes(),
+      Files.write(getObjectIdFilePath(object.getObjectId()), object.toJson().toString().getBytes(),
           StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
 
       log.debug("update objectId file {} {}", object.toString(), object.toJson());
@@ -184,7 +189,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
   /**
    * Deletes a CdmiObject by path.
    * 
-   * @param path the file system path to the CDMI object
+   * @param path the CDMI URL path
    * @return the deleted {@link CdmiObject}
    */
   @Override
@@ -193,7 +198,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
     if (object != null) {
       try {
 
-        boolean deleted = Files.deleteIfExists(getObjectPathForPath(path));
+        boolean deleted = Files.deleteIfExists(getCdmiObjectFilePathByUrl(path));
 
         log.debug("delete objectId file {} success {}", path, deleted);
 
@@ -214,7 +219,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
     if (object != null) {
       try {
 
-        boolean deleted = Files.deleteIfExists(getObjectPathForId(objectId));
+        boolean deleted = Files.deleteIfExists(getObjectIdFilePath(objectId));
 
         log.debug("delete objectId file {} success {}", object.toString(), deleted);
 
@@ -230,14 +235,14 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
   /**
    * Gets a CDMI object by path.
    * 
-   * @param path the object's file system path
+   * @param path the CDMI URL path
    * @return the {@link CdmiObject}
    */
   @Override
   public CdmiObject getCdmiObjectByPath(String path) {
     try {
 
-      byte[] content = Files.readAllBytes(getObjectPathForPath(path));
+      byte[] content = Files.readAllBytes(getCdmiObjectFilePathByUrl(path));
       JSONObject json = new JSONObject(new String(content));
 
       String objectType = json.optString("objectType");
@@ -255,7 +260,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
         }
       }
     } catch (Exception ex) {
-      // ex.printStackTrace();
+      //ex.printStackTrace();
       log.error("{} {}", ex.getClass().getName(), ex.getMessage());
     }
     return null;
@@ -265,7 +270,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
   public CdmiObject getCdmiObject(String objectId) {
     try {
 
-      byte[] content = Files.readAllBytes(getObjectPathForId(objectId));
+      byte[] content = Files.readAllBytes(getObjectIdFilePath(objectId));
       JSONObject json = new JSONObject(new String(content));
 
       String objectType = json.optString("objectType");

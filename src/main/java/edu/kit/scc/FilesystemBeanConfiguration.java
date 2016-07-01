@@ -25,7 +25,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 @Configuration
-@Profile("filesystem")
+@Profile({"filesystem", "test"})
 public class FilesystemBeanConfiguration {
 
   @Value("${cdmi.data.baseDirectory}")
