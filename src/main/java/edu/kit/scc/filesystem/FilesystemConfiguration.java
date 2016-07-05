@@ -7,7 +7,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package edu.kit.scc;
+package edu.kit.scc.filesystem;
 
 import org.indigo.cdmi.BackEndException;
 import org.indigo.cdmi.BackendCapability;
