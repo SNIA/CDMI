@@ -9,10 +9,6 @@
 
 package edu.kit.scc;
 
-import edu.kit.scc.http.HttpClient;
-import edu.kit.scc.http.HttpResponse;
-
-import org.apache.commons.codec.binary.Base64;
 import org.indigo.cdmi.BackEndException;
 import org.indigo.cdmi.CdmiObjectStatus;
 import org.indigo.cdmi.ConfigurableStorageBackend;
@@ -74,27 +70,6 @@ public class CdmiRestController {
   @Autowired
   private DataObjectDao dataObjectDao;
 
-  @Autowired
-  private HttpClient httpClient;
-
-  @Value("${rest.user}")
-  private String restUser;
-
-  @Value("${rest.pass}")
-  private String restPassword;
-
-  @Value("${oidc.tokeninfo}")
-  private String tokenInfo;
-
-  @Value("${oidc.userinfo}")
-  private String userInfo;
-
-  @Value("${oidc.clientid}")
-  private String clientId;
-
-  @Value("${oidc.clientsecret}")
-  private String clientSecret;
-
   @Value("${cdmi.qos.backend.type}")
   private String backendType;
 
@@ -118,23 +93,19 @@ public class CdmiRestController {
    * @return a JSON serialized {@link Domain} object
    */
   @RequestMapping(path = "/cdmi_domains/**", method = RequestMethod.GET)
-  public ResponseEntity<?> getDomains(@RequestHeader("Authorization") String authorizationHeader,
-      HttpServletRequest request) {
+  public ResponseEntity<?> getDomains(HttpServletRequest request) {
 
     HttpHeaders responseHeaders = new HttpHeaders();
     responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
     responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
-
-    if (!verifyAuthorization(authorizationHeader)) {
-      return new ResponseEntity<>(responseHeaders, HttpStatus.UNAUTHORIZED);
-    }
 
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 
     log.debug("Requested domain path {}", path);
 
-    // TODO implement get domains
+    path = Paths.get(path).normalize().toString();
+    log.debug("Normalized domain path {}", path.toString());
 
     return new ResponseEntity<String>("Domain not found", responseHeaders, HttpStatus.NOT_FOUND);
   }
@@ -146,20 +117,18 @@ public class CdmiRestController {
    * @return a JSON serialized {@link Capability} object
    */
   @RequestMapping(path = "/cdmi_capabilities/**", method = RequestMethod.GET)
-  public ResponseEntity<?> getCapabilities(
-      @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request) {
+  public ResponseEntity<?> getCapabilities(HttpServletRequest request) {
 
     HttpHeaders responseHeaders = new HttpHeaders();
     responseHeaders.setContentType(new MediaType("application", "cdmi-capability"));
     responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
 
-    if (!verifyAuthorization(authorizationHeader)) {
-      return new ResponseEntity<>(responseHeaders, HttpStatus.UNAUTHORIZED);
-    }
-
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
     log.debug("Requested capabilities path {}", path);
+
+    path = Paths.get(path).normalize().toString();
+    log.debug("Normalized capabilities path {}", path);
 
     String query = request.getQueryString();
     log.debug("Requested capabilities query {}", query);
@@ -189,17 +158,12 @@ public class CdmiRestController {
    * @return a JSON serialized {@link CdmiObject}
    */
   @RequestMapping(path = "/cdmi_objectid/{objectId}", method = RequestMethod.GET)
-  public ResponseEntity<?> getCdmiObjectById(
-      @RequestHeader("Authorization") String authorizationHeader, @PathVariable String objectId,
+  public ResponseEntity<?> getCdmiObjectById(@PathVariable String objectId,
       HttpServletRequest request) {
 
     HttpHeaders responseHeaders = new HttpHeaders();
     responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
     responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
-
-    if (!verifyAuthorization(authorizationHeader)) {
-      return new ResponseEntity<>(responseHeaders, HttpStatus.UNAUTHORIZED);
-    }
 
     log.debug("Get objectID {}", objectId);
 
@@ -263,21 +227,19 @@ public class CdmiRestController {
    * @return a JSON serialized {@link Container} or {@link DataObject}
    */
   @RequestMapping(path = "/**", method = RequestMethod.GET)
-  public ResponseEntity<?> getCdmiObjectByPath(
-      @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request) {
+  public ResponseEntity<?> getCdmiObjectByPath(HttpServletRequest request) {
 
     HttpHeaders responseHeaders = new HttpHeaders();
     responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
     responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
 
-    if (!verifyAuthorization(authorizationHeader)) {
-      return new ResponseEntity<>(responseHeaders, HttpStatus.UNAUTHORIZED);
-    }
-
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 
     log.debug("Get path {}", path);
+
+    path = Paths.get(path).normalize().toString();
+    log.debug("Normalized path {}", path);
 
     String query = request.getQueryString();
     log.debug("Requested object query {}", query);
@@ -340,22 +302,20 @@ public class CdmiRestController {
    */
   @RequestMapping(path = "/**", method = RequestMethod.PUT,
       consumes = {"application/cdmi-object", "application/cdmi-container", "application/json"})
-  public ResponseEntity<?> putCdmiObject(@RequestHeader("Authorization") String authorizationHeader,
-      @RequestHeader("Content-Type") String contentType, @RequestBody String body,
-      HttpServletRequest request) {
+  public ResponseEntity<?> putCdmiObject(@RequestHeader("Content-Type") String contentType,
+      @RequestBody String body, HttpServletRequest request) {
 
     HttpHeaders responseHeaders = new HttpHeaders();
     responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
     responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
 
-    if (!verifyAuthorization(authorizationHeader)) {
-      return new ResponseEntity<>(responseHeaders, HttpStatus.UNAUTHORIZED);
-    }
-
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 
     log.debug("Create or update path {} as {}", path, contentType);
+
+    path = Paths.get(path).normalize().toString();
+    log.debug("Normalized path {}", path);
 
     CdmiObject cdmiObject = cdmiObjectDao.getCdmiObjectByPath(path);
 
@@ -390,20 +350,18 @@ public class CdmiRestController {
    * @return a {@link ResponseEntity}
    */
   @RequestMapping(path = "/**", method = RequestMethod.DELETE)
-  public ResponseEntity<?> deleteCdmiObject(
-      @RequestHeader("Authorization") String authorizationHeader, HttpServletRequest request) {
+  public ResponseEntity<?> deleteCdmiObject(HttpServletRequest request) {
 
     HttpHeaders responseHeaders = new HttpHeaders();
     responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
-
-    if (!verifyAuthorization(authorizationHeader)) {
-      return new ResponseEntity<>(responseHeaders, HttpStatus.UNAUTHORIZED);
-    }
 
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
 
     log.debug("Delete path {}", path);
+
+    path = Paths.get(path).normalize().toString();
+    log.debug("Normalized path {}", path);
 
     CdmiObject cdmiObject = cdmiObjectDao.getCdmiObjectByPath(path);
 
@@ -543,48 +501,6 @@ public class CdmiRestController {
     } catch (BackEndException ex) {
       log.warn("ERROR: {}", ex.getMessage());
     }
-  }
-
-  /**
-   * Verifies the authorization according to the authorization header.
-   * 
-   * @param authorizationHeader the authorization header
-   * @return true if authorized
-   */
-  public boolean verifyAuthorization(String authorizationHeader) {
-    try {
-      log.debug("Authorization: {}", authorizationHeader);
-      String authorizationMethod = authorizationHeader.split(" ")[0];
-      String encodedCredentials = authorizationHeader.split(" ")[1];
-
-      if (authorizationMethod.equals("Basic")) {
-        String[] credentials = new String(Base64.decodeBase64(encodedCredentials)).split(":");
-
-        if (credentials[0].equals(restUser) && credentials[1].equals(restPassword)) {
-          return true;
-        }
-        log.error("Wrong credentials {} {}", credentials[0], credentials[1]);
-      } else if (authorizationMethod.equals("Bearer")) {
-        // check for user token
-        HttpResponse response = httpClient.makeHttpsGetRequest(encodedCredentials, userInfo);
-        if (response != null && response.statusCode == HttpStatus.OK.value()) {
-          // TODO set user ACLs
-          return true;
-        }
-        // check for client token
-        String body = "token=" + encodedCredentials;
-        response = httpClient.makeHttpsPostRequest(clientId, clientSecret, body, tokenInfo);
-        if (response.statusCode == HttpStatus.OK.value()) {
-          log.debug("Token info {}", response.getResponseString());
-          // TODO set client ACLs
-          return true;
-        }
-      }
-    } catch (Exception ex) {
-      log.error("ERROR {}", ex.toString());
-      // ex.printStackTrace();
-    }
-    return false;
   }
 
   /**
