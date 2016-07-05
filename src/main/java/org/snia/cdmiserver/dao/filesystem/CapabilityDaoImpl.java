@@ -104,7 +104,7 @@ public class CapabilityDaoImpl implements CapabilityDao {
       return null;
     }
 
-    // create the capability meta-data files
+    log.debug("create the capability meta-data files");
     Capability parentCapability =
         (Capability) cdmiObjectDao.getCdmiObjectByPath(parentPath.toString());
 
@@ -115,18 +115,33 @@ public class CapabilityDaoImpl implements CapabilityDao {
       parentCapability.setChildren(new JSONArray());
     }
 
-    parentCapability.getChildren().put(capability.getObjectName());
+    JSONArray children = parentCapability.getChildren();
+    JSONArray filteredChildren = new JSONArray();
+
+    for (int i = 0; i < children.length(); i++) {
+      if (!children.get(i).equals(capability.getObjectName())) {
+        filteredChildren.put(children.get(i));
+      }
+    }
+
+    filteredChildren.put(capability.getObjectName());
+    parentCapability.setChildren(filteredChildren);
+
     String childrenRange = CdmiObject.getChildrenRange(parentCapability.getChildren());
     parentCapability.setChildrenrange(childrenRange);
 
     capability.setMetadata(capabilityRequest.getMetadata());
     capability.setCapabilities(capabilityRequest.getCapabilities());
 
-    if (cdmiObjectDao.createCdmiObject(capability, urlPath.toString()) == null) {
-      return (Capability) cdmiObjectDao.deleteCdmiObjectByPath(urlPath.toString());
-    }
+    // if (cdmiObjectDao.createCdmiObject(capability, urlPath.toString()) == null) {
+    // return (Capability) cdmiObjectDao.deleteCdmiObjectByPath(urlPath.toString());
+    // }
+
+    capability = (Capability) cdmiObjectDao.createCdmiObject(capability, urlPath.toString());
     cdmiObjectDao.updateCdmiObject(parentCapability);
 
+    // capability = (Capability) cdmiObjectDao.getCdmiObjectByPath(urlPath.toString());
+    // log.debug("return capability {}", capability.toJson());
     return capability;
   }
 }

@@ -137,10 +137,10 @@ public class ContainerFilesystemTest {
         Files.exists(Paths.get(baseDirectoryName, "cdmi_objectid", childContainer.getObjectId())));
 
     String parentObjectId = childContainer.getParentId();
-
+    log.debug("Parent id {}", childContainer.getParentId());
     Container parentContainer = containerDao.findByObjectId(parentObjectId);
-
     assertNotNull(parentContainer);
+    log.debug("Parent container {}", parentContainer.toJson());
     assertTrue(parentContainer.getObjectId().equals(childContainer.getParentId()));
     assertTrue(parentContainer.getChildrenrange().equals("0"));
     assertTrue(parentContainer.getChildren().get(0).equals(childContainer.getObjectName()));

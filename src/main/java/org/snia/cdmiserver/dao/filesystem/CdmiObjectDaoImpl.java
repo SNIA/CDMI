@@ -114,8 +114,10 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
         log.debug("create new objectId link {} to {}", getCdmiObjectFilePathByUrl(path).toString(),
             getObjectIdFilePath(objectById.getObjectId()).toString());
       } catch (FileAlreadyExistsException ex) {
-        log.error("{} {}", ex.getClass().getName(), ex.getMessage());
-        deleteCdmiObject(objectById.getObjectId());
+        log.error("File already exists");
+        log.debug("remove temporary object {}", objectById.getObjectId());
+        CdmiObject removedObjectId = deleteCdmiObject(objectById.getObjectId());
+        log.debug("removed temporary object {}", removedObjectId.toJson());
         log.debug("return existing object {}", getCdmiObjectByPath(path).toString());
         return getCdmiObjectByPath(path);
       } catch (Exception ex) {
@@ -260,7 +262,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
         }
       }
     } catch (Exception ex) {
-      //ex.printStackTrace();
+      // ex.printStackTrace();
       log.error("{} {}", ex.getClass().getName(), ex.getMessage());
     }
     return null;
@@ -269,7 +271,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
   @Override
   public CdmiObject getCdmiObject(String objectId) {
     try {
-
+      log.debug("Get object {}", getObjectIdFilePath(objectId));
       byte[] content = Files.readAllBytes(getObjectIdFilePath(objectId));
       JSONObject json = new JSONObject(new String(content));
 

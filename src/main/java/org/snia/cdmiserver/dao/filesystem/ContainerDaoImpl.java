@@ -113,7 +113,18 @@ public class ContainerDaoImpl implements ContainerDao {
       parentContainer.setChildren(new JSONArray());
     }
 
-    parentContainer.getChildren().put(container.getObjectName());
+    JSONArray children = parentContainer.getChildren();
+    JSONArray filteredChildren = new JSONArray();
+
+    for (int i = 0; i < children.length(); i++) {
+      if (!children.get(i).equals(container.getObjectName())) {
+        filteredChildren.put(children.get(i));
+      }
+    }
+
+    filteredChildren.put(container.getObjectName());
+    parentContainer.setChildren(filteredChildren);
+
     String childrenRange = CdmiObject.getChildrenRange(parentContainer.getChildren());
     parentContainer.setChildrenrange(childrenRange);
 

@@ -113,7 +113,18 @@ public class DataObjectDaoImpl implements DataObjectDao {
       parentContainer.setChildren(new JSONArray());
     }
 
-    parentContainer.getChildren().put(dataObject.getObjectName());
+    JSONArray children = parentContainer.getChildren();
+    JSONArray filteredChildren = new JSONArray();
+
+    for (int i = 0; i < children.length(); i++) {
+      if (!children.get(i).equals(dataObject.getObjectName())) {
+        filteredChildren.put(children.get(i));
+      }
+    }
+
+    filteredChildren.put(dataObject.getObjectName());
+    parentContainer.setChildren(filteredChildren);
+
     String childrenRange = CdmiObject.getChildrenRange(parentContainer.getChildren());
     parentContainer.setChildrenrange(childrenRange);
 
