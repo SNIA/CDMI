@@ -18,9 +18,13 @@ import org.indigo.cdmi.spi.StorageBackend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -28,20 +32,28 @@ public class FilesystemBackend implements StorageBackend {
 
   private static final Logger log = LoggerFactory.getLogger(FilesystemBackend.class);
 
+  // simulates back-end capabilities
+  private ArrayList<BackendCapability> backendCapabilities = new ArrayList<>();
+
   // simulates monitored attributes
   private HashMap<String, String> monitoredAttributes = new HashMap<>();
 
-  // simulates transitions of QoS
-  private HashMap<String, CdmiObjectStatus> transitionMap = new HashMap<>();
+  // simulates QoS support
+  private HashMap<String, CdmiObjectStatus> objectMap = new HashMap<>();
 
   // simulates storage back-end capabilities
   private HashMap<String, String> capabilities = new HashMap<>();
-  HashMap<String, String> metadata = new HashMap<>();
+  private HashMap<String, String> metadata = new HashMap<>();
+
+  private Map<String, String> properties;
 
   /**
    * Constructs a dummy file-system module with dummy values.
+   * 
+   * @param properties file-system properties
    */
-  public FilesystemBackend() {
+  public FilesystemBackend(Map<String, String> properties) {
+    this.properties = properties;
 
     capabilities.put("cdmi_capabilities_templates", "true");
     capabilities.put("cdmi_capabilities_exact_inherit", "true");
@@ -58,35 +70,74 @@ public class FilesystemBackend implements StorageBackend {
     monitoredAttributes.put("cdmi_geographic_placement_provided", "[DE, FR]");
     monitoredAttributes.put("cdmi_latency_provided", "100");
 
-  }
-
-  @Override
-  public List<BackendCapability> getCapabilities() {
     BackendCapability containerCapabilities =
         new BackendCapability("profile1", CapabilityType.CONTAINER);
     containerCapabilities.setMetadata(metadata);
-    containerCapabilities.setCapabilities(capabilities);
+    HashMap<String, String> capabilitiesContainer = capabilities;
+    capabilitiesContainer.put("cdmi_capabilities_allowed",
+        "/cdmi_capabilities/container/profile1 /cdmi_capabilities/container/profile2");
+    containerCapabilities.setCapabilities(capabilitiesContainer);
 
     BackendCapability dataobjectCapabilities =
         new BackendCapability("profile1", CapabilityType.DATAOBJECT);
     dataobjectCapabilities.setMetadata(metadata);
-    dataobjectCapabilities.setCapabilities(capabilities);
+    HashMap<String, String> capabilitiesDataObject = capabilities;
+    capabilitiesDataObject.put("cdmi_capabilities_allowed",
+        "/cdmi_capabilities/dataobject/profile1 /cdmi_capabilities/dataobject/profile2");
+    dataobjectCapabilities.setCapabilities(capabilitiesDataObject);
 
-    return Arrays.asList(containerCapabilities, dataobjectCapabilities);
+    backendCapabilities.add(containerCapabilities);
+    backendCapabilities.add(dataobjectCapabilities);
+
+    containerCapabilities.setName("profile2");
+    dataobjectCapabilities.setName("profile2");
+
+    backendCapabilities.add(containerCapabilities);
+    backendCapabilities.add(dataobjectCapabilities);
+  }
+
+  private boolean isSupportedTargetCapabilitiesUri(String path, String capabilitiesUri) {
+    CdmiObjectStatus objectStatus = objectMap.get(path);
+    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/dataobject/profile1")
+        && capabilitiesUri.equals("/cdmi_capabilities/dataobject/profile2")) {
+      return true;
+    }
+    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/dataobject/profile2")
+        && capabilitiesUri.equals("/cdmi_capabilities/dataobject/profile1")) {
+      return true;
+    }
+    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/container/profile1")
+        && capabilitiesUri.equals("/cdmi_capabilities/container/profile2")) {
+      return true;
+    }
+    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/container/profile2")
+        && capabilitiesUri.equals("/cdmi_capabilities/container/profile1")) {
+      return true;
+    }
+    log.warn("target capabilities URI not supported {}", capabilitiesUri);
+    return false;
+  }
+
+  @Override
+  public List<BackendCapability> getCapabilities() {
+    return backendCapabilities;
   }
 
   @Override
   public void updateCdmiObject(String path, String targetCapabilitiesUri) throws BackEndException {
-    if (!transitionMap.containsKey(path)) {
-      transitionMap.put(path,
-          new CdmiObjectStatus(Status.OK, monitoredAttributes, "profile1", null));
+    CdmiObjectStatus objectStatus = getCurrentStatus(path);
+    log.debug("current object status {}", objectStatus.toString());
+
+    if (!isSupportedTargetCapabilitiesUri(path, targetCapabilitiesUri)) {
+      throw new BackEndException();
     }
 
-    String currentCapabilitiesUri = transitionMap.get(path).getCurrentCapabilitiesUri();
+    String currentCapabilitiesUri = objectStatus.getCurrentCapabilitiesUri();
 
     log.debug("Simulate QoS transition for {} from {} to {}", path, currentCapabilitiesUri,
         targetCapabilitiesUri);
-    transitionMap.put(path, new CdmiObjectStatus(Status.TRANSITION, monitoredAttributes,
+
+    objectMap.put(path, new CdmiObjectStatus(Status.TRANSITION, monitoredAttributes,
         currentCapabilitiesUri, targetCapabilitiesUri));
 
     // simulates a 10 sec transition
@@ -97,17 +148,47 @@ public class FilesystemBackend implements StorageBackend {
       public void run() {
         log.debug("Simulated QoS transition for {} from {} to {} finished", path,
             currentCapabilitiesUri, targetCapabilitiesUri);
-        transitionMap.put(path,
-            new CdmiObjectStatus(Status.OK, monitoredAttributes, targetCapabilitiesUri, null));
+        try {
+          CdmiObjectStatus finishedStatus = getCurrentStatus(path);
+          objectMap.put(path, new CdmiObjectStatus(Status.OK, monitoredAttributes,
+              finishedStatus.getTargetCapabilitiesUri(), null));
+
+        } catch (BackEndException e) {
+          // TODO Auto-generated catch block
+          e.printStackTrace();
+        }
       }
     }, delay);
   }
 
+  private Path getFileSystemPath(String path) {
+    String baseDirectory = properties.get("baseDirectory");
+    log.debug("Base directory {}", baseDirectory);
+
+    Path returnPath = Paths.get(baseDirectory, path);
+    log.debug("Filesystem path {}", returnPath.toString());
+
+    return returnPath;
+  }
+
   @Override
-  public CdmiObjectStatus getCurrentStatus(String path) {
-    if (transitionMap.containsKey(path)) {
-      return transitionMap.get(path);
+  public CdmiObjectStatus getCurrentStatus(String path) throws BackEndException {
+
+    if (!Files.exists(getFileSystemPath(path))) {
+      throw new BackEndException("no such file");
     }
-    return new CdmiObjectStatus(Status.OK, monitoredAttributes, "profile1", null);
+
+    if (Files.isDirectory(getFileSystemPath(path))) {
+      if (!objectMap.containsKey(path)) {
+        objectMap.put(path, new CdmiObjectStatus(Status.OK, monitoredAttributes,
+            "/cdmi_capabilities/container/profile1", null));
+      }
+    } else {
+      if (!objectMap.containsKey(path)) {
+        objectMap.put(path, new CdmiObjectStatus(Status.OK, monitoredAttributes,
+            "/cdmi_capabilities/dataobject/profile1", null));
+      }
+    }
+    return objectMap.get(path);
   }
 }

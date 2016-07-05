@@ -17,6 +17,8 @@ import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.CapabilityDao;
 import org.snia.cdmiserver.model.Capability;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +39,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
 @ActiveProfiles("test")
 public class CapabilityFilesystemTest {
+
+  private static final Logger log = LoggerFactory.getLogger(CapabilityFilesystemTest.class);
 
   @Value("${cdmi.data.objectIdPrefix}")
   String objectIdPrefix;
@@ -73,10 +77,13 @@ public class CapabilityFilesystemTest {
         .createByPath(Paths.get("cdmi_capabilities", capabilityName).toString(), capabilityRequest);
 
     assertNotNull(capability);
+    log.debug("Capability {}", capability.toJson());
+    log.debug("Search for {}", capability.getObjectId());
 
     Capability getCapability = capabilityDao.findByObjectId(capability.getObjectId());
 
     assertNotNull(getCapability);
+    log.debug("Capability {}", getCapability.toJson());
   }
 
   @Test

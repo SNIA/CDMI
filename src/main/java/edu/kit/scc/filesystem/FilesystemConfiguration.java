@@ -117,9 +117,12 @@ public class FilesystemConfiguration {
     // Connect to a specific file system storage back-end implementation.
     //
     // Creates the provided for this specific storage back-end capabilities.
+    HashMap<String, String> backendProperties = new HashMap<String, String>();
+    backendProperties.put("baseDirectory", baseDirectory);
+
     try {
-      StorageBackend storageBackend = ConfigurableStorageBackend.createStorageBackend(backendType,
-          new HashMap<String, String>());
+      StorageBackend storageBackend =
+          ConfigurableStorageBackend.createStorageBackend(backendType, backendProperties);
 
       List<BackendCapability> capabilities = storageBackend.getCapabilities();
       for (BackendCapability capability : capabilities) {

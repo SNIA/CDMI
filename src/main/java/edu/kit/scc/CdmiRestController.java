@@ -35,6 +35,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -70,6 +71,9 @@ public class CdmiRestController {
   @Autowired
   private DataObjectDao dataObjectDao;
 
+  @Value("${cdmi.data.baseDirectory}")
+  private String baseDirectory;
+
   @Value("${cdmi.qos.backend.type}")
   private String backendType;
 
@@ -78,9 +82,11 @@ public class CdmiRestController {
   @PostConstruct
   void init() {
     log.debug("Create RestController with storage-backend {}", backendType);
+    HashMap<String, String> backendProperties = new HashMap<String, String>();
+    backendProperties.put("baseDirectory", baseDirectory);
     try {
-      storageBackend = ConfigurableStorageBackend.createStorageBackend(backendType,
-          new HashMap<String, String>());
+      storageBackend =
+          ConfigurableStorageBackend.createStorageBackend(backendType, backendProperties);
     } catch (IllegalArgumentException ex) {
       log.warn("ERROR: {}", ex.getMessage());
     }
@@ -247,7 +253,7 @@ public class CdmiRestController {
     CdmiObject cdmiObject = cdmiObjectDao.getCdmiObjectByPath(path);
 
     if (cdmiObject != null) {
-      String objectString = "";
+      String objectString = cdmiObject.toString();
       if (cdmiObject instanceof Container) {
         responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
         Container container = (Container) cdmiObject;
@@ -300,6 +306,7 @@ public class CdmiRestController {
    * @param request the {@link HttpServletRequest}
    * @return a JSON serialized {@link Container} or {@link DataObject}
    */
+  @Secured("ROLE_ADMIN")
   @RequestMapping(path = "/**", method = RequestMethod.PUT,
       consumes = {"application/cdmi-object", "application/cdmi-container", "application/json"})
   public ResponseEntity<?> putCdmiObject(@RequestHeader("Content-Type") String contentType,
@@ -349,6 +356,7 @@ public class CdmiRestController {
    * @param request the {@link HttpServletRequest}
    * @return a {@link ResponseEntity}
    */
+  @Secured("ROLE_ADMIN")
   @RequestMapping(path = "/**", method = RequestMethod.DELETE)
   public ResponseEntity<?> deleteCdmiObject(HttpServletRequest request) {
 
@@ -469,11 +477,12 @@ public class CdmiRestController {
         for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
           dataObject.getMetadata().put(entry.getKey(), entry.getValue());
         }
+        // update capabilities URI
+        dataObject.setCapabilitiesUri(status.getCurrentCapabilitiesUri());
         // update QoS transition information
         if (status.getStatus().equals(org.indigo.cdmi.Status.TRANSITION)) {
           dataObject.getMetadata().put("cdmi_capabilities_target",
               status.getTargetCapabilitiesUri());
-          dataObject.setCapabilitiesUri(status.getCurrentCapabilitiesUri());
         }
       }
     } catch (BackEndException ex) {
@@ -491,11 +500,12 @@ public class CdmiRestController {
         for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
           container.getMetadata().put(entry.getKey(), entry.getValue());
         }
+        // update capabilities URI
+        container.setCapabilitiesUri(status.getCurrentCapabilitiesUri());
         // update QoS transition information
         if (status.getStatus().equals(org.indigo.cdmi.Status.TRANSITION)) {
           container.getMetadata().put("cdmi_capabilities_target",
               status.getTargetCapabilitiesUri());
-          container.setCapabilitiesUri(status.getCurrentCapabilitiesUri());
         }
       }
     } catch (BackEndException ex) {

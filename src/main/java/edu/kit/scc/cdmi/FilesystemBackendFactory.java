@@ -22,7 +22,7 @@ public class FilesystemBackendFactory implements StorageBackendFactory {
   @Override
   public StorageBackend createStorageBackend(Map<String, String> properties)
       throws IllegalArgumentException {
-    return new FilesystemBackend();
+    return new FilesystemBackend(properties);
   }
 
   @Override
