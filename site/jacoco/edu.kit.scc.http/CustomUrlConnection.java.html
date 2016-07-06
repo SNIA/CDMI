@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CustomUrlConnection.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">cdmi-server</a> &gt; <a href="index.source.html" class="el_package">edu.kit.scc.http</a> &gt; <span class="el_source">CustomUrlConnection.java</span></div><h1>CustomUrlConnection.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2016 Karlsruhe Institute of Technology (KIT)
+ * 
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+package edu.kit.scc.http;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+
+/**
+ * Custom URL connection generation class.
+ * 
+ * @author benjamin
+ *
+ */
+public final class CustomUrlConnection {
+
+<span class="fc" id="L31">  private static final Logger log = LoggerFactory.getLogger(CustomUrlConnection.class);</span>
+
+<span class="nc" id="L33">  private CustomUrlConnection() {}</span>
+
+  /**
+   * Initializes a HTTPS URL connection.
+   * 
+   * @param checkCertificate enables certificate check
+   * @param url the URL to connect to
+   * @return a {@link HttpsURLConnection}
+   */
+  public static HttpsURLConnection getSecureHttpConnection(boolean checkCertificate, String url) {
+<span class="fc" id="L43">    HttpsURLConnection urlConnection = null;</span>
+    try {
+<span class="fc" id="L45">      log.debug(&quot;Try url {}&quot;, url);</span>
+<span class="fc" id="L46">      URL uri = new URL(url);</span>
+
+<span class="fc" id="L48">      SSLContext sslContext = null;</span>
+
+<span class="pc bpc" id="L50" title="1 of 2 branches missed.">      if (checkCertificate) {</span>
+        // TODO
+<span class="nc" id="L52">        HttpsURLConnection.setDefaultHostnameVerifier(new NullHostNameVerifier());</span>
+<span class="nc" id="L53">        sslContext = CustomSslContext.initEmptySslContext();</span>
+      } else {
+<span class="fc" id="L55">        HttpsURLConnection.setDefaultHostnameVerifier(new NullHostNameVerifier());</span>
+<span class="fc" id="L56">        sslContext = CustomSslContext.initEmptySslContext();</span>
+      }
+
+<span class="fc" id="L59">      urlConnection = (HttpsURLConnection) uri.openConnection();</span>
+<span class="fc" id="L60">      urlConnection.setSSLSocketFactory(sslContext.getSocketFactory());</span>
+
+<span class="nc" id="L62">    } catch (MalformedURLException e) {</span>
+      // e.printStackTrace();
+<span class="nc" id="L64">      log.error(e.getMessage());</span>
+<span class="nc" id="L65">    } catch (IOException e) {</span>
+      // e.printStackTrace();
+<span class="nc" id="L67">      log.error(e.getMessage());</span>
+<span class="pc" id="L68">    }</span>
+<span class="fc" id="L69">    return urlConnection;</span>
+  }
+
+  /**
+   * Initializes a HTTP URL connection.
+   * 
+   * @param url the URL to connect to
+   * @return a {@link HttpURLConnection}
+   */
+  public static HttpURLConnection getHttpConnection(String url) {
+<span class="fc" id="L79">    HttpURLConnection urlConnection = null;</span>
+    try {
+<span class="fc" id="L81">      log.debug(&quot;Try url {}&quot;, url);</span>
+<span class="fc" id="L82">      URL uri = new URL(url);</span>
+
+<span class="fc" id="L84">      urlConnection = (HttpURLConnection) uri.openConnection();</span>
+
+<span class="fc" id="L86">    } catch (MalformedURLException e) {</span>
+      // e.printStackTrace();
+<span class="fc" id="L88">      log.error(e.getMessage());</span>
+<span class="nc" id="L89">    } catch (IOException e) {</span>
+      // e.printStackTrace();
+<span class="nc" id="L91">      log.error(e.getMessage());</span>
+<span class="fc" id="L92">    }</span>
+<span class="fc" id="L93">    return urlConnection;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.7.201606060606</span></div></body></html>

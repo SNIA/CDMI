@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FilesystemBackend.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">cdmi-server</a> &gt; <a href="index.source.html" class="el_package">edu.kit.scc.filesystem</a> &gt; <span class="el_source">FilesystemBackend.java</span></div><h1>FilesystemBackend.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2016 Karlsruhe Institute of Technology (KIT)
+ * 
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+package edu.kit.scc.filesystem;
+
+import org.indigo.cdmi.BackEndException;
+import org.indigo.cdmi.BackendCapability;
+import org.indigo.cdmi.BackendCapability.CapabilityType;
+import org.indigo.cdmi.CdmiObjectStatus;
+import org.indigo.cdmi.spi.StorageBackend;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
+
+public class FilesystemBackend implements StorageBackend {
+
+<span class="fc" id="L32">  private static final Logger log = LoggerFactory.getLogger(FilesystemBackend.class);</span>
+
+  // simulates back-end capabilities
+<span class="fc" id="L35">  private ArrayList&lt;BackendCapability&gt; backendCapabilities = new ArrayList&lt;&gt;();</span>
+
+  // simulates monitored attributes
+<span class="fc" id="L38">  private HashMap&lt;String, String&gt; monitoredAttributes = new HashMap&lt;&gt;();</span>
+
+  // simulates QoS support
+<span class="fc" id="L41">  private HashMap&lt;String, CdmiObjectStatus&gt; objectMap = new HashMap&lt;&gt;();</span>
+
+  // simulates storage back-end capabilities
+<span class="fc" id="L44">  private HashMap&lt;String, String&gt; capabilities = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L45">  private HashMap&lt;String, String&gt; metadata = new HashMap&lt;&gt;();</span>
+
+  private Map&lt;String, String&gt; properties;
+
+  /**
+   * Constructs a dummy file-system module with dummy values.
+   * 
+   * @param properties file-system properties
+   */
+<span class="fc" id="L54">  public FilesystemBackend(Map&lt;String, String&gt; properties) {</span>
+<span class="fc" id="L55">    this.properties = properties;</span>
+
+<span class="fc" id="L57">    capabilities.put(&quot;cdmi_capabilities_templates&quot;, &quot;true&quot;);</span>
+<span class="fc" id="L58">    capabilities.put(&quot;cdmi_capabilities_exact_inherit&quot;, &quot;true&quot;);</span>
+<span class="fc" id="L59">    capabilities.put(&quot;cdmi_data_redundancy&quot;, &quot;true&quot;);</span>
+<span class="fc" id="L60">    capabilities.put(&quot;cdmi_geographic_placement&quot;, &quot;true&quot;);</span>
+<span class="fc" id="L61">    capabilities.put(&quot;cdmi_latency&quot;, &quot;true&quot;);</span>
+<span class="fc" id="L62">    capabilities.put(&quot;cdmi_capabilities_allowed&quot;, &quot;profile1 profile2&quot;);</span>
+
+<span class="fc" id="L64">    metadata.put(&quot;cdmi_data_redundancy&quot;, &quot;4&quot;);</span>
+<span class="fc" id="L65">    metadata.put(&quot;cdmi_geographic_placement&quot;, &quot;[DE, FR]&quot;);</span>
+<span class="fc" id="L66">    metadata.put(&quot;cdmi_latency&quot;, &quot;100&quot;);</span>
+
+<span class="fc" id="L68">    monitoredAttributes.put(&quot;cdmi_data_redundancy_provided&quot;, &quot;4&quot;);</span>
+<span class="fc" id="L69">    monitoredAttributes.put(&quot;cdmi_geographic_placement_provided&quot;, &quot;[DE, FR]&quot;);</span>
+<span class="fc" id="L70">    monitoredAttributes.put(&quot;cdmi_latency_provided&quot;, &quot;100&quot;);</span>
+
+<span class="fc" id="L72">    BackendCapability containerCapabilities =</span>
+        new BackendCapability(&quot;profile1&quot;, CapabilityType.CONTAINER);
+<span class="fc" id="L74">    containerCapabilities.setMetadata(metadata);</span>
+<span class="fc" id="L75">    HashMap&lt;String, String&gt; capabilitiesContainer = capabilities;</span>
+<span class="fc" id="L76">    capabilitiesContainer.put(&quot;cdmi_capabilities_allowed&quot;,</span>
+        &quot;/cdmi_capabilities/container/profile1 /cdmi_capabilities/container/profile2&quot;);
+<span class="fc" id="L78">    containerCapabilities.setCapabilities(capabilitiesContainer);</span>
+
+<span class="fc" id="L80">    BackendCapability dataobjectCapabilities =</span>
+        new BackendCapability(&quot;profile1&quot;, CapabilityType.DATAOBJECT);
+<span class="fc" id="L82">    dataobjectCapabilities.setMetadata(metadata);</span>
+<span class="fc" id="L83">    HashMap&lt;String, String&gt; capabilitiesDataObject = capabilities;</span>
+<span class="fc" id="L84">    capabilitiesDataObject.put(&quot;cdmi_capabilities_allowed&quot;,</span>
+        &quot;/cdmi_capabilities/dataobject/profile1 /cdmi_capabilities/dataobject/profile2&quot;);
+<span class="fc" id="L86">    dataobjectCapabilities.setCapabilities(capabilitiesDataObject);</span>
+
+<span class="fc" id="L88">    backendCapabilities.add(containerCapabilities);</span>
+<span class="fc" id="L89">    backendCapabilities.add(dataobjectCapabilities);</span>
+
+<span class="fc" id="L91">    containerCapabilities.setName(&quot;profile2&quot;);</span>
+<span class="fc" id="L92">    dataobjectCapabilities.setName(&quot;profile2&quot;);</span>
+
+<span class="fc" id="L94">    backendCapabilities.add(containerCapabilities);</span>
+<span class="fc" id="L95">    backendCapabilities.add(dataobjectCapabilities);</span>
+<span class="fc" id="L96">  }</span>
+
+  private boolean isSupportedTargetCapabilitiesUri(String path, String capabilitiesUri) {
+<span class="nc" id="L99">    CdmiObjectStatus objectStatus = objectMap.get(path);</span>
+<span class="nc bnc" id="L100" title="All 2 branches missed.">    if (objectStatus.getCurrentCapabilitiesUri().equals(&quot;/cdmi_capabilities/dataobject/profile1&quot;)</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        &amp;&amp; capabilitiesUri.equals(&quot;/cdmi_capabilities/dataobject/profile2&quot;)) {</span>
+<span class="nc" id="L102">      return true;</span>
+    }
+<span class="nc bnc" id="L104" title="All 2 branches missed.">    if (objectStatus.getCurrentCapabilitiesUri().equals(&quot;/cdmi_capabilities/dataobject/profile2&quot;)</span>
+<span class="nc bnc" id="L105" title="All 2 branches missed.">        &amp;&amp; capabilitiesUri.equals(&quot;/cdmi_capabilities/dataobject/profile1&quot;)) {</span>
+<span class="nc" id="L106">      return true;</span>
+    }
+<span class="nc bnc" id="L108" title="All 2 branches missed.">    if (objectStatus.getCurrentCapabilitiesUri().equals(&quot;/cdmi_capabilities/container/profile1&quot;)</span>
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        &amp;&amp; capabilitiesUri.equals(&quot;/cdmi_capabilities/container/profile2&quot;)) {</span>
+<span class="nc" id="L110">      return true;</span>
+    }
+<span class="nc bnc" id="L112" title="All 2 branches missed.">    if (objectStatus.getCurrentCapabilitiesUri().equals(&quot;/cdmi_capabilities/container/profile2&quot;)</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">        &amp;&amp; capabilitiesUri.equals(&quot;/cdmi_capabilities/container/profile1&quot;)) {</span>
+<span class="nc" id="L114">      return true;</span>
+    }
+
+<span class="nc bnc" id="L117" title="All 2 branches missed.">    if (objectStatus.getCurrentCapabilitiesUri().equals(&quot;/cdmi_capabilities/dataobject/profile1&quot;)</span>
+<span class="nc bnc" id="L118" title="All 2 branches missed.">        &amp;&amp; capabilitiesUri.equals(&quot;/cdmi_capabilities/dataobject/profile1&quot;)) {</span>
+<span class="nc" id="L119">      return true;</span>
+    }
+<span class="nc bnc" id="L121" title="All 2 branches missed.">    if (objectStatus.getCurrentCapabilitiesUri().equals(&quot;/cdmi_capabilities/dataobject/profile2&quot;)</span>
+<span class="nc bnc" id="L122" title="All 2 branches missed.">        &amp;&amp; capabilitiesUri.equals(&quot;/cdmi_capabilities/dataobject/profile2&quot;)) {</span>
+<span class="nc" id="L123">      return true;</span>
+    }
+<span class="nc bnc" id="L125" title="All 2 branches missed.">    if (objectStatus.getCurrentCapabilitiesUri().equals(&quot;/cdmi_capabilities/container/profile1&quot;)</span>
+<span class="nc bnc" id="L126" title="All 2 branches missed.">        &amp;&amp; capabilitiesUri.equals(&quot;/cdmi_capabilities/container/profile1&quot;)) {</span>
+<span class="nc" id="L127">      return true;</span>
+    }
+<span class="nc bnc" id="L129" title="All 2 branches missed.">    if (objectStatus.getCurrentCapabilitiesUri().equals(&quot;/cdmi_capabilities/container/profile2&quot;)</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        &amp;&amp; capabilitiesUri.equals(&quot;/cdmi_capabilities/container/profile2&quot;)) {</span>
+<span class="nc" id="L131">      return true;</span>
+    }
+
+<span class="nc" id="L134">    log.warn(&quot;target capabilities URI not supported {}&quot;, capabilitiesUri);</span>
+<span class="nc" id="L135">    return false;</span>
+  }
+
+  @Override
+  public List&lt;BackendCapability&gt; getCapabilities() {
+<span class="fc" id="L140">    return backendCapabilities;</span>
+  }
+
+  @Override
+  public void updateCdmiObject(String path, String targetCapabilitiesUri) throws BackEndException {
+<span class="nc" id="L145">    CdmiObjectStatus objectStatus = getCurrentStatus(path);</span>
+<span class="nc" id="L146">    log.debug(&quot;current object status {}&quot;, objectStatus.toString());</span>
+
+<span class="nc bnc" id="L148" title="All 2 branches missed.">    if (!isSupportedTargetCapabilitiesUri(path, targetCapabilitiesUri)) {</span>
+<span class="nc" id="L149">      throw new BackEndException();</span>
+    }
+
+<span class="nc" id="L152">    String currentCapabilitiesUri = objectStatus.getCurrentCapabilitiesUri();</span>
+
+<span class="nc" id="L154">    log.debug(&quot;Simulate QoS transition for {} from {} to {}&quot;, path, currentCapabilitiesUri,</span>
+        targetCapabilitiesUri);
+
+<span class="nc" id="L157">    objectMap.put(path,</span>
+        new CdmiObjectStatus(monitoredAttributes, currentCapabilitiesUri, targetCapabilitiesUri));
+
+    // simulates a 10 sec transition
+<span class="nc" id="L161">    long delay = 10 * 1000;</span>
+<span class="nc" id="L162">    Timer timer = new Timer();</span>
+<span class="nc" id="L163">    timer.schedule(new TimerTask() {</span>
+      @Override
+      public void run() {
+<span class="nc" id="L166">        log.debug(&quot;Simulated QoS transition for {} from {} to {} finished&quot;, path,</span>
+            currentCapabilitiesUri, targetCapabilitiesUri);
+        try {
+<span class="nc" id="L169">          CdmiObjectStatus finishedStatus = getCurrentStatus(path);</span>
+<span class="nc" id="L170">          objectMap.put(path, new CdmiObjectStatus(monitoredAttributes,</span>
+<span class="nc" id="L171">              finishedStatus.getTargetCapabilitiesUri(), null));</span>
+
+<span class="nc" id="L173">        } catch (BackEndException e) {</span>
+          // TODO Auto-generated catch block
+<span class="nc" id="L175">          e.printStackTrace();</span>
+<span class="nc" id="L176">        }</span>
+<span class="nc" id="L177">      }</span>
+    }, delay);
+<span class="nc" id="L179">  }</span>
+
+  private Path getFileSystemPath(String path) {
+<span class="fc" id="L182">    String baseDirectory = properties.get(&quot;baseDirectory&quot;);</span>
+<span class="fc" id="L183">    log.debug(&quot;Base directory {}&quot;, baseDirectory);</span>
+
+<span class="fc" id="L185">    Path returnPath = Paths.get(baseDirectory, path);</span>
+<span class="fc" id="L186">    log.debug(&quot;Filesystem path {}&quot;, returnPath.toString());</span>
+
+<span class="fc" id="L188">    return returnPath;</span>
+  }
+
+  @Override
+  public CdmiObjectStatus getCurrentStatus(String path) throws BackEndException {
+
+<span class="fc bfc" id="L194" title="All 2 branches covered.">    if (!Files.exists(getFileSystemPath(path))) {</span>
+<span class="fc" id="L195">      throw new BackEndException(&quot;no such file&quot;);</span>
+    }
+
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">    if (Files.isDirectory(getFileSystemPath(path))) {</span>
+<span class="pc bpc" id="L199" title="1 of 2 branches missed.">      if (!objectMap.containsKey(path)) {</span>
+<span class="fc" id="L200">        objectMap.put(path, new CdmiObjectStatus(monitoredAttributes,</span>
+            &quot;/cdmi_capabilities/container/profile1&quot;, null));
+      }
+    } else {
+<span class="nc bnc" id="L204" title="All 2 branches missed.">      if (!objectMap.containsKey(path)) {</span>
+<span class="nc" id="L205">        objectMap.put(path, new CdmiObjectStatus(monitoredAttributes,</span>
+            &quot;/cdmi_capabilities/dataobject/profile1&quot;, null));
+      }
+    }
+<span class="fc" id="L209">    return objectMap.get(path);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.7.201606060606</span></div></body></html>

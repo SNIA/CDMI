@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CdmiObjectDaoImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">cdmi-server</a> &gt; <a href="index.source.html" class="el_package">org.snia.cdmiserver.dao.filesystem</a> &gt; <span class="el_source">CdmiObjectDaoImpl.java</span></div><h1>CdmiObjectDaoImpl.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2016 Karlsruhe Institute of Technology (KIT)
+ * 
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+package org.snia.cdmiserver.dao.filesystem;
+
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.snia.cdmiserver.dao.CdmiObjectDao;
+import org.snia.cdmiserver.model.Capability;
+import org.snia.cdmiserver.model.CdmiObject;
+import org.snia.cdmiserver.model.Container;
+import org.snia.cdmiserver.model.DataObject;
+import org.snia.cdmiserver.model.Domain;
+import org.snia.cdmiserver.util.MediaTypes;
+
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+
+/**
+ * This is a prototype implementation of CdmiObject CRUD operations for a file system storage
+ * back-end.
+ * 
+ * @author benjamin
+ *
+ */
+<span class="fc" id="L36">public class CdmiObjectDaoImpl implements CdmiObjectDao {</span>
+
+<span class="fc" id="L38">  private static final Logger log = LoggerFactory.getLogger(CdmiObjectDaoImpl.class);</span>
+
+  private String objectIdPrefix;
+  private String baseDirectory;
+  private String objectIdDirectory;
+
+  public String getObjectIdPrefix() {
+<span class="nc" id="L45">    return objectIdPrefix;</span>
+  }
+
+  public void setObjectIdPrefix(String objectIdPrefix) {
+<span class="fc" id="L49">    this.objectIdPrefix = objectIdPrefix;</span>
+<span class="fc" id="L50">  }</span>
+
+  public String getBaseDirectory() {
+<span class="nc" id="L53">    return baseDirectory;</span>
+  }
+
+  public void setBaseDirectory(String baseDirectory) {
+<span class="fc" id="L57">    this.baseDirectory = baseDirectory;</span>
+<span class="fc" id="L58">  }</span>
+
+  public String getObjectIdDirectory() {
+<span class="nc" id="L61">    return objectIdDirectory;</span>
+  }
+
+  public void setObjectIdDirectory(String objectIdDirectory) {
+<span class="fc" id="L65">    this.objectIdDirectory = objectIdDirectory;</span>
+<span class="fc" id="L66">  }</span>
+
+  private Path getCdmiObjectFilePathByUrl(String path) {
+<span class="fc" id="L69">    Path fileSystemRoot = Paths.get(baseDirectory.trim());</span>
+<span class="fc" id="L70">    Path fileSystemPath = Paths.get(baseDirectory.trim(), path.trim());</span>
+
+<span class="fc" id="L72">    Path returnPath = null;</span>
+
+<span class="fc bfc" id="L74" title="All 2 branches covered.">    if (fileSystemPath.compareTo(fileSystemRoot) == 0) {</span>
+<span class="fc" id="L75">      returnPath = fileSystemRoot.resolve(objectIdPrefix);</span>
+    } else {
+<span class="fc" id="L77">      String name = objectIdPrefix + fileSystemPath.getFileName();</span>
+<span class="fc" id="L78">      returnPath = fileSystemPath.getParent().resolve(name);</span>
+    }
+
+<span class="fc" id="L81">    log.debug(&quot;return cdmi object file path {} for uri {}&quot;, returnPath.toString(), path);</span>
+<span class="fc" id="L82">    return returnPath;</span>
+  }
+
+  private Path getObjectIdFilePath(String objectId) {
+<span class="fc" id="L86">    return Paths.get(baseDirectory.trim(), objectIdDirectory, objectId);</span>
+  }
+
+  /**
+   * Creates a new CDMI object with the given object id in the parent directory of the given path.
+   * The object's file name will be prefixed with the configured objectIdPrefix.
+   * &lt;p&gt;
+   * e.g. creating an object at baseDir/container1 will create a metadata file at baseDir with file
+   * name .cdmi_container1.
+   * &lt;/p&gt;
+   * 
+   * @param object the object's id
+   * @param path the CDMI URL path
+   * @return the created {@link CdmiObject}
+   */
+  @Override
+  public CdmiObject createCdmiObject(CdmiObject object, String path) {
+<span class="fc" id="L103">    CdmiObject objectById = createCdmiObject(object);</span>
+
+<span class="pc bpc" id="L105" title="1 of 2 branches missed.">    if (objectById != null) {</span>
+      try {
+
+<span class="fc" id="L108">        Files.createLink(getCdmiObjectFilePathByUrl(path),</span>
+<span class="fc" id="L109">            getObjectIdFilePath(objectById.getObjectId()));</span>
+
+        // Files.write(getObjectPathForPath(path), object.toJson().toString().getBytes(),
+        // StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+
+<span class="fc" id="L114">        log.debug(&quot;create new objectId link {} to {}&quot;, getCdmiObjectFilePathByUrl(path).toString(),</span>
+<span class="fc" id="L115">            getObjectIdFilePath(objectById.getObjectId()).toString());</span>
+<span class="fc" id="L116">      } catch (FileAlreadyExistsException ex) {</span>
+<span class="fc" id="L117">        log.error(&quot;File already exists&quot;);</span>
+<span class="fc" id="L118">        log.debug(&quot;remove temporary object {}&quot;, objectById.getObjectId());</span>
+<span class="fc" id="L119">        CdmiObject removedObjectId = deleteCdmiObject(objectById.getObjectId());</span>
+<span class="fc" id="L120">        log.debug(&quot;removed temporary object {}&quot;, removedObjectId.toJson());</span>
+<span class="fc" id="L121">        log.debug(&quot;return existing object {}&quot;, getCdmiObjectByPath(path).toString());</span>
+<span class="fc" id="L122">        return getCdmiObjectByPath(path);</span>
+<span class="fc" id="L123">      } catch (Exception ex) {</span>
+        // ex.printStackTrace();
+<span class="fc" id="L125">        log.error(&quot;{} {}&quot;, ex.getClass().getName(), ex.getMessage());</span>
+<span class="fc" id="L126">        deleteCdmiObject(objectById.getObjectId());</span>
+<span class="fc" id="L127">        return null;</span>
+<span class="fc" id="L128">      }</span>
+    }
+<span class="fc" id="L130">    return objectById;</span>
+  }
+
+  @Override
+  public CdmiObject createCdmiObject(CdmiObject object) {
+    try {
+
+<span class="fc" id="L137">      Files.write(getObjectIdFilePath(object.getObjectId()), object.toJson().toString().getBytes(),</span>
+          StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+
+<span class="fc" id="L140">      log.debug(&quot;create new objectId file {} {}&quot;, object.toString(), object.toJson());</span>
+
+<span class="fc" id="L142">    } catch (Exception ex) {</span>
+      // ex.printStackTrace();
+<span class="fc" id="L144">      log.error(&quot;{} {}&quot;, ex.getClass().getName(), ex.getMessage());</span>
+<span class="fc" id="L145">      return null;</span>
+<span class="fc" id="L146">    }</span>
+<span class="fc" id="L147">    return object;</span>
+  }
+
+  /**
+   * Updates the given CDMI object.
+   * 
+   * @param updateObject the updated object
+   * @param path the CDMI URL path
+   * @return the updated {@link CdmiObject}
+   */
+  @Override
+  public CdmiObject updateCdmiObject(CdmiObject updateObject, String path) {
+    try {
+
+<span class="fc" id="L161">      Files.write(getCdmiObjectFilePathByUrl(path), updateObject.toJson().toString().getBytes(),</span>
+          StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+
+<span class="fc" id="L164">      log.debug(&quot;update objectId file {} {}&quot;, updateObject.toString(), updateObject.toJson());</span>
+
+<span class="nc" id="L166">    } catch (Exception ex) {</span>
+      // ex.printStackTrace();
+<span class="nc" id="L168">      log.error(&quot;{} {}&quot;, ex.getClass().getName(), ex.getMessage());</span>
+<span class="nc" id="L169">      return null;</span>
+<span class="fc" id="L170">    }</span>
+<span class="fc" id="L171">    return updateObject;</span>
+  }
+
+  @Override
+  public CdmiObject updateCdmiObject(CdmiObject object) {
+    try {
+
+<span class="fc" id="L178">      Files.write(getObjectIdFilePath(object.getObjectId()), object.toJson().toString().getBytes(),</span>
+          StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
+
+<span class="fc" id="L181">      log.debug(&quot;update objectId file {} {}&quot;, object.toString(), object.toJson());</span>
+
+<span class="nc" id="L183">    } catch (Exception ex) {</span>
+      // ex.printStackTrace();
+<span class="nc" id="L185">      log.error(&quot;{} {}&quot;, ex.getClass().getName(), ex.getMessage());</span>
+<span class="nc" id="L186">      return null;</span>
+<span class="fc" id="L187">    }</span>
+<span class="fc" id="L188">    return object;</span>
+  }
+
+  /**
+   * Deletes a CdmiObject by path.
+   * 
+   * @param path the CDMI URL path
+   * @return the deleted {@link CdmiObject}
+   */
+  @Override
+  public CdmiObject deleteCdmiObjectByPath(String path) {
+<span class="fc" id="L199">    CdmiObject object = getCdmiObjectByPath(path);</span>
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">    if (object != null) {</span>
+      try {
+
+<span class="fc" id="L203">        boolean deleted = Files.deleteIfExists(getCdmiObjectFilePathByUrl(path));</span>
+
+<span class="fc" id="L205">        log.debug(&quot;delete objectId file {} success {}&quot;, path, deleted);</span>
+
+<span class="fc" id="L207">        deleteCdmiObject(object.getObjectId());</span>
+
+<span class="nc" id="L209">      } catch (Exception ex) {</span>
+        // ex.printStackTrace();
+<span class="nc" id="L211">        log.error(&quot;{} {}&quot;, ex.getClass().getName(), ex.getMessage());</span>
+<span class="nc" id="L212">        return null;</span>
+<span class="fc" id="L213">      }</span>
+    }
+<span class="fc" id="L215">    return object;</span>
+  }
+
+  @Override
+  public CdmiObject deleteCdmiObject(String objectId) {
+<span class="fc" id="L220">    CdmiObject object = getCdmiObject(objectId);</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">    if (object != null) {</span>
+      try {
+
+<span class="fc" id="L224">        boolean deleted = Files.deleteIfExists(getObjectIdFilePath(objectId));</span>
+
+<span class="fc" id="L226">        log.debug(&quot;delete objectId file {} success {}&quot;, object.toString(), deleted);</span>
+
+<span class="nc" id="L228">      } catch (Exception ex) {</span>
+        // ex.printStackTrace();
+<span class="nc" id="L230">        log.error(&quot;{} {}&quot;, ex.getClass().getName(), ex.getMessage());</span>
+<span class="nc" id="L231">        return null;</span>
+<span class="fc" id="L232">      }</span>
+    }
+<span class="fc" id="L234">    return object;</span>
+  }
+
+  /**
+   * Gets a CDMI object by path.
+   * 
+   * @param path the CDMI URL path
+   * @return the {@link CdmiObject}
+   */
+  @Override
+  public CdmiObject getCdmiObjectByPath(String path) {
+    try {
+
+<span class="fc" id="L247">      byte[] content = Files.readAllBytes(getCdmiObjectFilePathByUrl(path));</span>
+<span class="fc" id="L248">      JSONObject json = new JSONObject(new String(content));</span>
+
+<span class="fc" id="L250">      String objectType = json.optString(&quot;objectType&quot;);</span>
+<span class="pc bpc" id="L251" title="1 of 2 branches missed.">      if (objectType != null) {</span>
+<span class="fc bfc" id="L252" title="All 2 branches covered.">        if (objectType.equals(MediaTypes.CONTAINER)) {</span>
+<span class="fc" id="L253">          return Container.fromJson(json);</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">        } else if (objectType.equals(MediaTypes.DATA_OBJECT)) {</span>
+<span class="fc" id="L255">          return DataObject.fromJson(json);</span>
+<span class="pc bpc" id="L256" title="1 of 2 branches missed.">        } else if (objectType.equals(MediaTypes.ACCOUNT)) {</span>
+<span class="nc" id="L257">          return new Domain(json);</span>
+<span class="fc bfc" id="L258" title="All 2 branches covered.">        } else if (objectType.equals(MediaTypes.CAPABILITY)) {</span>
+<span class="fc" id="L259">          return Capability.fromJson(json);</span>
+        } else {
+<span class="fc" id="L261">          return CdmiObject.fromJson(json);</span>
+        }
+      }
+<span class="fc" id="L264">    } catch (Exception ex) {</span>
+      // ex.printStackTrace();
+<span class="fc" id="L266">      log.error(&quot;{} {}&quot;, ex.getClass().getName(), ex.getMessage());</span>
+<span class="nc" id="L267">    }</span>
+<span class="fc" id="L268">    return null;</span>
+  }
+
+  @Override
+  public CdmiObject getCdmiObject(String objectId) {
+    try {
+<span class="fc" id="L274">      log.debug(&quot;Get object {}&quot;, getObjectIdFilePath(objectId));</span>
+<span class="fc" id="L275">      byte[] content = Files.readAllBytes(getObjectIdFilePath(objectId));</span>
+<span class="fc" id="L276">      JSONObject json = new JSONObject(new String(content));</span>
+
+<span class="fc" id="L278">      String objectType = json.optString(&quot;objectType&quot;);</span>
+<span class="pc bpc" id="L279" title="1 of 2 branches missed.">      if (objectType != null) {</span>
+<span class="fc bfc" id="L280" title="All 2 branches covered.">        if (objectType.equals(MediaTypes.CONTAINER)) {</span>
+<span class="fc" id="L281">          return Container.fromJson(json);</span>
+<span class="fc bfc" id="L282" title="All 2 branches covered.">        } else if (objectType.equals(MediaTypes.DATA_OBJECT)) {</span>
+<span class="fc" id="L283">          return DataObject.fromJson(json);</span>
+<span class="pc bpc" id="L284" title="1 of 2 branches missed.">        } else if (objectType.equals(MediaTypes.ACCOUNT)) {</span>
+<span class="nc" id="L285">          return new Domain(json);</span>
+<span class="fc bfc" id="L286" title="All 2 branches covered.">        } else if (objectType.equals(MediaTypes.CAPABILITY)) {</span>
+<span class="fc" id="L287">          return Capability.fromJson(json);</span>
+        } else {
+<span class="fc" id="L289">          return CdmiObject.fromJson(json);</span>
+        }
+      }
+<span class="fc" id="L292">    } catch (Exception ex) {</span>
+      // ex.printStackTrace();
+<span class="fc" id="L294">      log.error(&quot;{} {}&quot;, ex.getClass().getName(), ex.getMessage());</span>
+<span class="nc" id="L295">    }</span>
+<span class="fc" id="L296">    return null;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.7.201606060606</span></div></body></html>
