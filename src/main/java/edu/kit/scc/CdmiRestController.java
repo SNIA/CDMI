@@ -179,48 +179,8 @@ public class CdmiRestController {
     CdmiObject cdmiObject = cdmiObjectDao.getCdmiObject(objectId);
 
     if (cdmiObject != null) {
-      String objectString = "";
-      if (cdmiObject instanceof Container) {
-        responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
-        Container container = (Container) cdmiObject;
+      String objectString = generateResponse(cdmiObject, query, responseHeaders);
 
-        // storage back-end integration
-        getCurrentStatusFromStorageBackend(container);
-
-        if (query != null) {
-          objectString = filterQueryFields(container.toJson(), query).toString();
-        } else {
-          objectString = container.toJson().toString();
-        }
-      } else if (cdmiObject instanceof DataObject) {
-        responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
-        DataObject dataObject = (DataObject) cdmiObject;
-
-        // storage back-end integration
-        getCurrentStatusFromStorageBackend(dataObject);
-
-        if (query != null) {
-          objectString = filterQueryFields(dataObject.toJson(), query).toString();
-        } else {
-          objectString = dataObject.toJson().toString();
-        }
-      } else if (cdmiObject instanceof Capability) {
-        responseHeaders.setContentType(new MediaType("application", "cdmi-capability"));
-        Capability capability = (Capability) cdmiObject;
-        if (query != null) {
-          objectString = filterQueryFields(capability.toJson(), query).toString();
-        } else {
-          objectString = capability.toJson().toString();
-        }
-      } else if (cdmiObject instanceof Domain) {
-        responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
-        Domain domain = (Domain) cdmiObject;
-        if (query != null) {
-          objectString = filterQueryFields(domain.toJson(), query).toString();
-        } else {
-          objectString = domain.toJson().toString();
-        }
-      }
       return new ResponseEntity<String>(objectString, responseHeaders, HttpStatus.OK);
     }
     return new ResponseEntity<String>("Object not found", responseHeaders, HttpStatus.NOT_FOUND);
@@ -253,49 +213,39 @@ public class CdmiRestController {
     CdmiObject cdmiObject = cdmiObjectDao.getCdmiObjectByPath(path);
 
     if (cdmiObject != null) {
-      String objectString = cdmiObject.toString();
-      if (cdmiObject instanceof Container) {
-        responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
-        Container container = (Container) cdmiObject;
+      String objectString = generateResponse(cdmiObject, query, responseHeaders);
 
-        // storage back-end integration
-        getCurrentStatusFromStorageBackend(container);
-
-        if (query != null) {
-          objectString = filterQueryFields(container.toJson(), query).toString();
-        } else {
-          objectString = container.toJson().toString();
-        }
-      } else if (cdmiObject instanceof DataObject) {
-        responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
-        DataObject dataObject = (DataObject) cdmiObject;
-
-        // storage back-end integration
-        getCurrentStatusFromStorageBackend(dataObject);
-
-        if (query != null) {
-          objectString = filterQueryFields(dataObject.toJson(), query).toString();
-        } else {
-          objectString = dataObject.toJson().toString();
-        }
-      } else if (cdmiObject instanceof Capability) {
-        responseHeaders.setContentType(new MediaType("application", "cdmi-capability"));
-        Capability capability = (Capability) cdmiObject;
-        if (query != null) {
-          objectString = filterQueryFields(capability.toJson(), query).toString();
-        } else {
-          objectString = capability.toJson().toString();
-        }
-      } else if (cdmiObject instanceof Domain) {
-        responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
-        Domain domain = (Domain) cdmiObject;
-        if (query != null) {
-          objectString = filterQueryFields(domain.toJson(), query).toString();
-        } else {
-          objectString = domain.toJson().toString();
-        }
-      }
       return new ResponseEntity<String>(objectString, responseHeaders, HttpStatus.OK);
+    } else {
+      // if object exists on storage back-end but has not been created via CDMI
+      //
+      CdmiObject newCdmiObject = null;
+      try {
+        CdmiObjectStatus cdmiObjectStatus = storageBackend.getCurrentStatus(path);
+        log.debug("storage back-end status {}", cdmiObjectStatus.toString());
+        String currentCapabilitiesUri = cdmiObjectStatus.getCurrentCapabilitiesUri();
+
+        if (currentCapabilitiesUri.contains("/cdmi_capabilities/container")) {
+          log.debug("is storage back-end container ...");
+          String body = "{}";
+          String contentType = "application/cdmi-container";
+          newCdmiObject = updateOrCreate(null, path, body, contentType);
+        } else if (currentCapabilitiesUri.contains("/cdmi_capabilities/dataobject")) {
+          log.debug("is storage back-end dataobject ...");
+          String body = "{}";
+          String contentType = "application/cdmi-object";
+          newCdmiObject = updateOrCreate(null, path, body, contentType);
+        }
+
+        String objectString = generateResponse(newCdmiObject, query, responseHeaders);
+
+        return new ResponseEntity<String>(objectString, responseHeaders, HttpStatus.OK);
+      } catch (BackEndException ex) {
+        // ex.printStackTrace();
+        log.warn(
+            "WARNING: could not get current object status from storage back-end {} for object {}",
+            backendType, path);
+      }
     }
     return new ResponseEntity<String>("Object not found", responseHeaders, HttpStatus.NOT_FOUND);
   }
@@ -395,6 +345,53 @@ public class CdmiRestController {
       }
     }
     return new ResponseEntity<String>("Not found", responseHeaders, HttpStatus.NOT_FOUND);
+  }
+
+  private String generateResponse(CdmiObject cdmiObject, String query,
+      HttpHeaders responseHeaders) {
+    String objectString = cdmiObject.toString();
+    if (cdmiObject instanceof Container) {
+      responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
+      Container container = (Container) cdmiObject;
+
+      // storage back-end integration
+      getCurrentStatusFromStorageBackend(container);
+
+      if (query != null) {
+        objectString = filterQueryFields(container.toJson(), query).toString();
+      } else {
+        objectString = container.toJson().toString();
+      }
+    } else if (cdmiObject instanceof DataObject) {
+      responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
+      DataObject dataObject = (DataObject) cdmiObject;
+
+      // storage back-end integration
+      getCurrentStatusFromStorageBackend(dataObject);
+
+      if (query != null) {
+        objectString = filterQueryFields(dataObject.toJson(), query).toString();
+      } else {
+        objectString = dataObject.toJson().toString();
+      }
+    } else if (cdmiObject instanceof Capability) {
+      responseHeaders.setContentType(new MediaType("application", "cdmi-capability"));
+      Capability capability = (Capability) cdmiObject;
+      if (query != null) {
+        objectString = filterQueryFields(capability.toJson(), query).toString();
+      } else {
+        objectString = capability.toJson().toString();
+      }
+    } else if (cdmiObject instanceof Domain) {
+      responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
+      Domain domain = (Domain) cdmiObject;
+      if (query != null) {
+        objectString = filterQueryFields(domain.toJson(), query).toString();
+      } else {
+        objectString = domain.toJson().toString();
+      }
+    }
+    return objectString;
   }
 
   private CdmiObject updateOrCreate(CdmiObject cdmiObject, String path, String body,
