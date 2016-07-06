@@ -6,7 +6,6 @@ This project ports the SNIA CDMI-Server reference implementation to a Spring Boo
 
 * JDK 1.8+
 * [Maven 3+](https://maven.apache.org/)
-* cdmi-spi-\<VERSION\>.jar
 
 ## Build & Run & Configure
 
@@ -20,7 +19,7 @@ The cdmi-spi library is provided at http://cdmi-qos.data.kit.edu/maven/ and shou
 mvn clean package
 ```
 
-(optional) if you have problems you can also install the cdmi-spi-\<VERSION\>.jar into your local Maven repository, e.g.
+**(optional)** if you have problems you can also install the cdmi-spi-\<VERSION\>.jar into your local Maven repository, e.g.
 
 ```
 mvn install:install-file -Dfile=cdmi-spi-0.0.1-SNAPSHOT.jar
@@ -28,47 +27,51 @@ mvn install:install-file -Dfile=cdmi-spi-0.0.1-SNAPSHOT.jar
 
 The CDMI server can run without any additional server deployment (Tomcat, JBoss, etc.).
 
+The (default) built jar is executable and can be linked as an init.d service script, see [Spring Boot](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#deployment-initd-service)
+
+To run the server run
 ```
-java -jar cdmi-server-0.0.1-SNAPSHOT.jar
+./target/cdmi-server-0.0.1-SNAPSHOT.jar
 ```
 
 To specify the server port use the ```--server.port=PORT``` parameter, default "8080".
 
 ```
-java -jar cdmi-server-0.0.1-SNAPSHOT.jar --server.port=9000
+./target/cdmi-server-0.0.1-SNAPSHOT.jar --server.port=9000
 ```
 
-To specify the data root directory use the ```--cdmi.data.baseDirectory=DIR``` parameter, default "test" (relative to the jar execution).
+To specify the data root directory use the ```--cdmi.data.baseDirectory=DIR``` parameter, default "/tmp/cdmi".
 
 ```
-java -jar cdmi-server-0.0.1-SNAPSHOT.jar --cdmi.data.baseDirectory=/cdmi/data
+./target/cdmi-server-0.0.1-SNAPSHOT.jar --cdmi.data.baseDirectory=/cdmi/data
 ```
 
-All configuration for the application can be done either via command line parameters or in the application.properties file.
+All configuration for the application can be done either via command line parameters or in the config/application.yml file or any other supported way, see [Spring Boot](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#boot-features-external-config)
 
 It is recommended to run the application behind a https proxy with e.g. apache,nginx ...
 
 ## Tests
+**Note:** put proper authorization credentials to the requests below or configure the application appropriate.
 
 Some curl commands for testing:
 
 Create container "testcontainer" with metadata "tag=test"
 ```
-curl -X PUT http://localhost:8080/testcontainer -H "Content-Type: application/cdmi-container" -d '{"metadata":{"tag":"test"}}'
+curl -u restadmin:restadmin -X PUT http://localhost:8080/testcontainer -H "Content-Type: application/cdmi-container" -d '{"metadata":{"tag":"test"}}'
 ```
 Read container info by path
 ```
-curl http://localhost:8080/testcontainer
+curl -u restadmin:restadmin http://localhost:8080/testcontainer
 ```
 Read container info by objectid
 ```
-curl http://localhost:8080/cdmi_objectid/<OBJECT_ID>
+curl -u restadmin:restadmin http://localhost:8080/cdmi_objectid/<OBJECT_ID>
 ```
 Read system capabilities
 ```
-curl http://localhost:8080/cdmi_capabilities
+curl -u restadmin:restadmin http://localhost:8080/cdmi_capabilities
 ```
 Read container capabilities
 ```
-curl http://localhost:8080/cdmi_capabilities/container
+curl -u restadmin:restadmin http://localhost:8080/cdmi_capabilities/container
 ```
