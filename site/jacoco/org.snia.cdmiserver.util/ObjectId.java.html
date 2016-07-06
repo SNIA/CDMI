@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ObjectId.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">cdmi-server</a> &gt; <a href="index.source.html" class="el_package">org.snia.cdmiserver.util</a> &gt; <span class="el_source">ObjectId.java</span></div><h1>ObjectId.java</h1><pre class="source lang-java linenums">/*
+ * Copyright (c) 2010, The Storage Networking Industry Association.
+ *
+ * Redistribution and use in source and binary forms, with or without modification, are permitted
+ * provided that the following conditions are met:
+ *
+ * Redistributions of source code must retain the above copyright notice, this list of conditions
+ * and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this list of conditions
+ * and the following disclaimer in the documentation and/or other materials provided with the
+ * distribution.
+ *
+ * Neither the name of The Storage Networking Industry Association (SNIA) nor the names of its
+ * contributors may be used to endorse or promote products derived from this software without
+ * specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ * FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
+ * WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package org.snia.cdmiserver.util;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+/**
+ * Class representing an ObjectId.
+ *
+ * @author ksankar May 29,2010
+ */
+<span class="nc" id="L38">public class ObjectId {</span>
+<span class="fc" id="L39">  private static final Logger LOG = LoggerFactory.getLogger(ObjectId.class);</span>
+
+  /**
+   * Generates a new object id.
+   * 
+   * @param enterpriseNumber the enterprise number
+   * @return object id as specified
+   */
+  @SuppressWarnings(&quot;restriction&quot;)
+  public static String getObjectId(int enterpriseNumber) {
+<span class="fc" id="L49">    byte[] objBytes = new byte[24];</span>
+<span class="fc" id="L50">    String objId = &quot;&quot;;</span>
+    // Create an Object ID as per CDMI Spec v1.0 Section 5.11
+    //
+    // 0EEE0LCCDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
+    // 0123456789012345678901234567890123456789
+    // 1 2 3
+    // E = Enterprise Number, L=Length in bytes,D=Opaque ID
+    // Max Length = 40 bytes. But we use 24 Bytes
+    //
+    // encode in hex
+    //
+    // FIXME : Check for eNum != 0
+    // FIXME : Is it in network byte order ?
+    //
+<span class="fc" id="L64">    objBytes[0] = (byte) (enterpriseNumber &gt;&gt; 24);</span>
+<span class="fc" id="L65">    objBytes[1] = (byte) (enterpriseNumber &gt;&gt; 16);</span>
+<span class="fc" id="L66">    objBytes[2] = (byte) (enterpriseNumber &gt;&gt; 8);</span>
+<span class="fc" id="L67">    objBytes[3] = (byte) enterpriseNumber;</span>
+<span class="fc" id="L68">    objBytes[4] = 0;</span>
+<span class="fc" id="L69">    objBytes[5] = 24;// length</span>
+<span class="fc" id="L70">    objBytes[6] = 0; // CRC</span>
+<span class="fc" id="L71">    objBytes[7] = 0; // CRC</span>
+    //
+<span class="fc" id="L73">    java.util.UUID uuid = java.util.UUID.randomUUID();</span>
+<span class="fc" id="L74">    String uuidStr = uuid.toString(); // should be a 16 byte string</span>
+<span class="fc bfc" id="L75" title="All 2 branches covered.">    for (int i = 0; i &lt; 16; i++) {</span>
+<span class="fc" id="L76">      objBytes[i + 8] = (byte) uuidStr.charAt(i);</span>
+    }
+    //
+    // Calculate CRC
+    // From http://www.repairfaq.org/filipg/LINK/F_crc_v3.html
+    //
+    // FIXME : This might not be the right CRC alg
+    //
+<span class="fc" id="L84">    sun.misc.CRC16 crc = new sun.misc.CRC16();</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">    for (int i = 0; i &lt; objBytes.length; i++) {</span>
+<span class="fc" id="L86">      crc.update(objBytes[i]);</span>
+    }
+<span class="pc bpc" id="L88" title="1 of 2 branches missed.">    if (LOG.isTraceEnabled()) {</span>
+<span class="nc" id="L89">      LOG.trace(&quot;CRC={}&quot;, Integer.toHexString(crc.value));</span>
+    }
+<span class="fc" id="L91">    objBytes[6] = (byte) (crc.value &gt;&gt; 8);</span>
+<span class="fc" id="L92">    objBytes[7] = (byte) crc.value;</span>
+    //
+    // Turn it into a hex string
+    //
+<span class="fc bfc" id="L96" title="All 2 branches covered.">    for (int i = 0; i &lt; objBytes.length; i++) {</span>
+<span class="fc" id="L97">      String str = Integer.toHexString(objBytes[i]);</span>
+<span class="fc bfc" id="L98" title="All 2 branches covered.">      if (str.length() &lt; 2) {</span>
+<span class="fc" id="L99">        str = &quot;0&quot; + str;</span>
+      }
+<span class="fc bfc" id="L101" title="All 2 branches covered.">      if (str.length() &gt; 2) { // sometimes it retuens 8 haracters paddeded with FFFF</span>
+<span class="fc" id="L102">        str = str.substring(str.length() - 2);</span>
+      }
+<span class="fc" id="L104">      objId = objId + str;</span>
+      // System.out.println(i + &quot;-&quot;+str);
+    }
+    //
+<span class="fc" id="L108">    return objId.toUpperCase();</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.7.201606060606</span></div></body></html>

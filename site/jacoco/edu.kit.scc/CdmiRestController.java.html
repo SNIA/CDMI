@@ -1,0 +1,594 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CdmiRestController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">cdmi-server</a> &gt; <a href="index.source.html" class="el_package">edu.kit.scc</a> &gt; <span class="el_source">CdmiRestController.java</span></div><h1>CdmiRestController.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2016 Karlsruhe Institute of Technology (KIT)
+ * 
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+package edu.kit.scc;
+
+import org.indigo.cdmi.BackEndException;
+import org.indigo.cdmi.CdmiObjectStatus;
+import org.indigo.cdmi.ConfigurableStorageBackend;
+import org.indigo.cdmi.spi.StorageBackend;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.snia.cdmiserver.dao.CapabilityDao;
+import org.snia.cdmiserver.dao.CdmiObjectDao;
+import org.snia.cdmiserver.dao.ContainerDao;
+import org.snia.cdmiserver.dao.DataObjectDao;
+import org.snia.cdmiserver.model.Capability;
+import org.snia.cdmiserver.model.CdmiObject;
+import org.snia.cdmiserver.model.Container;
+import org.snia.cdmiserver.model.DataObject;
+import org.snia.cdmiserver.model.Domain;
+import org.snia.cdmiserver.util.MediaTypes;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.HandlerMapping;
+
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map.Entry;
+
+import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServletRequest;
+
+@RestController
+@ComponentScan(basePackages = {&quot;edu.kit.scc&quot;, &quot;org.snia.cdmiserver&quot;})
+<span class="fc" id="L58">public class CdmiRestController {</span>
+
+<span class="fc" id="L60">  private static final Logger log = LoggerFactory.getLogger(CdmiRestController.class);</span>
+
+  @Autowired
+  private CdmiObjectDao cdmiObjectDao;
+
+  @Autowired
+  private CapabilityDao capabilityDao;
+
+  @Autowired
+  private ContainerDao containerDao;
+
+  @Autowired
+  private DataObjectDao dataObjectDao;
+
+  @Value(&quot;${cdmi.data.baseDirectory}&quot;)
+  private String baseDirectory;
+
+  @Value(&quot;${cdmi.qos.backend.type}&quot;)
+  private String backendType;
+
+  private StorageBackend storageBackend;
+
+  @PostConstruct
+  void init() {
+<span class="fc" id="L84">    log.debug(&quot;Create RestController with storage-backend {}&quot;, backendType);</span>
+<span class="fc" id="L85">    HashMap&lt;String, String&gt; backendProperties = new HashMap&lt;String, String&gt;();</span>
+<span class="fc" id="L86">    backendProperties.put(&quot;baseDirectory&quot;, baseDirectory);</span>
+    try {
+<span class="fc" id="L88">      storageBackend =</span>
+<span class="fc" id="L89">          ConfigurableStorageBackend.createStorageBackend(backendType, backendProperties);</span>
+<span class="nc" id="L90">    } catch (IllegalArgumentException ex) {</span>
+<span class="nc" id="L91">      log.warn(&quot;ERROR: {}&quot;, ex.getMessage());</span>
+<span class="fc" id="L92">    }</span>
+<span class="fc" id="L93">  }</span>
+
+  /**
+   * Domains endpoint.
+   * 
+   * @param request the {@link HttpServletRequest}
+   * @return a JSON serialized {@link Domain} object
+   */
+  @RequestMapping(path = &quot;/cdmi_domains/**&quot;, method = RequestMethod.GET)
+  public ResponseEntity&lt;?&gt; getDomains(HttpServletRequest request) {
+
+<span class="fc" id="L104">    HttpHeaders responseHeaders = new HttpHeaders();</span>
+<span class="fc" id="L105">    responseHeaders.add(&quot;X-CDMI-Specification-Version&quot;, &quot;1.1.1&quot;);</span>
+<span class="fc" id="L106">    responseHeaders.setContentType(new MediaType(&quot;application&quot;, &quot;cdmi-domain&quot;));</span>
+
+<span class="fc" id="L108">    String path =</span>
+<span class="fc" id="L109">        (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);</span>
+
+<span class="fc" id="L111">    log.debug(&quot;Requested domain path {}&quot;, path);</span>
+
+<span class="fc" id="L113">    path = Paths.get(path).normalize().toString();</span>
+<span class="fc" id="L114">    log.debug(&quot;Normalized domain path {}&quot;, path.toString());</span>
+
+<span class="fc" id="L116">    return new ResponseEntity&lt;String&gt;(&quot;Domain not found&quot;, responseHeaders, HttpStatus.NOT_FOUND);</span>
+  }
+
+  /**
+   * Capabilities endpoint.
+   * 
+   * @param request the {@link HttpServletRequest}
+   * @return a JSON serialized {@link Capability} object
+   */
+  @RequestMapping(path = &quot;/cdmi_capabilities/**&quot;, method = RequestMethod.GET)
+  public ResponseEntity&lt;?&gt; getCapabilities(HttpServletRequest request) {
+
+<span class="fc" id="L128">    HttpHeaders responseHeaders = new HttpHeaders();</span>
+<span class="fc" id="L129">    responseHeaders.setContentType(new MediaType(&quot;application&quot;, &quot;cdmi-capability&quot;));</span>
+<span class="fc" id="L130">    responseHeaders.add(&quot;X-CDMI-Specification-Version&quot;, &quot;1.1.1&quot;);</span>
+
+<span class="fc" id="L132">    String path =</span>
+<span class="fc" id="L133">        (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);</span>
+<span class="fc" id="L134">    log.debug(&quot;Requested capabilities path {}&quot;, path);</span>
+
+<span class="fc" id="L136">    path = Paths.get(path).normalize().toString();</span>
+<span class="fc" id="L137">    log.debug(&quot;Normalized capabilities path {}&quot;, path);</span>
+
+<span class="fc" id="L139">    String query = request.getQueryString();</span>
+<span class="fc" id="L140">    log.debug(&quot;Requested capabilities query {}&quot;, query);</span>
+
+<span class="fc" id="L142">    Capability capability = capabilityDao.findByPath(path);</span>
+
+<span class="pc bpc" id="L144" title="1 of 2 branches missed.">    if (capability != null) {</span>
+<span class="fc" id="L145">      JSONObject capabilityJson = capability.toJson();</span>
+
+<span class="pc bpc" id="L147" title="1 of 2 branches missed.">      if (query != null) {</span>
+<span class="nc" id="L148">        return new ResponseEntity&lt;String&gt;(filterQueryFields(capabilityJson, query).toString(),</span>
+            responseHeaders, HttpStatus.OK);
+      } else {
+<span class="fc" id="L151">        return new ResponseEntity&lt;String&gt;(capabilityJson.toString(), responseHeaders,</span>
+            HttpStatus.OK);
+      }
+    }
+
+<span class="nc" id="L156">    return new ResponseEntity&lt;String&gt;(&quot;Capabilities not found&quot;, responseHeaders,</span>
+        HttpStatus.NOT_FOUND);
+  }
+
+  /**
+   * ObjectId endpoint.
+   * 
+   * @param request the {@link HttpServletRequest}
+   * @return a JSON serialized {@link CdmiObject}
+   */
+  @RequestMapping(path = &quot;/cdmi_objectid/{objectId}&quot;, method = RequestMethod.GET)
+  public ResponseEntity&lt;?&gt; getCdmiObjectById(@PathVariable String objectId,
+      HttpServletRequest request) {
+
+<span class="fc" id="L170">    HttpHeaders responseHeaders = new HttpHeaders();</span>
+<span class="fc" id="L171">    responseHeaders.add(&quot;X-CDMI-Specification-Version&quot;, &quot;1.1.1&quot;);</span>
+<span class="fc" id="L172">    responseHeaders.setContentType(new MediaType(&quot;application&quot;, &quot;cdmi-object&quot;));</span>
+
+<span class="fc" id="L174">    log.debug(&quot;Get objectID {}&quot;, objectId);</span>
+
+<span class="fc" id="L176">    String query = request.getQueryString();</span>
+<span class="fc" id="L177">    log.debug(&quot;Requested object query {}&quot;, query);</span>
+
+<span class="fc" id="L179">    CdmiObject cdmiObject = cdmiObjectDao.getCdmiObject(objectId);</span>
+
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">    if (cdmiObject != null) {</span>
+<span class="nc" id="L182">      String objectString = &quot;&quot;;</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">      if (cdmiObject instanceof Container) {</span>
+<span class="nc" id="L184">        responseHeaders.setContentType(new MediaType(&quot;application&quot;, &quot;cdmi-container&quot;));</span>
+<span class="nc" id="L185">        Container container = (Container) cdmiObject;</span>
+
+        // storage back-end integration
+<span class="nc" id="L188">        getCurrentStatusFromStorageBackend(container);</span>
+
+<span class="nc bnc" id="L190" title="All 2 branches missed.">        if (query != null) {</span>
+<span class="nc" id="L191">          objectString = filterQueryFields(container.toJson(), query).toString();</span>
+        } else {
+<span class="nc" id="L193">          objectString = container.toJson().toString();</span>
+        }
+<span class="nc bnc" id="L195" title="All 2 branches missed.">      } else if (cdmiObject instanceof DataObject) {</span>
+<span class="nc" id="L196">        responseHeaders.setContentType(new MediaType(&quot;application&quot;, &quot;cdmi-object&quot;));</span>
+<span class="nc" id="L197">        DataObject dataObject = (DataObject) cdmiObject;</span>
+
+        // storage back-end integration
+<span class="nc" id="L200">        getCurrentStatusFromStorageBackend(dataObject);</span>
+
+<span class="nc bnc" id="L202" title="All 2 branches missed.">        if (query != null) {</span>
+<span class="nc" id="L203">          objectString = filterQueryFields(dataObject.toJson(), query).toString();</span>
+        } else {
+<span class="nc" id="L205">          objectString = dataObject.toJson().toString();</span>
+        }
+<span class="nc bnc" id="L207" title="All 2 branches missed.">      } else if (cdmiObject instanceof Capability) {</span>
+<span class="nc" id="L208">        responseHeaders.setContentType(new MediaType(&quot;application&quot;, &quot;cdmi-capability&quot;));</span>
+<span class="nc" id="L209">        Capability capability = (Capability) cdmiObject;</span>
+<span class="nc bnc" id="L210" title="All 2 branches missed.">        if (query != null) {</span>
+<span class="nc" id="L211">          objectString = filterQueryFields(capability.toJson(), query).toString();</span>
+        } else {
+<span class="nc" id="L213">          objectString = capability.toJson().toString();</span>
+        }
+<span class="nc bnc" id="L215" title="All 2 branches missed.">      } else if (cdmiObject instanceof Domain) {</span>
+<span class="nc" id="L216">        responseHeaders.setContentType(new MediaType(&quot;application&quot;, &quot;cdmi-domain&quot;));</span>
+<span class="nc" id="L217">        Domain domain = (Domain) cdmiObject;</span>
+<span class="nc bnc" id="L218" title="All 2 branches missed.">        if (query != null) {</span>
+<span class="nc" id="L219">          objectString = filterQueryFields(domain.toJson(), query).toString();</span>
+        } else {
+<span class="nc" id="L221">          objectString = domain.toJson().toString();</span>
+        }
+      }
+<span class="nc" id="L224">      return new ResponseEntity&lt;String&gt;(objectString, responseHeaders, HttpStatus.OK);</span>
+    }
+<span class="fc" id="L226">    return new ResponseEntity&lt;String&gt;(&quot;Object not found&quot;, responseHeaders, HttpStatus.NOT_FOUND);</span>
+  }
+
+  /**
+   * Get path endpoint.
+   * 
+   * @param request the {@link HttpServletRequest}
+   * @return a JSON serialized {@link Container} or {@link DataObject}
+   */
+  @RequestMapping(path = &quot;/**&quot;, method = RequestMethod.GET)
+  public ResponseEntity&lt;?&gt; getCdmiObjectByPath(HttpServletRequest request) {
+
+<span class="fc" id="L238">    HttpHeaders responseHeaders = new HttpHeaders();</span>
+<span class="fc" id="L239">    responseHeaders.add(&quot;X-CDMI-Specification-Version&quot;, &quot;1.1.1&quot;);</span>
+<span class="fc" id="L240">    responseHeaders.setContentType(new MediaType(&quot;application&quot;, &quot;cdmi-object&quot;));</span>
+
+<span class="fc" id="L242">    String path =</span>
+<span class="fc" id="L243">        (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);</span>
+
+<span class="fc" id="L245">    log.debug(&quot;Get path {}&quot;, path);</span>
+
+<span class="fc" id="L247">    path = Paths.get(path).normalize().toString();</span>
+<span class="fc" id="L248">    log.debug(&quot;Normalized path {}&quot;, path);</span>
+
+<span class="fc" id="L250">    String query = request.getQueryString();</span>
+<span class="fc" id="L251">    log.debug(&quot;Requested object query {}&quot;, query);</span>
+
+<span class="fc" id="L253">    CdmiObject cdmiObject = cdmiObjectDao.getCdmiObjectByPath(path);</span>
+
+<span class="fc bfc" id="L255" title="All 2 branches covered.">    if (cdmiObject != null) {</span>
+<span class="fc" id="L256">      String objectString = cdmiObject.toString();</span>
+<span class="pc bpc" id="L257" title="1 of 2 branches missed.">      if (cdmiObject instanceof Container) {</span>
+<span class="fc" id="L258">        responseHeaders.setContentType(new MediaType(&quot;application&quot;, &quot;cdmi-container&quot;));</span>
+<span class="fc" id="L259">        Container container = (Container) cdmiObject;</span>
+
+        // storage back-end integration
+<span class="fc" id="L262">        getCurrentStatusFromStorageBackend(container);</span>
+
+<span class="pc bpc" id="L264" title="1 of 2 branches missed.">        if (query != null) {</span>
+<span class="nc" id="L265">          objectString = filterQueryFields(container.toJson(), query).toString();</span>
+        } else {
+<span class="fc" id="L267">          objectString = container.toJson().toString();</span>
+        }
+<span class="pc bnc" id="L269" title="All 2 branches missed.">      } else if (cdmiObject instanceof DataObject) {</span>
+<span class="nc" id="L270">        responseHeaders.setContentType(new MediaType(&quot;application&quot;, &quot;cdmi-object&quot;));</span>
+<span class="nc" id="L271">        DataObject dataObject = (DataObject) cdmiObject;</span>
+
+        // storage back-end integration
+<span class="nc" id="L274">        getCurrentStatusFromStorageBackend(dataObject);</span>
+
+<span class="nc bnc" id="L276" title="All 2 branches missed.">        if (query != null) {</span>
+<span class="nc" id="L277">          objectString = filterQueryFields(dataObject.toJson(), query).toString();</span>
+        } else {
+<span class="nc" id="L279">          objectString = dataObject.toJson().toString();</span>
+        }
+<span class="nc bnc" id="L281" title="All 2 branches missed.">      } else if (cdmiObject instanceof Capability) {</span>
+<span class="nc" id="L282">        responseHeaders.setContentType(new MediaType(&quot;application&quot;, &quot;cdmi-capability&quot;));</span>
+<span class="nc" id="L283">        Capability capability = (Capability) cdmiObject;</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">        if (query != null) {</span>
+<span class="nc" id="L285">          objectString = filterQueryFields(capability.toJson(), query).toString();</span>
+        } else {
+<span class="nc" id="L287">          objectString = capability.toJson().toString();</span>
+        }
+<span class="nc bnc" id="L289" title="All 2 branches missed.">      } else if (cdmiObject instanceof Domain) {</span>
+<span class="nc" id="L290">        responseHeaders.setContentType(new MediaType(&quot;application&quot;, &quot;cdmi-domain&quot;));</span>
+<span class="nc" id="L291">        Domain domain = (Domain) cdmiObject;</span>
+<span class="nc bnc" id="L292" title="All 2 branches missed.">        if (query != null) {</span>
+<span class="nc" id="L293">          objectString = filterQueryFields(domain.toJson(), query).toString();</span>
+        } else {
+<span class="nc" id="L295">          objectString = domain.toJson().toString();</span>
+        }
+      }
+<span class="fc" id="L298">      return new ResponseEntity&lt;String&gt;(objectString, responseHeaders, HttpStatus.OK);</span>
+    } else {
+      // if object exists on storage back-end but has not been created via CDMI
+      // 
+      try {
+<span class="nc" id="L303">        CdmiObjectStatus cdmiObjectStatus = storageBackend.getCurrentStatus(path);</span>
+
+<span class="nc" id="L305">        String currentCapabilitiesUri = cdmiObjectStatus.getCurrentCapabilitiesUri();</span>
+<span class="nc bnc" id="L306" title="All 2 branches missed.">        if (currentCapabilitiesUri.contains(&quot;/cdmi_capabilities/container&quot;)) {</span>
+<span class="nc" id="L307">          String body = &quot;{}&quot;;</span>
+<span class="nc" id="L308">          String contentType = &quot;application/cdmi-container&quot;;</span>
+<span class="nc" id="L309">          CdmiObject newCdmiObject = updateOrCreate(null, path, body, contentType);</span>
+<span class="nc bnc" id="L310" title="All 2 branches missed.">        } else if (currentCapabilitiesUri.contains(&quot;/cdmi_capabilities/dataobject&quot;)) {</span>
+<span class="nc" id="L311">          String body = &quot;{}&quot;;</span>
+<span class="nc" id="L312">          String contentType = &quot;application/cdmi-dataobject&quot;;</span>
+<span class="nc" id="L313">          CdmiObject newCdmiObject = updateOrCreate(null, path, body, contentType);</span>
+        }
+<span class="fc" id="L315">      } catch (BackEndException ex) {</span>
+        // ex.printStackTrace();
+<span class="fc" id="L317">        log.warn(</span>
+            &quot;WARNING: could not get current object status from storage back-end {} for object {}&quot;,
+            backendType, path);
+<span class="nc" id="L320">      }</span>
+    }
+<span class="fc" id="L322">    return new ResponseEntity&lt;String&gt;(&quot;Object not found&quot;, responseHeaders,</span>
+        HttpStatus.NOT_FOUND);
+  }
+
+  /**
+   * Put path endpoint.
+   * 
+   * @param request the {@link HttpServletRequest}
+   * @return a JSON serialized {@link Container} or {@link DataObject}
+   */
+  @Secured(&quot;ROLE_ADMIN&quot;)
+  @RequestMapping(path = &quot;/**&quot;, method = RequestMethod.PUT,
+      consumes = {&quot;application/cdmi-object&quot;, &quot;application/cdmi-container&quot;, &quot;application/json&quot;})
+  public ResponseEntity&lt;?&gt; putCdmiObject(@RequestHeader(&quot;Content-Type&quot;) String contentType,
+      @RequestBody String body, HttpServletRequest request) {
+
+<span class="fc" id="L338">    HttpHeaders responseHeaders = new HttpHeaders();</span>
+<span class="fc" id="L339">    responseHeaders.add(&quot;X-CDMI-Specification-Version&quot;, &quot;1.1.1&quot;);</span>
+<span class="fc" id="L340">    responseHeaders.setContentType(new MediaType(&quot;application&quot;, &quot;cdmi-object&quot;));</span>
+
+<span class="fc" id="L342">    String path =</span>
+<span class="fc" id="L343">        (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);</span>
+
+<span class="fc" id="L345">    log.debug(&quot;Create or update path {} as {}&quot;, path, contentType);</span>
+
+<span class="fc" id="L347">    path = Paths.get(path).normalize().toString();</span>
+<span class="fc" id="L348">    log.debug(&quot;Normalized path {}&quot;, path);</span>
+
+<span class="fc" id="L350">    CdmiObject cdmiObject = cdmiObjectDao.getCdmiObjectByPath(path);</span>
+
+<span class="fc" id="L352">    CdmiObject newCdmiObject = updateOrCreate(cdmiObject, path, body, contentType);</span>
+
+<span class="fc bfc" id="L354" title="All 2 branches covered.">    if (newCdmiObject instanceof Container) {</span>
+<span class="pc bpc" id="L355" title="1 of 2 branches missed.">      if (cdmiObject instanceof Container) {</span>
+<span class="nc" id="L356">        return new ResponseEntity&lt;String&gt;(((Container) newCdmiObject).toJson().toString(),</span>
+            responseHeaders, HttpStatus.ACCEPTED);
+      }
+<span class="fc" id="L359">      return new ResponseEntity&lt;String&gt;(((Container) newCdmiObject).toJson().toString(),</span>
+          responseHeaders, HttpStatus.CREATED);
+<span class="pc bpc" id="L361" title="1 of 2 branches missed.">    } else if (newCdmiObject instanceof DataObject) {</span>
+<span class="pc bpc" id="L362" title="1 of 2 branches missed.">      if (cdmiObject instanceof DataObject) {</span>
+<span class="nc" id="L363">        return new ResponseEntity&lt;String&gt;(((DataObject) newCdmiObject).toJson().toString(),</span>
+            responseHeaders, HttpStatus.ACCEPTED);
+      }
+<span class="fc" id="L366">      return new ResponseEntity&lt;String&gt;(((DataObject) newCdmiObject).toJson().toString(),</span>
+          responseHeaders, HttpStatus.CREATED);
+    }
+<span class="nc bnc" id="L369" title="All 2 branches missed.">    if (newCdmiObject == null) {</span>
+<span class="nc" id="L370">      return new ResponseEntity&lt;String&gt;(&quot;Object could not be created&quot;, responseHeaders,</span>
+          HttpStatus.CONFLICT);
+    }
+<span class="nc" id="L373">    return new ResponseEntity&lt;String&gt;(&quot;Bad request&quot;, responseHeaders, HttpStatus.BAD_REQUEST);</span>
+  }
+
+  /**
+   * Delete path endpoint.
+   * 
+   * @param request the {@link HttpServletRequest}
+   * @return a {@link ResponseEntity}
+   */
+  @Secured(&quot;ROLE_ADMIN&quot;)
+  @RequestMapping(path = &quot;/**&quot;, method = RequestMethod.DELETE)
+  public ResponseEntity&lt;?&gt; deleteCdmiObject(HttpServletRequest request) {
+
+<span class="fc" id="L386">    HttpHeaders responseHeaders = new HttpHeaders();</span>
+<span class="fc" id="L387">    responseHeaders.add(&quot;X-CDMI-Specification-Version&quot;, &quot;1.1.1&quot;);</span>
+
+<span class="fc" id="L389">    String path =</span>
+<span class="fc" id="L390">        (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);</span>
+
+<span class="fc" id="L392">    log.debug(&quot;Delete path {}&quot;, path);</span>
+
+<span class="fc" id="L394">    path = Paths.get(path).normalize().toString();</span>
+<span class="fc" id="L395">    log.debug(&quot;Normalized path {}&quot;, path);</span>
+
+<span class="fc" id="L397">    CdmiObject cdmiObject = cdmiObjectDao.getCdmiObjectByPath(path);</span>
+
+<span class="pc bpc" id="L399" title="1 of 2 branches missed.">    if (cdmiObject != null) {</span>
+<span class="fc bfc" id="L400" title="All 2 branches covered.">      if (cdmiObject instanceof Container) {</span>
+<span class="fc" id="L401">        Container container = containerDao.deleteByPath(path);</span>
+<span class="pc bpc" id="L402" title="1 of 2 branches missed.">        if (container != null) {</span>
+<span class="fc" id="L403">          return new ResponseEntity&lt;String&gt;(&quot;Container deleted&quot;, responseHeaders,</span>
+              HttpStatus.NO_CONTENT);
+        } else {
+<span class="nc" id="L406">          return new ResponseEntity&lt;String&gt;(&quot;Container could not be deleted&quot;, responseHeaders,</span>
+              HttpStatus.CONFLICT);
+        }
+<span class="pc bpc" id="L409" title="1 of 2 branches missed.">      } else if (cdmiObject instanceof DataObject) {</span>
+<span class="fc" id="L410">        DataObject dataObject = dataObjectDao.deleteByPath(path);</span>
+<span class="pc bpc" id="L411" title="1 of 2 branches missed.">        if (dataObject != null) {</span>
+<span class="fc" id="L412">          return new ResponseEntity&lt;String&gt;(&quot;Data object deleted&quot;, responseHeaders,</span>
+              HttpStatus.NO_CONTENT);
+        } else {
+<span class="nc" id="L415">          return new ResponseEntity&lt;String&gt;(&quot;Data object could not be deleted&quot;, responseHeaders,</span>
+              HttpStatus.CONFLICT);
+        }
+      }
+    }
+<span class="nc" id="L420">    return new ResponseEntity&lt;String&gt;(&quot;Not found&quot;, responseHeaders, HttpStatus.NOT_FOUND);</span>
+  }
+
+  private CdmiObject updateOrCreate(CdmiObject cdmiObject, String path, String body,
+      String contentType) {
+    // create or update container
+<span class="fc bfc" id="L426" title="All 2 branches covered.">    if (contentType.contains(MediaTypes.CONTAINER)) {</span>
+<span class="pc bpc" id="L427" title="3 of 4 branches missed.">      if (cdmiObject != null &amp;&amp; (cdmiObject instanceof Container)) {</span>
+<span class="nc" id="L428">        log.debug(&quot;Update container...&quot;);</span>
+<span class="nc" id="L429">        Container existingContainer = (Container) cdmiObject;</span>
+        // update allowed for &quot;metadata&quot; and &quot;capabilitiesURI&quot;
+<span class="nc" id="L431">        JSONObject updateJson = new JSONObject(body);</span>
+<span class="nc bnc" id="L432" title="All 2 branches missed.">        if (updateJson.has(&quot;metadata&quot;)) {</span>
+<span class="nc" id="L433">          existingContainer.setMetadata(updateJson.getJSONObject(&quot;metadata&quot;));</span>
+        }
+<span class="nc bnc" id="L435" title="All 2 branches missed.">        if (updateJson.has(&quot;capabilitiesURI&quot;)) {</span>
+          // Change of QoS
+          try {
+<span class="nc" id="L438">            storageBackend.updateCdmiObject(path, updateJson.getString(&quot;capabilitiesURI&quot;));</span>
+<span class="nc" id="L439">            existingContainer.setCapabilitiesUri(updateJson.getString(&quot;capabilitiesURI&quot;));</span>
+<span class="nc" id="L440">          } catch (Exception ex) {</span>
+<span class="nc" id="L441">            ex.printStackTrace();</span>
+<span class="nc" id="L442">            log.warn(&quot;WARNING: could not trigger QoS change for configured storage back-end {}&quot;,</span>
+                backendType);
+<span class="nc" id="L444">          }</span>
+        }
+<span class="nc" id="L446">        Container updatedContainer = (Container) cdmiObjectDao.updateCdmiObject(existingContainer);</span>
+<span class="nc" id="L447">        return updatedContainer;</span>
+      } else {
+<span class="fc" id="L449">        log.debug(&quot;Create container...&quot;);</span>
+<span class="fc" id="L450">        Container containerRequest = Container.fromJson(new JSONObject(body));</span>
+<span class="fc" id="L451">        Container createdContainer = containerDao.createByPath(path, containerRequest);</span>
+<span class="fc" id="L452">        return createdContainer;</span>
+      }
+    }
+    // create or update data object
+<span class="pc bpc" id="L456" title="1 of 2 branches missed.">    if (contentType.contains(MediaTypes.DATA_OBJECT)) {</span>
+<span class="pc bpc" id="L457" title="3 of 4 branches missed.">      if (cdmiObject != null &amp;&amp; (cdmiObject instanceof DataObject)) {</span>
+<span class="nc" id="L458">        log.debug(&quot;Update data object...&quot;);</span>
+<span class="nc" id="L459">        DataObject existingDataObject = (DataObject) cdmiObject;</span>
+        // update allowed for &quot;value&quot;, &quot;metadata&quot; and &quot;capabilitiesURI&quot;
+<span class="nc" id="L461">        JSONObject updateJson = new JSONObject(body);</span>
+<span class="nc bnc" id="L462" title="All 2 branches missed.">        if (updateJson.has(&quot;metadata&quot;)) {</span>
+<span class="nc" id="L463">          existingDataObject.setMetadata(updateJson.getJSONObject(&quot;metadata&quot;));</span>
+        }
+<span class="nc bnc" id="L465" title="All 2 branches missed.">        if (updateJson.has(&quot;capabilitiesURI&quot;)) {</span>
+          // Change of QoS
+          try {
+<span class="nc" id="L468">            storageBackend.updateCdmiObject(path, updateJson.getString(&quot;capabilitiesURI&quot;));</span>
+<span class="nc" id="L469">            existingDataObject.setCapabilitiesUri(updateJson.getString(&quot;capabilitiesURI&quot;));</span>
+<span class="nc" id="L470">          } catch (Exception ex) {</span>
+<span class="nc" id="L471">            ex.printStackTrace();</span>
+<span class="nc" id="L472">            log.warn(&quot;WARNING: could not trigger QoS change for configured storage back-end {}&quot;,</span>
+                backendType);
+<span class="nc" id="L474">          }</span>
+        }
+<span class="nc bnc" id="L476" title="All 2 branches missed.">        if (updateJson.has(&quot;value&quot;)) {</span>
+          // Change of content
+<span class="nc" id="L478">          dataObjectDao.updateContent(path, updateJson.getString(&quot;value&quot;).getBytes());</span>
+        }
+<span class="nc" id="L480">        DataObject updatedDataObject =</span>
+<span class="nc" id="L481">            (DataObject) cdmiObjectDao.updateCdmiObject(existingDataObject);</span>
+<span class="nc" id="L482">        return updatedDataObject;</span>
+      } else {
+<span class="fc" id="L484">        log.debug(&quot;Create data object...&quot;);</span>
+<span class="fc" id="L485">        DataObject dataObjectRequest = DataObject.fromJson(new JSONObject(body));</span>
+<span class="fc" id="L486">        DataObject createdObject = dataObjectDao.createByPath(path, dataObjectRequest);</span>
+<span class="fc" id="L487">        return createdObject;</span>
+      }
+    }
+<span class="nc" id="L490">    return null;</span>
+  }
+
+  private void getCurrentStatusFromStorageBackend(DataObject dataObject) {
+    // add information from storage back-end
+    try {
+<span class="nc bnc" id="L496" title="All 2 branches missed.">      if (storageBackend != null) {</span>
+<span class="nc" id="L497">        String path = Paths.get(dataObject.getParentUri(), dataObject.getObjectName()).toString();</span>
+<span class="nc" id="L498">        CdmiObjectStatus status = storageBackend.getCurrentStatus(path);</span>
+        // update monitored attributes
+<span class="nc bnc" id="L500" title="All 2 branches missed.">        for (Entry&lt;String, String&gt; entry : status.getMonitoredAttributes().entrySet()) {</span>
+<span class="nc" id="L501">          dataObject.getMetadata().put(entry.getKey(), entry.getValue());</span>
+<span class="nc" id="L502">        }</span>
+        // update capabilities URI
+<span class="nc" id="L504">        dataObject.setCapabilitiesUri(status.getCurrentCapabilitiesUri());</span>
+        // update QoS transition information
+<span class="nc bnc" id="L506" title="All 2 branches missed.">        if (status.getTargetCapabilitiesUri() != null) {</span>
+<span class="nc" id="L507">          dataObject.getMetadata().put(&quot;cdmi_capabilities_target&quot;,</span>
+<span class="nc" id="L508">              status.getTargetCapabilitiesUri());</span>
+        }
+      }
+<span class="nc" id="L511">    } catch (BackEndException ex) {</span>
+<span class="nc" id="L512">      log.warn(&quot;ERROR: {}&quot;, ex.getMessage());</span>
+<span class="nc" id="L513">    }</span>
+<span class="nc" id="L514">  }</span>
+
+  private void getCurrentStatusFromStorageBackend(Container container) {
+    // add information from storage back-end
+    try {
+<span class="pc bpc" id="L519" title="1 of 2 branches missed.">      if (storageBackend != null) {</span>
+<span class="fc" id="L520">        String path = Paths.get(container.getParentUri(), container.getObjectName()).toString();</span>
+<span class="fc" id="L521">        CdmiObjectStatus status = storageBackend.getCurrentStatus(path);</span>
+        // update monitored attributes
+<span class="fc bfc" id="L523" title="All 2 branches covered.">        for (Entry&lt;String, String&gt; entry : status.getMonitoredAttributes().entrySet()) {</span>
+<span class="fc" id="L524">          container.getMetadata().put(entry.getKey(), entry.getValue());</span>
+<span class="fc" id="L525">        }</span>
+        // update capabilities URI
+<span class="fc" id="L527">        container.setCapabilitiesUri(status.getCurrentCapabilitiesUri());</span>
+        // update QoS transition information
+<span class="pc bpc" id="L529" title="1 of 2 branches missed.">        if (status.getTargetCapabilitiesUri() != null) {</span>
+<span class="nc" id="L530">          container.getMetadata().put(&quot;cdmi_capabilities_target&quot;,</span>
+<span class="nc" id="L531">              status.getTargetCapabilitiesUri());</span>
+        }
+      }
+<span class="nc" id="L534">    } catch (BackEndException ex) {</span>
+<span class="nc" id="L535">      log.warn(&quot;ERROR: {}&quot;, ex.getMessage());</span>
+<span class="fc" id="L536">    }</span>
+<span class="fc" id="L537">  }</span>
+
+  /**
+   * Filters the requested JSON object according to the query parameters.
+   * 
+   * @param json the requested {@link JSONObject}
+   * @param query the given query parameters
+   * @return the filtered {@link JSONObject}
+   */
+  public JSONObject filterQueryFields(JSONObject json, String query) {
+<span class="fc" id="L547">    String[] queryFields = query.split(&quot;;&quot;);</span>
+<span class="fc" id="L548">    List&lt;String&gt; queryList = Arrays.asList(queryFields);</span>
+
+<span class="fc" id="L550">    JSONArray names = json.names();</span>
+<span class="fc" id="L551">    JSONArray children = json.optJSONArray(&quot;children&quot;);</span>
+
+<span class="fc bfc" id="L553" title="All 2 branches covered.">    for (int i = 0; i &lt; names.length(); i++) {</span>
+<span class="fc" id="L554">      String name = names.getString(i);</span>
+<span class="fc bfc" id="L555" title="All 2 branches covered.">      if (!queryList.contains(name)) {</span>
+<span class="fc" id="L556">        json.remove(name);</span>
+      }
+    }
+
+<span class="fc bfc" id="L560" title="All 2 branches covered.">    if (children != null) {</span>
+<span class="fc bfc" id="L561" title="All 2 branches covered.">      for (String queryField : queryList) {</span>
+<span class="fc bfc" id="L562" title="All 2 branches covered.">        if (queryField.contains(&quot;children:&quot;)) {</span>
+<span class="fc" id="L563">          String[] childrenRange = queryField.split(&quot;:&quot;);</span>
+<span class="fc" id="L564">          String range = childrenRange[1];</span>
+<span class="fc" id="L565">          String[] rangeValues = range.split(&quot;-&quot;);</span>
+
+<span class="fc" id="L567">          JSONArray returnChildren = new JSONArray();</span>
+<span class="fc" id="L568">          int rangeStart = Integer.valueOf(rangeValues[0]);</span>
+
+<span class="fc bfc" id="L570" title="All 2 branches covered.">          if (rangeValues.length &gt; 1) {</span>
+<span class="fc" id="L571">            int rangeStop = Integer.valueOf(rangeValues[1]);</span>
+<span class="fc bfc" id="L572" title="All 2 branches covered.">            for (int i = rangeStart; i &lt;= rangeStop; i++) {</span>
+              try {
+<span class="fc" id="L574">                returnChildren.put(children.get(i));</span>
+<span class="fc" id="L575">              } catch (JSONException ex) {</span>
+<span class="fc" id="L576">                log.warn(&quot;Requested range out of bounds, {}&quot;, i);</span>
+<span class="fc" id="L577">              }</span>
+            }
+<span class="fc" id="L579">          } else {</span>
+            try {
+<span class="fc" id="L581">              returnChildren.put(children.get(rangeStart));</span>
+<span class="fc" id="L582">            } catch (JSONException ex) {</span>
+<span class="fc" id="L583">              log.warn(&quot;Requested range out of bounds, {}&quot;, rangeStart);</span>
+<span class="fc" id="L584">            }</span>
+          }
+<span class="fc" id="L586">          json.put(&quot;children&quot;, returnChildren);</span>
+<span class="fc" id="L587">          break;</span>
+        }
+<span class="fc" id="L589">      }</span>
+    }
+<span class="fc" id="L591">    return json;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.7.201606060606</span></div></body></html>

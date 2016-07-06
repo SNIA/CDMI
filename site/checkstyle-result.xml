@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="6.11.2">
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/provider/BadRequestExceptionMapper.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/provider/CapabilityProvider.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/provider/AbstractExceptionMapper.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/provider/ForbiddenExceptionMapper.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/provider/AbstractProvider.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/provider/NotFoundExceptionMapper.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/provider/ContainerProvider.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/provider/UnsupportedOperationExceptionMapper.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/provider/UnauthorizedExceptionMapper.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/provider/ConflictExceptionMapper.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/resource/PathResource.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/resource/CapabilityResource.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/resource/ObjectIdResource.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/dao/AccountDao.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/dao/QueueDao.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/dao/ContainerDao.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/dao/DataObjectDao.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/dao/DomainDao.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/dao/CapabilityDao.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/dao/filesystem/ContainerDaoImpl.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/dao/filesystem/CapabilityDaoImpl.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/dao/filesystem/DomainDaoImpl.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/dao/filesystem/CdmiObjectDaoImpl.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/dao/filesystem/DataObjectDaoImpl.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/dao/CdmiObjectDao.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/model/CdmiObject.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/model/Container.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/model/Domain.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/model/Account.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/model/DataObject.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/model/Queue.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/model/Capability.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/util/ObjectId.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/util/MediaTypes.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/filter/Base64.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/exception/BadRequestException.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/exception/UnauthorizedException.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/exception/ConflictException.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/exception/NotFoundException.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/org/snia/cdmiserver/exception/ForbiddenException.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/CdmiRestController.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/CdmiServerApplication.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/auth/CustomUserDetailsService.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/auth/OidcAuthenticationFilter.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/auth/WebSecurityConfiguration.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/filesystem/FilesystemBeanConfiguration.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/filesystem/FilesystemConfiguration.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/filesystem/FilesystemBackendFactory.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/filesystem/FilesystemBackend.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/Utils.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/JerseyConfig.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/http/NullHostNameVerifier.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/http/HttpClient.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/http/CustomSslContext.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/http/HttpResponse.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/java/edu/kit/scc/http/CustomUrlConnection.java">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/resources/application-test.properties">
+</file>
+<file name="/home/user1/Programming/Indigo/CDMI/src/main/resources/application.properties">
+</file>
+</checkstyle>

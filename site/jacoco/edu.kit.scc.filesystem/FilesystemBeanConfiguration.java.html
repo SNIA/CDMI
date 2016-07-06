@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FilesystemBeanConfiguration.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">cdmi-server</a> &gt; <a href="index.source.html" class="el_package">edu.kit.scc.filesystem</a> &gt; <span class="el_source">FilesystemBeanConfiguration.java</span></div><h1>FilesystemBeanConfiguration.java</h1><pre class="source lang-java linenums">/*
+ * Copyright 2016 Karlsruhe Institute of Technology (KIT)
+ * 
+ * Licensed under the Apache License, Version 2.0 (the &quot;License&quot;); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
+ * 
+ * http://www.apache.org/licenses/LICENSE-2.0
+ */
+
+package edu.kit.scc.filesystem;
+
+import org.snia.cdmiserver.dao.CapabilityDao;
+import org.snia.cdmiserver.dao.CdmiObjectDao;
+import org.snia.cdmiserver.dao.ContainerDao;
+import org.snia.cdmiserver.dao.DataObjectDao;
+import org.snia.cdmiserver.dao.DomainDao;
+import org.snia.cdmiserver.dao.filesystem.CapabilityDaoImpl;
+import org.snia.cdmiserver.dao.filesystem.CdmiObjectDaoImpl;
+import org.snia.cdmiserver.dao.filesystem.ContainerDaoImpl;
+import org.snia.cdmiserver.dao.filesystem.DataObjectDaoImpl;
+import org.snia.cdmiserver.dao.filesystem.DomainDaoImpl;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+
+@Configuration
+@Profile({&quot;filesystem&quot;, &quot;test&quot;})
+<span class="fc" id="L29">public class FilesystemBeanConfiguration {</span>
+
+  @Value(&quot;${cdmi.data.baseDirectory}&quot;)
+  private String baseDirectory;
+
+  @Value(&quot;${cdmi.data.objectIdPrefix}&quot;)
+  private String objectIdPrefix;
+
+  /**
+   * Initializes the file system version of the CDMI object DAO interface.
+   * 
+   * @return a {@link CdmiObjectDao}
+   */
+  @Bean
+  public CdmiObjectDao cdmiObjectDao() {
+<span class="fc" id="L44">    CdmiObjectDaoImpl cdmiObjectDaoImpl = new CdmiObjectDaoImpl();</span>
+<span class="fc" id="L45">    cdmiObjectDaoImpl.setBaseDirectory(baseDirectory);</span>
+<span class="fc" id="L46">    cdmiObjectDaoImpl.setObjectIdPrefix(objectIdPrefix);</span>
+<span class="fc" id="L47">    cdmiObjectDaoImpl.setObjectIdDirectory(&quot;cdmi_objectid&quot;);</span>
+<span class="fc" id="L48">    return cdmiObjectDaoImpl;</span>
+  }
+
+  /**
+   * Initializes the file system version of the {@link ContainerDao}.
+   * 
+   * @return a {@link ContainerDao}
+   */
+  @Bean
+  public ContainerDao containerDao(CdmiObjectDao cdmiObjectDao) {
+<span class="fc" id="L58">    ContainerDaoImpl containerDaoImpl = new ContainerDaoImpl();</span>
+<span class="fc" id="L59">    containerDaoImpl.setBaseDirectoryName(baseDirectory);</span>
+<span class="fc" id="L60">    containerDaoImpl.setCdmiObjectDao(cdmiObjectDao);</span>
+<span class="fc" id="L61">    return containerDaoImpl;</span>
+  }
+
+  /**
+   * Initializes the file system version of the {@link DataObjectDao}.
+   * 
+   * @return a {@link DataObjectDao}
+   */
+  @Bean
+  public DataObjectDao dataObjectDao(CdmiObjectDao cdmiObjectDao) {
+<span class="fc" id="L71">    DataObjectDaoImpl dataObjectDaoImpl = new DataObjectDaoImpl();</span>
+<span class="fc" id="L72">    dataObjectDaoImpl.setBaseDirectoryName(baseDirectory);</span>
+<span class="fc" id="L73">    dataObjectDaoImpl.setCdmiObjectDao(cdmiObjectDao);</span>
+<span class="fc" id="L74">    return dataObjectDaoImpl;</span>
+  }
+
+  /**
+   * Initializes the file system version of the {@link CapabilityDao}.
+   * 
+   * @return a {@link CapabilityDao}
+   */
+  @Bean
+  public CapabilityDao capabilityDao(CdmiObjectDao cdmiObjectDao) {
+<span class="fc" id="L84">    CapabilityDaoImpl capabilityDaoImpl = new CapabilityDaoImpl();</span>
+<span class="fc" id="L85">    capabilityDaoImpl.setBaseDirectory(baseDirectory);</span>
+<span class="fc" id="L86">    capabilityDaoImpl.setCdmiObjectDao(cdmiObjectDao);</span>
+<span class="fc" id="L87">    return capabilityDaoImpl;</span>
+  }
+
+  /**
+   * Initializes the file system version of the {@link DomainDao}.
+   * 
+   * @return a {@link DomainDao}
+   */
+  @Bean
+  public DomainDao domainDao(CdmiObjectDao cdmiObjectDao) {
+<span class="fc" id="L97">    DomainDaoImpl domainDaoImpl = new DomainDaoImpl();</span>
+<span class="fc" id="L98">    domainDaoImpl.setBaseDirectoryName(baseDirectory);</span>
+<span class="fc" id="L99">    domainDaoImpl.setCdmiObjectDao(cdmiObjectDao);</span>
+<span class="fc" id="L100">    return domainDaoImpl;</span>
+  }
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.7.201606060606</span></div></body></html>

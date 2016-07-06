@@ -1,0 +1,225 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DataObjectDaoImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">cdmi-server</a> &gt; <a href="index.source.html" class="el_package">org.snia.cdmiserver.dao.filesystem</a> &gt; <span class="el_source">DataObjectDaoImpl.java</span></div><h1>DataObjectDaoImpl.java</h1><pre class="source lang-java linenums">/*
+ * Original work Copyright (c) 2010, Sun Microsystems, Inc. Copyright (c) 2010, The Storage
+ * Networking Industry Association.
+ *
+ * Modified work Copyright (c) 2016, Karlsruhe Institute of Technology (KIT)
+ * 
+ * Redistribution and use in source and binary forms, with or without modification, are permitted
+ * provided that the following conditions are met:
+ *
+ * Redistributions of source code must retain the above copyright notice, this list of conditions
+ * and the following disclaimer.
+ *
+ * Redistributions in binary form must reproduce the above copyright notice, this list of conditions
+ * and the following disclaimer in the documentation and/or other materials provided with the
+ * distribution.
+ *
+ * Neither the name of The Storage Networking Industry Association (SNIA) nor the names of its
+ * contributors may be used to endorse or promote products derived from this software without
+ * specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS &quot;AS IS&quot; AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ * FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY
+ * WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+package org.snia.cdmiserver.dao.filesystem;
+
+import org.json.JSONArray;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.snia.cdmiserver.dao.CdmiObjectDao;
+import org.snia.cdmiserver.dao.DataObjectDao;
+import org.snia.cdmiserver.model.CdmiObject;
+import org.snia.cdmiserver.model.Container;
+import org.snia.cdmiserver.model.DataObject;
+
+import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+
+/**
+ * &lt;p&gt;
+ * Concrete implementation of {@link DataObjectDao} using the local file system as the backing
+ * store.
+ * &lt;/p&gt;
+ */
+<span class="fc" id="L55">public class DataObjectDaoImpl implements DataObjectDao {</span>
+
+<span class="fc" id="L57">  private static final Logger log = LoggerFactory.getLogger(DataObjectDaoImpl.class);</span>
+
+  private String baseDirectoryName;
+
+  private CdmiObjectDao cdmiObjectDao;
+
+  public String getBaseDirectoryName() {
+<span class="nc" id="L64">    return baseDirectoryName;</span>
+  }
+
+  public void setBaseDirectoryName(String baseDirectoryName) {
+<span class="fc" id="L68">    this.baseDirectoryName = baseDirectoryName;</span>
+<span class="fc" id="L69">  }</span>
+
+  public CdmiObjectDao getCdmiObjectDao() {
+<span class="nc" id="L72">    return cdmiObjectDao;</span>
+  }
+
+  public void setCdmiObjectDao(CdmiObjectDao cdmiObjectDao) {
+<span class="fc" id="L76">    this.cdmiObjectDao = cdmiObjectDao;</span>
+<span class="fc" id="L77">  }</span>
+
+  @Override
+  public DataObject createByPath(String path, DataObject dataObjectRequest) {
+    try {
+<span class="fc" id="L82">      final Path dataObjectPath = Paths.get(baseDirectoryName.trim(), path.trim());</span>
+      // create the data object file
+<span class="fc" id="L84">      Files.createFile(dataObjectPath);</span>
+<span class="fc" id="L85">      log.debug(&quot;create data object {} {}&quot;, path.trim(), dataObjectRequest.toString());</span>
+<span class="fc" id="L86">      log.debug(&quot;create file {}&quot;, dataObjectPath.toString());</span>
+<span class="pc bpc" id="L87" title="1 of 2 branches missed.">      if (dataObjectRequest.getValue() != null) {</span>
+<span class="nc" id="L88">        Files.write(dataObjectPath, dataObjectRequest.getValue().getBytes());</span>
+<span class="nc" id="L89">        log.debug(&quot;writing value to data object&quot;);</span>
+      }
+<span class="fc" id="L91">    } catch (FileAlreadyExistsException ex) {</span>
+<span class="fc" id="L92">      log.error(ex.getMessage());</span>
+<span class="nc" id="L93">    } catch (Exception ex) {</span>
+<span class="nc" id="L94">      log.error(ex.getMessage());</span>
+<span class="nc" id="L95">      return null;</span>
+<span class="fc" id="L96">    }</span>
+
+<span class="fc" id="L98">    Path urlPath = Paths.get(path.trim());</span>
+<span class="fc" id="L99">    Path parentPath = urlPath.getParent();</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">    if (parentPath == null) {</span>
+      // root container
+<span class="nc" id="L102">      return null;</span>
+    }
+
+    // create the data object meta-data files
+<span class="fc" id="L106">    Container parentContainer =</span>
+<span class="fc" id="L107">        (Container) cdmiObjectDao.getCdmiObjectByPath(parentPath.toString());</span>
+
+<span class="fc" id="L109">    DataObject dataObject = new DataObject(urlPath.getFileName().toString(), parentPath.toString(),</span>
+<span class="fc" id="L110">        parentContainer.getObjectId());</span>
+
+<span class="pc bpc" id="L112" title="1 of 2 branches missed.">    if (parentContainer.getChildren() == null) {</span>
+<span class="nc" id="L113">      parentContainer.setChildren(new JSONArray());</span>
+    }
+
+<span class="fc" id="L116">    JSONArray children = parentContainer.getChildren();</span>
+<span class="fc" id="L117">    JSONArray filteredChildren = new JSONArray();</span>
+
+<span class="fc bfc" id="L119" title="All 2 branches covered.">    for (int i = 0; i &lt; children.length(); i++) {</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">      if (!children.get(i).equals(dataObject.getObjectName())) {</span>
+<span class="fc" id="L121">        filteredChildren.put(children.get(i));</span>
+      }
+    }
+
+<span class="fc" id="L125">    filteredChildren.put(dataObject.getObjectName());</span>
+<span class="fc" id="L126">    parentContainer.setChildren(filteredChildren);</span>
+
+<span class="fc" id="L128">    String childrenRange = CdmiObject.getChildrenRange(parentContainer.getChildren());</span>
+<span class="fc" id="L129">    parentContainer.setChildrenrange(childrenRange);</span>
+
+<span class="fc" id="L131">    dataObject.setCompletionStatus(&quot;Complete&quot;);</span>
+<span class="fc" id="L132">    dataObject.setMetadata(dataObjectRequest.getMetadata());</span>
+    // dataObject.setCapabilitiesUri(dataObjectRequest.getCapabilitiesUri());
+
+<span class="fc" id="L135">    dataObject = (DataObject) cdmiObjectDao.createCdmiObject(dataObject, urlPath.toString());</span>
+<span class="fc" id="L136">    cdmiObjectDao.updateCdmiObject(parentContainer);</span>
+
+<span class="fc" id="L138">    return dataObject;</span>
+  }
+
+  @Override
+  public DataObject createNonCdmiByPath(String path, String contentType, DataObject dataObj) {
+<span class="fc" id="L143">    throw new UnsupportedOperationException(&quot;DataObjectDaoImpl.createNonCDMIByPath()&quot;);</span>
+  }
+
+  @Override
+  public DataObject createById(String objectId, DataObject dataObj) {
+<span class="fc" id="L148">    throw new UnsupportedOperationException(&quot;DataObjectDaoImpl.createById()&quot;);</span>
+  }
+
+  @Override
+  public DataObject deleteByPath(String path) {
+<span class="fc" id="L153">    DataObject dataObject = null;</span>
+    try {
+<span class="fc" id="L155">      log.debug(&quot;delete data object {}&quot;, path.trim());</span>
+
+<span class="fc" id="L157">      dataObject = (DataObject) cdmiObjectDao.getCdmiObjectByPath(path.trim());</span>
+
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">      if (dataObject != null) {</span>
+<span class="fc" id="L160">        final Path objectPath = Paths.get(baseDirectoryName.trim(), path.trim());</span>
+
+<span class="fc" id="L162">        log.debug(&quot;delete file {}&quot;, objectPath.toString());</span>
+<span class="fc" id="L163">        Files.delete(objectPath);</span>
+
+<span class="fc" id="L165">        cdmiObjectDao.deleteCdmiObject(dataObject.getObjectId());</span>
+<span class="fc" id="L166">        cdmiObjectDao.deleteCdmiObjectByPath(path.trim());</span>
+
+        // removeChild(objectPath.getFileName().toString(), objectPath.getParent().toString());
+      }
+<span class="nc" id="L170">    } catch (Exception e) {</span>
+<span class="nc" id="L171">      log.error(&quot;ERROR: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L172">    }</span>
+<span class="fc" id="L173">    return dataObject;</span>
+  }
+
+  @Override
+  public DataObject findByPath(String path) {
+<span class="fc" id="L178">    DataObject dataObject = (DataObject) cdmiObjectDao.getCdmiObjectByPath(path.trim());</span>
+    // if (dataObject != null) {
+    // dataObject.setValue(new String(getDataObjectContent(path)));
+    // }
+<span class="fc" id="L182">    return dataObject;</span>
+  }
+
+  @Override
+  public DataObject findByObjectId(String objectId) {
+<span class="fc" id="L187">    DataObject dataObject = (DataObject) cdmiObjectDao.getCdmiObject(objectId);</span>
+    // if (dataObject != null) {
+    // Path path = Paths.get(dataObject.getParentUri(), dataObject.getObjectName());
+    // dataObject.setValue(new String(getDataObjectContent(path.toString())));
+    // }
+<span class="fc" id="L192">    return dataObject;</span>
+  }
+
+  @SuppressWarnings(&quot;unused&quot;)
+  private byte[] getDataObjectContent(String path) {
+<span class="nc" id="L197">    Path objectPath = Paths.get(baseDirectoryName.trim(), path.trim());</span>
+<span class="nc" id="L198">    byte[] content = null;</span>
+    try {
+<span class="nc" id="L200">      content = Files.readAllBytes(objectPath);</span>
+<span class="nc" id="L201">    } catch (IOException e) {</span>
+<span class="nc" id="L202">      e.printStackTrace();</span>
+<span class="nc" id="L203">    }</span>
+<span class="nc" id="L204">    return content;</span>
+  }
+
+  @Override
+  public DataObject updateContent(String path, byte[] content) {
+<span class="nc" id="L209">    DataObject dataObject = (DataObject) cdmiObjectDao.getCdmiObjectByPath(path.trim());</span>
+
+<span class="nc bnc" id="L211" title="All 2 branches missed.">    if (dataObject != null) {</span>
+      try {
+<span class="nc" id="L213">        Path objectPath = Paths.get(baseDirectoryName.trim(), path.trim());</span>
+<span class="nc" id="L214">        Files.write(objectPath, content, StandardOpenOption.WRITE,</span>
+            StandardOpenOption.TRUNCATE_EXISTING);
+<span class="nc" id="L216">        log.debug(&quot;writing value to data object&quot;);</span>
+<span class="nc" id="L217">      } catch (IOException ex) {</span>
+        // ex.printStackTrace();
+<span class="nc" id="L219">        log.error(&quot;ERROR {}&quot;, ex.getMessage());</span>
+<span class="nc" id="L220">      }</span>
+    }
+<span class="nc" id="L222">    return dataObject;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.eclemma.org/jacoco">JaCoCo</a> 0.7.7.201606060606</span></div></body></html>
