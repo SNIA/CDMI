@@ -7,7 +7,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package edu.kit.scc.cdmi;
+package edu.kit.scc.filesystem;
 
 import org.indigo.cdmi.spi.StorageBackend;
 import org.indigo.cdmi.spi.StorageBackendFactory;

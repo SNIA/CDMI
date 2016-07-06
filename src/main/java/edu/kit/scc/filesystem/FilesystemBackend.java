@@ -7,13 +7,12 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package edu.kit.scc.cdmi;
+package edu.kit.scc.filesystem;
 
 import org.indigo.cdmi.BackEndException;
 import org.indigo.cdmi.BackendCapability;
 import org.indigo.cdmi.BackendCapability.CapabilityType;
 import org.indigo.cdmi.CdmiObjectStatus;
-import org.indigo.cdmi.Status;
 import org.indigo.cdmi.spi.StorageBackend;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,6 +113,24 @@ public class FilesystemBackend implements StorageBackend {
         && capabilitiesUri.equals("/cdmi_capabilities/container/profile1")) {
       return true;
     }
+
+    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/dataobject/profile1")
+        && capabilitiesUri.equals("/cdmi_capabilities/dataobject/profile1")) {
+      return true;
+    }
+    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/dataobject/profile2")
+        && capabilitiesUri.equals("/cdmi_capabilities/dataobject/profile2")) {
+      return true;
+    }
+    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/container/profile1")
+        && capabilitiesUri.equals("/cdmi_capabilities/container/profile1")) {
+      return true;
+    }
+    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/container/profile2")
+        && capabilitiesUri.equals("/cdmi_capabilities/container/profile2")) {
+      return true;
+    }
+
     log.warn("target capabilities URI not supported {}", capabilitiesUri);
     return false;
   }
@@ -137,8 +154,8 @@ public class FilesystemBackend implements StorageBackend {
     log.debug("Simulate QoS transition for {} from {} to {}", path, currentCapabilitiesUri,
         targetCapabilitiesUri);
 
-    objectMap.put(path, new CdmiObjectStatus(Status.TRANSITION, monitoredAttributes,
-        currentCapabilitiesUri, targetCapabilitiesUri));
+    objectMap.put(path,
+        new CdmiObjectStatus(monitoredAttributes, currentCapabilitiesUri, targetCapabilitiesUri));
 
     // simulates a 10 sec transition
     long delay = 10 * 1000;
@@ -150,7 +167,7 @@ public class FilesystemBackend implements StorageBackend {
             currentCapabilitiesUri, targetCapabilitiesUri);
         try {
           CdmiObjectStatus finishedStatus = getCurrentStatus(path);
-          objectMap.put(path, new CdmiObjectStatus(Status.OK, monitoredAttributes,
+          objectMap.put(path, new CdmiObjectStatus(monitoredAttributes,
               finishedStatus.getTargetCapabilitiesUri(), null));
 
         } catch (BackEndException e) {
@@ -180,12 +197,12 @@ public class FilesystemBackend implements StorageBackend {
 
     if (Files.isDirectory(getFileSystemPath(path))) {
       if (!objectMap.containsKey(path)) {
-        objectMap.put(path, new CdmiObjectStatus(Status.OK, monitoredAttributes,
+        objectMap.put(path, new CdmiObjectStatus(monitoredAttributes,
             "/cdmi_capabilities/container/profile1", null));
       }
     } else {
       if (!objectMap.containsKey(path)) {
-        objectMap.put(path, new CdmiObjectStatus(Status.OK, monitoredAttributes,
+        objectMap.put(path, new CdmiObjectStatus(monitoredAttributes,
             "/cdmi_capabilities/dataobject/profile1", null));
       }
     }

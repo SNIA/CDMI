@@ -480,7 +480,7 @@ public class CdmiRestController {
         // update capabilities URI
         dataObject.setCapabilitiesUri(status.getCurrentCapabilitiesUri());
         // update QoS transition information
-        if (status.getStatus().equals(org.indigo.cdmi.Status.TRANSITION)) {
+        if (status.getTargetCapabilitiesUri() != null) {
           dataObject.getMetadata().put("cdmi_capabilities_target",
               status.getTargetCapabilitiesUri());
         }
@@ -503,7 +503,7 @@ public class CdmiRestController {
         // update capabilities URI
         container.setCapabilitiesUri(status.getCurrentCapabilitiesUri());
         // update QoS transition information
-        if (status.getStatus().equals(org.indigo.cdmi.Status.TRANSITION)) {
+        if (status.getTargetCapabilitiesUri() != null) {
           container.getMetadata().put("cdmi_capabilities_target",
               status.getTargetCapabilitiesUri());
         }
