@@ -69,30 +69,38 @@ public class FilesystemBackend implements StorageBackend {
     monitoredAttributes.put("cdmi_geographic_placement_provided", "[DE, FR]");
     monitoredAttributes.put("cdmi_latency_provided", "100");
 
-    BackendCapability containerCapabilities =
+    BackendCapability containerProfile1 =
         new BackendCapability("profile1", CapabilityType.CONTAINER);
-    containerCapabilities.setMetadata(metadata);
+    containerProfile1.setMetadata(metadata);
     HashMap<String, String> capabilitiesContainer = capabilities;
     capabilitiesContainer.put("cdmi_capabilities_allowed",
         "/cdmi_capabilities/container/profile1 /cdmi_capabilities/container/profile2");
-    containerCapabilities.setCapabilities(capabilitiesContainer);
+    containerProfile1.setCapabilities(capabilitiesContainer);
 
-    BackendCapability dataobjectCapabilities =
+    BackendCapability dataobjectProfile1 =
         new BackendCapability("profile1", CapabilityType.DATAOBJECT);
-    dataobjectCapabilities.setMetadata(metadata);
+    dataobjectProfile1.setMetadata(metadata);
     HashMap<String, String> capabilitiesDataObject = capabilities;
     capabilitiesDataObject.put("cdmi_capabilities_allowed",
         "/cdmi_capabilities/dataobject/profile1 /cdmi_capabilities/dataobject/profile2");
-    dataobjectCapabilities.setCapabilities(capabilitiesDataObject);
+    dataobjectProfile1.setCapabilities(capabilitiesDataObject);
 
-    backendCapabilities.add(containerCapabilities);
-    backendCapabilities.add(dataobjectCapabilities);
+    backendCapabilities.add(containerProfile1);
+    backendCapabilities.add(dataobjectProfile1);
 
-    containerCapabilities.setName("profile2");
-    dataobjectCapabilities.setName("profile2");
 
-    backendCapabilities.add(containerCapabilities);
-    backendCapabilities.add(dataobjectCapabilities);
+    BackendCapability containerProfile2 =
+        new BackendCapability("profile1", CapabilityType.CONTAINER);
+    containerProfile2.setMetadata(metadata);
+    containerProfile2.setCapabilities(capabilitiesContainer);
+
+    BackendCapability dataobjectProfile2 =
+        new BackendCapability("profile1", CapabilityType.DATAOBJECT);
+    dataobjectProfile2.setMetadata(metadata);
+    dataobjectProfile2.setCapabilities(capabilitiesDataObject);
+    
+    backendCapabilities.add(containerProfile2);
+    backendCapabilities.add(dataobjectProfile2);
   }
 
   private boolean isSupportedTargetCapabilitiesUri(String path, String capabilitiesUri) {
