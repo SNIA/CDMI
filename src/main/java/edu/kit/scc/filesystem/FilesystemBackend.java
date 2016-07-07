@@ -90,12 +90,12 @@ public class FilesystemBackend implements StorageBackend {
 
 
     BackendCapability containerProfile2 =
-        new BackendCapability("profile1", CapabilityType.CONTAINER);
+        new BackendCapability("profile2", CapabilityType.CONTAINER);
     containerProfile2.setMetadata(metadata);
     containerProfile2.setCapabilities(capabilitiesContainer);
 
     BackendCapability dataobjectProfile2 =
-        new BackendCapability("profile1", CapabilityType.DATAOBJECT);
+        new BackendCapability("profile2", CapabilityType.DATAOBJECT);
     dataobjectProfile2.setMetadata(metadata);
     dataobjectProfile2.setCapabilities(capabilitiesDataObject);
     
