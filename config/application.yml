@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: redis-embedded
+    active: redis
     
 server:
   port: 8888

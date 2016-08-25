@@ -83,7 +83,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
         }
       }
     } catch (Exception ex) {
-      ex.printStackTrace();
+      //ex.printStackTrace();
       log.error("{} {}", ex.getClass().getName(), ex.getMessage());
     }
     return null;

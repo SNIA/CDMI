@@ -37,7 +37,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
-@ActiveProfiles("test")
+@ActiveProfiles("filesystem-test")
 public class CapabilityFilesystemTest {
 
   private static final Logger log = LoggerFactory.getLogger(CapabilityFilesystemTest.class);

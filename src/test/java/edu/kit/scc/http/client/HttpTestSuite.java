@@ -34,7 +34,7 @@ public class HttpTestSuite {
   @AfterClass
   public static void destroy() throws IOException {
     Properties props = new Properties();
-    InputStream is = ClassLoader.getSystemResourceAsStream("application-test.properties");
+    InputStream is = ClassLoader.getSystemResourceAsStream("application-filesystem-test.properties");
     try {
       props.load(is);
     } catch (IOException e) {

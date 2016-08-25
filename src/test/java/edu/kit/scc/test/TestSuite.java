@@ -4,6 +4,10 @@ import edu.kit.scc.cdmi.filesystem.CapabilityFilesystemTest;
 import edu.kit.scc.cdmi.filesystem.CdmiObjectFilesystemTest;
 import edu.kit.scc.cdmi.filesystem.ContainerFilesystemTest;
 import edu.kit.scc.cdmi.filesystem.DataObjectFilesystemTest;
+import edu.kit.scc.cdmi.redis.CapabilityRedisTest;
+import edu.kit.scc.cdmi.redis.CdmiObjectRedisTest;
+import edu.kit.scc.cdmi.redis.ContainerRedisTest;
+import edu.kit.scc.cdmi.redis.DataObjectRedisTest;
 import edu.kit.scc.cdmi.rest.AuthorizationTest;
 import edu.kit.scc.cdmi.rest.CapabilitiesTest;
 import edu.kit.scc.cdmi.rest.CdmiObjectTest;
@@ -32,13 +36,16 @@ import java.util.Properties;
 @Suite.SuiteClasses({CapabilityFilesystemTest.class, CdmiObjectFilesystemTest.class,
     ContainerFilesystemTest.class, DataObjectFilesystemTest.class, AuthorizationTest.class,
     CapabilitiesTest.class, CdmiObjectTest.class, ContainerTest.class, DataObjectTest.class,
-    DomainTest.class, FilterJsonTest.class, HttpClientTest.class, UtilsTest.class})
+    DomainTest.class, FilterJsonTest.class, HttpClientTest.class, UtilsTest.class,
+    CapabilityRedisTest.class, CdmiObjectRedisTest.class, ContainerRedisTest.class,
+    DataObjectRedisTest.class})
 public class TestSuite {
 
   @AfterClass
   public static void destroy() throws IOException {
     Properties props = new Properties();
-    InputStream is = ClassLoader.getSystemResourceAsStream("application-test.properties");
+    InputStream is =
+        ClassLoader.getSystemResourceAsStream("application-filesystem-test.properties");
     try {
       props.load(is);
     } catch (IOException e) {
