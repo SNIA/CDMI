@@ -31,9 +31,11 @@
 package org.snia.cdmiserver.dao.filesystem;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.CdmiObjectDao;
+import org.snia.cdmiserver.dao.ContainerDao;
 import org.snia.cdmiserver.dao.DataObjectDao;
 import org.snia.cdmiserver.model.CdmiObject;
 import org.snia.cdmiserver.model.Container;
@@ -59,6 +61,16 @@ public class DataObjectDaoImpl implements DataObjectDao {
   private String baseDirectoryName;
 
   private CdmiObjectDao cdmiObjectDao;
+
+  private ContainerDao containerDao;
+
+  public ContainerDao getContainerDao() {
+    return containerDao;
+  }
+
+  public void setContainerDao(ContainerDao containerDao) {
+    this.containerDao = containerDao;
+  }
 
   public String getBaseDirectoryName() {
     return baseDirectoryName;
@@ -105,6 +117,12 @@ public class DataObjectDaoImpl implements DataObjectDao {
     // create the data object meta-data files
     Container parentContainer =
         (Container) cdmiObjectDao.getCdmiObjectByPath(parentPath.toString());
+
+    // fix: try recursively for non-existing parents
+    if (parentContainer == null) {
+      parentContainer = containerDao.createByPath(parentPath.toString(),
+          Container.fromJson(new JSONObject("{}")));
+    }
 
     DataObject dataObject = new DataObject(urlPath.getFileName().toString(), parentPath.toString(),
         parentContainer.getObjectId());
@@ -167,8 +185,8 @@ public class DataObjectDaoImpl implements DataObjectDao {
 
         // removeChild(objectPath.getFileName().toString(), objectPath.getParent().toString());
       }
-    } catch (Exception e) {
-      log.error("ERROR: {}", e.getMessage());
+    } catch (Exception ex) {
+      log.error("ERROR: {}", ex.getMessage());
     }
     return dataObject;
   }
@@ -198,8 +216,8 @@ public class DataObjectDaoImpl implements DataObjectDao {
     byte[] content = null;
     try {
       content = Files.readAllBytes(objectPath);
-    } catch (IOException e) {
-      e.printStackTrace();
+    } catch (IOException ex) {
+      ex.printStackTrace();
     }
     return content;
   }

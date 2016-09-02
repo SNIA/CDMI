@@ -235,6 +235,9 @@ public class CdmiRestController {
           String body = "{}";
           String contentType = "application/cdmi-object";
           newCdmiObject = updateOrCreate(null, path, body, contentType);
+        } else {
+          return new ResponseEntity<String>("Unsupported CDMI capabilities URI format",
+              responseHeaders, HttpStatus.NOT_IMPLEMENTED);
         }
 
         String objectString = generateResponse(newCdmiObject, query, responseHeaders);

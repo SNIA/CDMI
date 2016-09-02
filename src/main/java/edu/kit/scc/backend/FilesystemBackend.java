@@ -178,9 +178,9 @@ public class FilesystemBackend implements StorageBackend {
           objectMap.put(path, new CdmiObjectStatus(monitoredAttributes,
               finishedStatus.getTargetCapabilitiesUri(), null));
 
-        } catch (BackEndException e) {
+        } catch (BackEndException ex) {
           // TODO Auto-generated catch block
-          e.printStackTrace();
+          ex.printStackTrace();
         }
       }
     }, delay);
