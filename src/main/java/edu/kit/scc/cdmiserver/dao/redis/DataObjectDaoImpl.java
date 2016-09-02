@@ -10,9 +10,11 @@
 package edu.kit.scc.cdmiserver.dao.redis;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.CdmiObjectDao;
+import org.snia.cdmiserver.dao.ContainerDao;
 import org.snia.cdmiserver.dao.DataObjectDao;
 import org.snia.cdmiserver.model.CdmiObject;
 import org.snia.cdmiserver.model.Container;
@@ -26,6 +28,16 @@ public class DataObjectDaoImpl implements DataObjectDao {
   private static final Logger log = LoggerFactory.getLogger(DataObjectDaoImpl.class);
 
   private CdmiObjectDao cdmiObjectDao;
+
+  private ContainerDao containerDao;
+
+  public ContainerDao getContainerDao() {
+    return containerDao;
+  }
+
+  public void setContainerDao(ContainerDao containerDao) {
+    this.containerDao = containerDao;
+  }
 
   public CdmiObjectDao getCdmiObjectDao() {
     return cdmiObjectDao;
@@ -47,6 +59,11 @@ public class DataObjectDaoImpl implements DataObjectDao {
     // create the data object meta-data files
     Container parentContainer =
         (Container) cdmiObjectDao.getCdmiObjectByPath(parentPath.toString());
+
+    if (parentContainer == null) {
+      parentContainer = containerDao.createByPath(parentPath.toString(),
+          Container.fromJson(new JSONObject("{}")));
+    }
 
     DataObject dataObject = new DataObject(urlPath.getFileName().toString(), parentPath.toString(),
         parentContainer.getObjectId());

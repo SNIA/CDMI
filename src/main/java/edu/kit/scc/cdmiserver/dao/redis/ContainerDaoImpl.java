@@ -10,6 +10,7 @@
 package edu.kit.scc.cdmiserver.dao.redis;
 
 import org.json.JSONArray;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.CdmiObjectDao;
@@ -50,6 +51,11 @@ public class ContainerDaoImpl implements ContainerDao {
     // create the container meta-data files
     Container parentContainer =
         (Container) cdmiObjectDao.getCdmiObjectByPath(parentPath.toString());
+
+    if (parentContainer == null) {
+      parentContainer =
+          createByPath(parentPath.toString(), Container.fromJson(new JSONObject("{}")));
+    }
 
     Container container = new Container(urlPath.getFileName().toString(), parentPath.toString(),
         parentContainer.getObjectId());

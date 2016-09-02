@@ -99,8 +99,12 @@ public class RedisBeanConfiguration {
    */
   @Bean
   DataObjectDao dataObjectDao(CdmiObjectDao cdmiObjectDao) {
+    ContainerDaoImpl containerDaoImpl = new ContainerDaoImpl();
+    containerDaoImpl.setCdmiObjectDao(cdmiObjectDao);
+
     DataObjectDaoImpl dataObjectDaoImpl = new DataObjectDaoImpl();
     dataObjectDaoImpl.setCdmiObjectDao(cdmiObjectDao);
+    dataObjectDaoImpl.setContainerDao(containerDaoImpl);
     return dataObjectDaoImpl;
   }
 
