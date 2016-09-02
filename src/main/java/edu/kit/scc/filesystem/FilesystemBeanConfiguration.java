@@ -68,9 +68,14 @@ public class FilesystemBeanConfiguration {
    */
   @Bean
   public DataObjectDao dataObjectDao(CdmiObjectDao cdmiObjectDao) {
+    ContainerDaoImpl containerDaoImpl = new ContainerDaoImpl();
+    containerDaoImpl.setBaseDirectoryName(baseDirectory);
+    containerDaoImpl.setCdmiObjectDao(cdmiObjectDao);
+    
     DataObjectDaoImpl dataObjectDaoImpl = new DataObjectDaoImpl();
     dataObjectDaoImpl.setBaseDirectoryName(baseDirectory);
     dataObjectDaoImpl.setCdmiObjectDao(cdmiObjectDao);
+    dataObjectDaoImpl.setContainerDao(containerDaoImpl);
     return dataObjectDaoImpl;
   }
 

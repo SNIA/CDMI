@@ -262,6 +262,8 @@ public class Container extends CdmiObject {
     container.capabilitiesUri = json.optString("capabilitiesURI", "/cdmi_capabilities/container");
     container.completionStatus = json.optString("completionStatus", "Processing");
     container.metadata = json.optJSONObject("metadata");
+    container.children = new JSONArray();
+    
     if (container.metadata == null) {
       container.metadata = new JSONObject();
     }
