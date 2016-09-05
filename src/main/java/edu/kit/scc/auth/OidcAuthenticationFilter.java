@@ -57,7 +57,8 @@ public class OidcAuthenticationFilter extends OncePerRequestFilter {
 
     String authorizationHeader = request.getHeader("Authorization");
     log.debug("Authorization: {}", authorizationHeader);
-
+    log.debug("from {}", request.getRemoteAddr());
+    
     verifyAuthorization(authorizationHeader);
 
     filterChain.doFilter(request, response);
