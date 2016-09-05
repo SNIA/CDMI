@@ -34,6 +34,9 @@ public class RedisBeanConfiguration {
   @Value("${spring.redis.port}")
   private int port;
 
+  @Value("${spring.redis.host}")
+  private String host;
+
   /**
    * Initializes the redis server connection.
    * 
@@ -43,6 +46,7 @@ public class RedisBeanConfiguration {
   JedisConnectionFactory jedisConnectionFactory() {
     JedisConnectionFactory jedisConnectionFactory = new JedisConnectionFactory();
     jedisConnectionFactory.setPort(port);
+    jedisConnectionFactory.setHostName(host);
     return jedisConnectionFactory;
   }
 
