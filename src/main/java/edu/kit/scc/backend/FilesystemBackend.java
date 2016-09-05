@@ -35,14 +35,14 @@ public class FilesystemBackend implements StorageBackend {
   private ArrayList<BackendCapability> backendCapabilities = new ArrayList<>();
 
   // simulates monitored attributes
-  private HashMap<String, String> monitoredAttributes = new HashMap<>();
+  private HashMap<String, Object> monitoredAttributes = new HashMap<>();
 
   // simulates QoS support
   private HashMap<String, CdmiObjectStatus> objectMap = new HashMap<>();
 
   // simulates storage back-end capabilities
-  private HashMap<String, String> capabilities = new HashMap<>();
-  private HashMap<String, String> metadata = new HashMap<>();
+  private HashMap<String, Object> capabilities = new HashMap<>();
+  private HashMap<String, Object> metadata = new HashMap<>();
 
   private Map<String, String> properties;
 
@@ -72,7 +72,7 @@ public class FilesystemBackend implements StorageBackend {
     BackendCapability containerProfile1 =
         new BackendCapability("profile1", CapabilityType.CONTAINER);
     containerProfile1.setMetadata(metadata);
-    HashMap<String, String> capabilitiesContainer = capabilities;
+    HashMap<String, Object> capabilitiesContainer = capabilities;
     capabilitiesContainer.put("cdmi_capabilities_allowed",
         "/cdmi_capabilities/container/profile1 /cdmi_capabilities/container/profile2");
     containerProfile1.setCapabilities(capabilitiesContainer);
@@ -80,7 +80,7 @@ public class FilesystemBackend implements StorageBackend {
     BackendCapability dataobjectProfile1 =
         new BackendCapability("profile1", CapabilityType.DATAOBJECT);
     dataobjectProfile1.setMetadata(metadata);
-    HashMap<String, String> capabilitiesDataObject = capabilities;
+    HashMap<String, Object> capabilitiesDataObject = capabilities;
     capabilitiesDataObject.put("cdmi_capabilities_allowed",
         "/cdmi_capabilities/dataobject/profile1 /cdmi_capabilities/dataobject/profile2");
     dataobjectProfile1.setCapabilities(capabilitiesDataObject);
@@ -98,7 +98,7 @@ public class FilesystemBackend implements StorageBackend {
         new BackendCapability("profile2", CapabilityType.DATAOBJECT);
     dataobjectProfile2.setMetadata(metadata);
     dataobjectProfile2.setCapabilities(capabilitiesDataObject);
-    
+
     backendCapabilities.add(containerProfile2);
     backendCapabilities.add(dataobjectProfile2);
   }

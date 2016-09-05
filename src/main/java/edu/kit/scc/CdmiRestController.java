@@ -476,7 +476,7 @@ public class CdmiRestController {
         String path = Paths.get(dataObject.getParentUri(), dataObject.getObjectName()).toString();
         CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
         // update monitored attributes
-        for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
+        for (Entry<String, Object> entry : status.getMonitoredAttributes().entrySet()) {
           dataObject.getMetadata().put(entry.getKey(), entry.getValue());
         }
         // update capabilities URI
@@ -499,7 +499,7 @@ public class CdmiRestController {
         String path = Paths.get(container.getParentUri(), container.getObjectName()).toString();
         CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
         // update monitored attributes
-        for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
+        for (Entry<String, Object> entry : status.getMonitoredAttributes().entrySet()) {
           container.getMetadata().put(entry.getKey(), entry.getValue());
         }
         // update capabilities URI
