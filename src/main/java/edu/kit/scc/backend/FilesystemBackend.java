@@ -54,20 +54,20 @@ public class FilesystemBackend implements StorageBackend {
   public FilesystemBackend(Map<String, String> properties) {
     this.properties = properties;
 
-    capabilities.put("cdmi_capabilities_templates", "true");
-    capabilities.put("cdmi_capabilities_exact_inherit", "true");
-    capabilities.put("cdmi_data_redundancy", "true");
-    capabilities.put("cdmi_geographic_placement", "true");
-    capabilities.put("cdmi_latency", "true");
+    capabilities.put("cdmi_capabilities_templates", true);
+    capabilities.put("cdmi_capabilities_exact_inherit", true);
+    capabilities.put("cdmi_data_redundancy", true);
+    capabilities.put("cdmi_geographic_placement", true);
+    capabilities.put("cdmi_latency", true);
     capabilities.put("cdmi_capabilities_allowed", "profile1 profile2");
 
-    metadata.put("cdmi_data_redundancy", "4");
-    metadata.put("cdmi_geographic_placement", "[DE, FR]");
-    metadata.put("cdmi_latency", "100");
+    metadata.put("cdmi_data_redundancy", 4);
+    metadata.put("cdmi_geographic_placement", new String[] {"DE", "FR"});
+    metadata.put("cdmi_latency", 100);
 
-    monitoredAttributes.put("cdmi_data_redundancy_provided", "4");
-    monitoredAttributes.put("cdmi_geographic_placement_provided", "[DE, FR]");
-    monitoredAttributes.put("cdmi_latency_provided", "100");
+    monitoredAttributes.put("cdmi_data_redundancy_provided", 4);
+    monitoredAttributes.put("cdmi_geographic_placement_provided", new String[] {"DE", "FR"});
+    monitoredAttributes.put("cdmi_latency_provided", 100);
 
     BackendCapability containerProfile1 =
         new BackendCapability("profile1", CapabilityType.CONTAINER);
