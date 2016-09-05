@@ -157,7 +157,7 @@
 		<dependency>
 			<groupId>edu.kit.scc</groupId>
 			<artifactId>cdmi-spi</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
+			<version>0.2</version>
 		</dependency>
 		<!-- end::INDIGO[] -->
 

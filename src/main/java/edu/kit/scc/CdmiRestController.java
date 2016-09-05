@@ -259,7 +259,7 @@ public class CdmiRestController {
    * @param request the {@link HttpServletRequest}
    * @return a JSON serialized {@link Container} or {@link DataObject}
    */
-  @Secured("ROLE_ADMIN")
+  @Secured({"ROLE_ADMIN", "ROLE_USER"})
   @RequestMapping(path = "/**", method = RequestMethod.PUT,
       consumes = {"application/cdmi-object", "application/cdmi-container", "application/json"})
   public ResponseEntity<?> putCdmiObject(@RequestHeader("Content-Type") String contentType,
@@ -283,15 +283,13 @@ public class CdmiRestController {
 
     if (newCdmiObject instanceof Container) {
       if (cdmiObject instanceof Container) {
-        return new ResponseEntity<String>(((Container) newCdmiObject).toJson().toString(),
-            responseHeaders, HttpStatus.ACCEPTED);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
       }
       return new ResponseEntity<String>(((Container) newCdmiObject).toJson().toString(),
           responseHeaders, HttpStatus.CREATED);
     } else if (newCdmiObject instanceof DataObject) {
       if (cdmiObject instanceof DataObject) {
-        return new ResponseEntity<String>(((DataObject) newCdmiObject).toJson().toString(),
-            responseHeaders, HttpStatus.ACCEPTED);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
       }
       return new ResponseEntity<String>(((DataObject) newCdmiObject).toJson().toString(),
           responseHeaders, HttpStatus.CREATED);
@@ -474,7 +472,7 @@ public class CdmiRestController {
         String path = Paths.get(dataObject.getParentUri(), dataObject.getObjectName()).toString();
         CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
         // update monitored attributes
-        for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
+        for (Entry<String, Object> entry : status.getMonitoredAttributes().entrySet()) {
           dataObject.getMetadata().put(entry.getKey(), entry.getValue());
         }
         // update capabilities URI
@@ -497,7 +495,7 @@ public class CdmiRestController {
         String path = Paths.get(container.getParentUri(), container.getObjectName()).toString();
         CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
         // update monitored attributes
-        for (Entry<String, String> entry : status.getMonitoredAttributes().entrySet()) {
+        for (Entry<String, Object> entry : status.getMonitoredAttributes().entrySet()) {
           container.getMetadata().put(entry.getKey(), entry.getValue());
         }
         // update capabilities URI
