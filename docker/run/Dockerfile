@@ -23,7 +23,7 @@ RUN cd CDMI && \
     git pull && \ 
     mvn clean package
 
-ENTRYPOINT ["/CDMI/target/cdmi-server-0.1-SNAPSHOT.jar"]
+ENTRYPOINT ["/CDMI/target/cdmi-server-0.2.jar"]
 CMD ["--server.port=8080 --cdmi.data.baseDirectory=/data"]
 
 # Expose data folder and port
