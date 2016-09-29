@@ -29,7 +29,7 @@ import java.nio.charset.StandardCharsets;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
-@ActiveProfiles("test")
+@ActiveProfiles("filesystem-test")
 @SuppressWarnings("unused")
 public class HttpClientTest {
 

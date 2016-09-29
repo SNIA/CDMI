@@ -1,6 +1,6 @@
 spring:
   profiles:
-    active: filesystem
+    active: redis
     
 server:
   port: 8888
@@ -8,13 +8,22 @@ server:
 rest:
   user: restadmin
   pass: restadmin
+  
+cdmi:
+  data:
+    baseDirectory: /tmp/cdmi
+  qos:
+    backend:
+      type: dummy_filesystem
 ---
 spring:
   profiles: filesystem
 cdmi:
   data:
-    baseDirectory: /tmp/cdmi
     objectIdPrefix: .cdmi_
-  qos:
-    backend:
-      type: dummy_filesystem
+---
+spring:
+  profiles: redis
+  redis:
+    port: 6379
+    host: localhost

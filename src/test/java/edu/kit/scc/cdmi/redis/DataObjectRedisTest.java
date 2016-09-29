@@ -7,7 +7,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package edu.kit.scc.cdmi.filesystem;
+package edu.kit.scc.cdmi.redis;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -16,51 +16,24 @@ import static org.junit.Assert.assertTrue;
 import edu.kit.scc.CdmiServerApplication;
 
 import org.json.JSONObject;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.DataObjectDao;
 import org.snia.cdmiserver.model.DataObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
-@ActiveProfiles("filesystem-test")
-public class DataObjectFilesystemTest {
-
-  static String baseDirectoryName;
-
-  @SuppressWarnings("static-access")
-  @Value("${cdmi.data.baseDirectory}")
-  private void setBaseDirectory(String baseDirectoryName) {
-    this.baseDirectoryName = baseDirectoryName;
-  }
-
-  @Value("${cdmi.data.objectIdPrefix}")
-  private String objectIdPrefix;
-
-  @SuppressWarnings("unused")
-  private static final Logger log = LoggerFactory.getLogger(DataObjectFilesystemTest.class);
+@ActiveProfiles("redis-embedded")
+public class DataObjectRedisTest {
 
   @Autowired
   private DataObjectDao dataObjectDao;
-
-  @BeforeClass
-  public static void setup() {}
 
   @Test
   public void testCreateDataObject() {
@@ -72,12 +45,6 @@ public class DataObjectFilesystemTest {
         dataObjectDao.createByPath(Paths.get("/", dataObjectName).toString(), dataObjectRequest);
 
     assertNotNull(dataObject);
-
-    assertTrue(Files.exists(Paths.get(baseDirectoryName, dataObjectName)));
-
-    assertTrue(Files.exists(Paths.get(baseDirectoryName, objectIdPrefix + dataObjectName)));
-    assertTrue(
-        Files.exists(Paths.get(baseDirectoryName, "cdmi_objectid", dataObject.getObjectId())));
   }
 
   @Test
@@ -119,17 +86,8 @@ public class DataObjectFilesystemTest {
 
     assertNotNull(dataObject);
 
-    assertTrue(Files.exists(Paths.get(baseDirectoryName, dataObjectName)));
-    assertTrue(Files.exists(Paths.get(baseDirectoryName, objectIdPrefix + dataObjectName)));
-    assertTrue(
-        Files.exists(Paths.get(baseDirectoryName, "cdmi_objectid", dataObject.getObjectId())));
-
     dataObjectDao.deleteByPath(Paths.get("/", dataObjectName).toString());
 
-    assertTrue(!Files.exists(Paths.get(baseDirectoryName, dataObjectName)));
-    assertTrue(!Files.exists(Paths.get(baseDirectoryName, objectIdPrefix + dataObjectName)));
-    assertTrue(
-        !Files.exists(Paths.get(baseDirectoryName, "cdmi_objectid", dataObject.getObjectId())));
   }
 
   @Test
@@ -182,28 +140,5 @@ public class DataObjectFilesystemTest {
         dataObjectDao.createByPath(Paths.get("/", dataObjectName).toString(), dataObjectRequest);
 
     assertEquals(dataObject1.toString(), dataObject2.toString());
-  }
-
-  // @AfterClass
-  public static void destroy() throws IOException {
-    Path start = Paths.get(baseDirectoryName);
-    Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
-      @Override
-      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-        Files.delete(file);
-        return FileVisitResult.CONTINUE;
-      }
-
-      @Override
-      public FileVisitResult postVisitDirectory(Path dir, IOException ex) throws IOException {
-        if (ex == null) {
-          Files.delete(dir);
-          return FileVisitResult.CONTINUE;
-        } else {
-          // directory iteration failed
-          throw ex;
-        }
-      }
-    });
   }
 }

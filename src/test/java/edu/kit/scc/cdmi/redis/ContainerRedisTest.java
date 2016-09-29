@@ -7,7 +7,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package edu.kit.scc.cdmi.filesystem;
+package edu.kit.scc.cdmi.redis;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -18,7 +18,6 @@ import static org.junit.Assert.assertTrue;
 import edu.kit.scc.CdmiServerApplication;
 
 import org.json.JSONObject;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -26,42 +25,21 @@ import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.ContainerDao;
 import org.snia.cdmiserver.model.Container;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
-@ActiveProfiles("filesystem-test")
-public class ContainerFilesystemTest {
+@ActiveProfiles("redis-embedded")
+public class ContainerRedisTest {
 
   @Autowired
-  private ContainerDao containerDao;
+  ContainerDao containerDao;
 
-  @Value("${cdmi.data.objectIdPrefix}")
-  String objectIdPrefix;
-
-  static String baseDirectoryName;
-
-  @SuppressWarnings("static-access")
-  @Value("${cdmi.data.baseDirectory}")
-  private void setBaseDirectory(String baseDirectoryName) {
-    this.baseDirectoryName = baseDirectoryName;
-  }
-
-  private static final Logger log = LoggerFactory.getLogger(ContainerFilesystemTest.class);
-
-  @BeforeClass
-  public static void setup() {}
+  private static final Logger log = LoggerFactory.getLogger(ContainerRedisTest.class);
 
   @Test
   public void testCreateContainer() {
@@ -75,11 +53,6 @@ public class ContainerFilesystemTest {
 
     assertNotNull(container);
 
-    assertTrue(Files.exists(Paths.get(baseDirectoryName, containerName)));
-
-    assertTrue(Files.exists(Paths.get(baseDirectoryName, objectIdPrefix + containerName)));
-    assertTrue(
-        Files.exists(Paths.get(baseDirectoryName, "cdmi_objectid", container.getObjectId())));
   }
 
   @Test
@@ -107,7 +80,7 @@ public class ContainerFilesystemTest {
 
     container = containerDao.createByPath("/", null);
 
-    assertNotNull(container);
+    //assertNotNull(container);
   }
 
   @Test
@@ -121,20 +94,11 @@ public class ContainerFilesystemTest {
         containerDao.createByPath(Paths.get("/", containerName).toString(), containerRequest);
 
     assertNotNull(container);
-    assertTrue(Files.exists(Paths.get(baseDirectoryName, containerName)));
-    assertTrue(Files.exists(Paths.get(baseDirectoryName, objectIdPrefix + containerName)));
-    assertTrue(
-        Files.exists(Paths.get(baseDirectoryName, "cdmi_objectid", container.getObjectId())));
 
     Container childContainer = containerDao.createByPath(
         Paths.get("/", containerName, childContainerName).toString(), containerRequest);
 
     assertNotNull(childContainer);
-    assertTrue(Files.exists(Paths.get(baseDirectoryName, containerName, childContainerName)));
-    assertTrue(Files
-        .exists(Paths.get(baseDirectoryName, containerName, objectIdPrefix + childContainerName)));
-    assertTrue(
-        Files.exists(Paths.get(baseDirectoryName, "cdmi_objectid", childContainer.getObjectId())));
 
     String parentObjectId = childContainer.getParentId();
     log.debug("Parent id {}", childContainer.getParentId());
@@ -210,28 +174,5 @@ public class ContainerFilesystemTest {
     Container container = containerDao.createByPath(Paths.get("/", containerName).toString(), null);
 
     assertNull(container);
-  }
-
-  // @AfterClass
-  public static void destroy() throws IOException {
-    Path start = Paths.get(baseDirectoryName);
-    Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
-      @Override
-      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-        Files.delete(file);
-        return FileVisitResult.CONTINUE;
-      }
-
-      @Override
-      public FileVisitResult postVisitDirectory(Path dir, IOException ex) throws IOException {
-        if (ex == null) {
-          Files.delete(dir);
-          return FileVisitResult.CONTINUE;
-        } else {
-          // directory iteration failed
-          throw ex;
-        }
-      }
-    });
   }
 }

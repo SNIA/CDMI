@@ -7,7 +7,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package edu.kit.scc.filesystem;
+package edu.kit.scc.redis;
 
 import org.indigo.cdmi.BackEndException;
 import org.indigo.cdmi.BackendCapability;
@@ -27,9 +27,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
+import redis.embedded.RedisServer;
+
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
@@ -38,16 +38,10 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 @Component
-@Profile({"filesystem", "filesystem-test"})
-public class FilesystemConfiguration {
+@Profile({"redis-embedded"})
+public class RedisEmbeddedConfiguration {
 
-  private static final Logger log = LoggerFactory.getLogger(FilesystemConfiguration.class);
-
-  @Value("${cdmi.data.baseDirectory}")
-  private String baseDirectory;
-
-  @Value("${cdmi.qos.backend.type}")
-  private String backendType;
+  private static final Logger log = LoggerFactory.getLogger(RedisEmbeddedConfiguration.class);
 
   @Autowired
   private CdmiObjectDao cdmiObjectDao;
@@ -55,32 +49,33 @@ public class FilesystemConfiguration {
   @Autowired
   private CapabilityDao capabilityDao;
 
+  @Value("${cdmi.data.baseDirectory}")
+  private String baseDirectory;
+
+  @Value("${cdmi.qos.backend.type}")
+  private String backendType;
+
+  @Value("${spring.redis.port}")
+  private int redisPort;
+
+  private static RedisServer redisServer;
+
   /**
-   * Configuration for CDMI file system version.
+   * Initializes in-memory redis.
    * 
-   * @throws IOException in case directories couldn't be created
+   * @throws IOException in case in-memory redis couldn't be created
    */
   @PostConstruct
   public void init() throws IOException {
+    log.debug("Set-up in-memory redis...");
+    redisServer = new RedisServer(redisPort);
+    try {
+      redisServer.start();
+    } catch (Exception ex) {
+      log.warn("Redis servier already running?");
+    }
+
     log.debug("Set-up root container...");
-
-    Path path = Paths.get(baseDirectory);
-    if (!Files.exists(path)) {
-      Files.createDirectory(Paths.get(baseDirectory));
-      log.debug("root directory {} created", path.toString());
-    }
-
-    path = Paths.get(baseDirectory, "cdmi_objectid");
-    if (!Files.exists(path)) {
-      Files.createDirectory(path);
-      log.debug("cdmi objectid directory {} created", path.toString());
-    }
-
-    path = Paths.get(baseDirectory, "cdmi_capabilities");
-    if (!Files.exists(path)) {
-      Files.createDirectory(path);
-      log.debug("cdmi objectid directory {} created", path.toString());
-    }
 
     CdmiObject rootObject = new CdmiObject();
     Container rootContainer = new Container("/", "/", rootObject.getObjectId());
@@ -98,20 +93,20 @@ public class FilesystemConfiguration {
 
     Capability containerCapability =
         new Capability("container", "/cdmi_capabilities", rootCapability.getObjectId());
-    capabilityDao.createByPath(Paths.get("cdmi_capabilities", "container").toString(),
+    capabilityDao.createByPath(Paths.get("/cdmi_capabilities", "container").toString(),
         containerCapability);
 
     Capability dataObjectCapability =
         new Capability("dataobject", "/cdmi_capabilities", rootCapability.getObjectId());
-    capabilityDao.createByPath(Paths.get("cdmi_capabilities", "dataobject").toString(),
+    capabilityDao.createByPath(Paths.get("/cdmi_capabilities", "dataobject").toString(),
         dataObjectCapability);
 
     Capability defaultContainerCapability =
-        capabilityDao.findByPath(Paths.get("cdmi_capabilities", "container").toString());
+        capabilityDao.findByPath(Paths.get("/cdmi_capabilities", "container").toString());
     log.debug(defaultContainerCapability.toString());
 
     Capability defaultDataObjectCapability =
-        capabilityDao.findByPath(Paths.get("cdmi_capabilities", "dataobject").toString());
+        capabilityDao.findByPath(Paths.get("/cdmi_capabilities", "dataobject").toString());
     log.debug(defaultDataObjectCapability.toString());
 
     // Connect to a specific file system storage back-end implementation.
@@ -134,7 +129,7 @@ public class FilesystemConfiguration {
           providedCapability.setCapabilities(new JSONObject(capability.getCapabilities()));
           providedCapability.setMetadata(new JSONObject(capability.getMetadata()));
           capabilityDao.createByPath(
-              Paths.get("cdmi_capabilities", "container", capability.getName()).toString(),
+              Paths.get("/", "cdmi_capabilities", "container", capability.getName()).toString(),
               providedCapability);
         }
         if (capability.getType().equals(CapabilityType.DATAOBJECT)) {
@@ -143,7 +138,7 @@ public class FilesystemConfiguration {
           providedCapability.setCapabilities(new JSONObject(capability.getCapabilities()));
           providedCapability.setMetadata(new JSONObject(capability.getMetadata()));
           capabilityDao.createByPath(
-              Paths.get("cdmi_capabilities", "dataobject", capability.getName()).toString(),
+              Paths.get("/", "cdmi_capabilities", "dataobject", capability.getName()).toString(),
               providedCapability);
         }
       }
@@ -152,8 +147,15 @@ public class FilesystemConfiguration {
     }
   }
 
+  /**
+   * Cleans up in-memory redis.
+   * 
+   */
   @PreDestroy
   public void cleanUp() {
-
+    if (redisServer != null) {
+      log.debug("Shutdown in-memory redis");
+      redisServer.stop();
+    }
   }
 }

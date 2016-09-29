@@ -7,7 +7,7 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package edu.kit.scc.filesystem;
+package edu.kit.scc.backend;
 
 import org.indigo.cdmi.BackEndException;
 import org.indigo.cdmi.BackendCapability;
@@ -66,7 +66,7 @@ public class FilesystemBackend implements StorageBackend {
     metadata.put("cdmi_latency", 100);
 
     monitoredAttributes.put("cdmi_data_redundancy_provided", 4);
-    monitoredAttributes.put("cdmi_geographic_placement", new String[] {"DE", "FR"});
+    monitoredAttributes.put("cdmi_geographic_placement_provided", new String[] {"DE", "FR"});
     monitoredAttributes.put("cdmi_latency_provided", 100);
 
     BackendCapability containerProfile1 =

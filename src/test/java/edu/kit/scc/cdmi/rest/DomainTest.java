@@ -22,7 +22,7 @@ import com.jayway.restassured.response.Response;
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
 @WebIntegrationTest
-@ActiveProfiles("test")
+@ActiveProfiles("filesystem-test")
 public class DomainTest {
 
   private static final Logger log = LoggerFactory.getLogger(DomainTest.class);

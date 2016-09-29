@@ -7,14 +7,13 @@
  * http://www.apache.org/licenses/LICENSE-2.0
  */
 
-package edu.kit.scc.cdmi.filesystem;
+package edu.kit.scc.cdmi.redis;
 
 import static org.junit.Assert.assertNotNull;
 
 import edu.kit.scc.CdmiServerApplication;
 
 import org.json.JSONObject;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -22,49 +21,28 @@ import org.slf4j.LoggerFactory;
 import org.snia.cdmiserver.dao.CapabilityDao;
 import org.snia.cdmiserver.model.Capability;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
-@ActiveProfiles("filesystem-test")
-public class CapabilityFilesystemTest {
+@ActiveProfiles("redis-embedded")
+public class CapabilityRedisTest {
 
-  private static final Logger log = LoggerFactory.getLogger(CapabilityFilesystemTest.class);
-
-  @Value("${cdmi.data.objectIdPrefix}")
-  String objectIdPrefix;
-
-  static String baseDirectoryName;
-
-  @SuppressWarnings("static-access")
-  @Value("${cdmi.data.baseDirectory}")
-  private void setBaseDirectory(String baseDirectoryName) {
-    this.baseDirectoryName = baseDirectoryName;
-  }
+  private static final Logger log = LoggerFactory.getLogger(CapabilityRedisTest.class);
 
   @Autowired
   private CapabilityDao capabilityDao;
-
-  @BeforeClass
-  public static void setup() {}
 
   @Test
   public void testCreateCapability() {
     String capabilityName = "testCreateCapability";
     Capability capabilityRequest = Capability.fromJson(new JSONObject("{}"));
-    Capability capability = capabilityDao
-        .createByPath(Paths.get("cdmi_capabilities", capabilityName).toString(), capabilityRequest);
+    Capability capability = capabilityDao.createByPath(
+        Paths.get("/cdmi_capabilities", capabilityName).toString(), capabilityRequest);
 
     assertNotNull(capability);
   }
@@ -73,8 +51,8 @@ public class CapabilityFilesystemTest {
   public void testFindCapabilityById() {
     String capabilityName = "testFindCapabilityById";
     Capability capabilityRequest = Capability.fromJson(new JSONObject("{}"));
-    Capability capability = capabilityDao
-        .createByPath(Paths.get("cdmi_capabilities", capabilityName).toString(), capabilityRequest);
+    Capability capability = capabilityDao.createByPath(
+        Paths.get("/cdmi_capabilities", capabilityName).toString(), capabilityRequest);
 
     assertNotNull(capability);
     log.debug("Capability {}", capability.toJson());
@@ -90,37 +68,14 @@ public class CapabilityFilesystemTest {
   public void testFindCapabilityByPath() {
     String capabilityName = "testFindCapabilityByPath";
     Capability capabilityRequest = Capability.fromJson(new JSONObject("{}"));
-    Capability capability = capabilityDao
-        .createByPath(Paths.get("cdmi_capabilities", capabilityName).toString(), capabilityRequest);
+    Capability capability = capabilityDao.createByPath(
+        Paths.get("/cdmi_capabilities", capabilityName).toString(), capabilityRequest);
 
     assertNotNull(capability);
 
     Capability getCapability =
-        capabilityDao.findByPath(Paths.get("cdmi_capabilities", capabilityName).toString());
+        capabilityDao.findByPath(Paths.get("/cdmi_capabilities", capabilityName).toString());
 
     assertNotNull(getCapability);
-  }
-
-  // @AfterClass
-  public static void destroy() throws IOException {
-    Path start = Paths.get(baseDirectoryName);
-    Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
-      @Override
-      public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-        Files.delete(file);
-        return FileVisitResult.CONTINUE;
-      }
-
-      @Override
-      public FileVisitResult postVisitDirectory(Path dir, IOException ex) throws IOException {
-        if (ex == null) {
-          Files.delete(dir);
-          return FileVisitResult.CONTINUE;
-        } else {
-          // directory iteration failed
-          throw ex;
-        }
-      }
-    });
   }
 }

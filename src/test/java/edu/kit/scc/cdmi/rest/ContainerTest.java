@@ -31,7 +31,7 @@ import com.jayway.restassured.response.Response;
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = CdmiServerApplication.class)
 @WebIntegrationTest
-@ActiveProfiles("test")
+@ActiveProfiles("filesystem-test")
 public class ContainerTest {
 
   private static final Logger log = LoggerFactory.getLogger(ContainerTest.class);
