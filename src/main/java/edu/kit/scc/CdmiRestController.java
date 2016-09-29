@@ -287,16 +287,12 @@ public class CdmiRestController {
 
     if (newCdmiObject instanceof Container) {
       if (cdmiObject instanceof Container) {
-        // return new ResponseEntity<String>(((Container) newCdmiObject).toJson().toString(),
-        // responseHeaders, HttpStatus.ACCEPTED);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
       }
       return new ResponseEntity<String>(((Container) newCdmiObject).toJson().toString(),
           responseHeaders, HttpStatus.CREATED);
     } else if (newCdmiObject instanceof DataObject) {
       if (cdmiObject instanceof DataObject) {
-        // return new ResponseEntity<String>(((DataObject) newCdmiObject).toJson().toString(),
-        // responseHeaders, HttpStatus.ACCEPTED);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
       }
       return new ResponseEntity<String>(((DataObject) newCdmiObject).toJson().toString(),

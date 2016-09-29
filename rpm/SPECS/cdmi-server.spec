@@ -3,7 +3,7 @@
 %define buildroot	%{_topdir}/build-rpm-root
 
 %define name            cdmi-server
-%define jarversion      0.1
+%define jarversion      0.2
 %define user            cdmi
 
 Name:		%{name}
@@ -29,12 +29,12 @@ Standalone Spring Boot application version.
 mkdir -p %{buildroot}/var/lib/%{name}/config
 mkdir -p %{buildroot}/etc/systemd/system
 cp %{_topdir}/SOURCES/application.yml %{buildroot}/var/lib/%{name}/config
-cp %{_topdir}/SOURCES/%{name}-%{jarversion}-SNAPSHOT.jar %{buildroot}/var/lib/%{name}
+cp %{_topdir}/SOURCES/%{name}-%{jarversion}.jar %{buildroot}/var/lib/%{name}
 cp %{_topdir}/SOURCES/%{name}.service %{buildroot}/etc/systemd/system
 
 %files
 /var/lib/%{name}/config/application.yml
-/var/lib/%{name}/%{name}-%{jarversion}-SNAPSHOT.jar
+/var/lib/%{name}/%{name}-%{jarversion}.jar
 /etc/systemd/system/%{name}.service
 
 %changelog
@@ -45,8 +45,8 @@ if [ $? -eq 1 ]; then
   adduser --system --user-group %{user}
 fi
 
-if [ -f /var/lib/%{name}/%{name}-%{jarversion}-SNAPSHOT.jar ]; then
-  chmod +x /var/lib/%{name}/%{name}-%{jarversion}-SNAPSHOT.jar
+if [ -f /var/lib/%{name}/%{name}-%{jarversion}.jar ]; then
+  chmod +x /var/lib/%{name}/%{name}-%{jarversion}.jar
 fi
 
 chown -R %{user}:%{user} /var/lib/%{name}

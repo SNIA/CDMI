@@ -20,6 +20,7 @@ import org.snia.cdmiserver.model.DataObject;
 import org.snia.cdmiserver.model.Domain;
 import org.snia.cdmiserver.util.MediaTypes;
 
+import java.nio.file.AccessDeniedException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -162,7 +163,17 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
           StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
 
       log.debug("update objectId file {} {}", updateObject.toString(), updateObject.toJson());
-
+    } catch (AccessDeniedException ex) {
+      // try to fix file modification issues
+      try {
+        Files.deleteIfExists(getCdmiObjectFilePathByUrl(path));
+        Files.write(getCdmiObjectFilePathByUrl(path), updateObject.toJson().toString().getBytes(),
+            StandardOpenOption.WRITE);
+      } catch (Exception ex1) {
+        // ex.printStackTrace();
+        log.error("{} {}", ex1.getClass().getName(), ex1.getMessage());
+        return null;
+      }
     } catch (Exception ex) {
       // ex.printStackTrace();
       log.error("{} {}", ex.getClass().getName(), ex.getMessage());
@@ -179,7 +190,17 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
           StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING);
 
       log.debug("update objectId file {} {}", object.toString(), object.toJson());
-
+    } catch (AccessDeniedException ex) {
+      // try to fix file modification issues
+      try {
+        Files.deleteIfExists(getObjectIdFilePath(object.getObjectId()));
+        Files.write(getObjectIdFilePath(object.getObjectId()),
+            object.toJson().toString().getBytes(), StandardOpenOption.WRITE);
+      } catch (Exception ex1) {
+        // ex.printStackTrace();
+        log.error("{} {}", ex1.getClass().getName(), ex1.getMessage());
+        return null;
+      }
     } catch (Exception ex) {
       // ex.printStackTrace();
       log.error("{} {}", ex.getClass().getName(), ex.getMessage());

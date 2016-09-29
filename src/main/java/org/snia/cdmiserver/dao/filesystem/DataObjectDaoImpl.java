@@ -42,6 +42,7 @@ import org.snia.cdmiserver.model.Container;
 import org.snia.cdmiserver.model.DataObject;
 
 import java.io.IOException;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -232,6 +233,17 @@ public class DataObjectDaoImpl implements DataObjectDao {
         Files.write(objectPath, content, StandardOpenOption.WRITE,
             StandardOpenOption.TRUNCATE_EXISTING);
         log.debug("writing value to data object");
+      } catch (AccessDeniedException ex) {
+        // try to fix file modification issues
+        try {
+          Path objectPath = Paths.get(baseDirectoryName.trim(), path.trim());
+          Files.deleteIfExists(objectPath);
+          Files.write(objectPath, content, StandardOpenOption.WRITE);
+        } catch (Exception ex1) {
+          // ex.printStackTrace();
+          log.error("{} {}", ex1.getClass().getName(), ex1.getMessage());
+          return null;
+        }
       } catch (IOException ex) {
         // ex.printStackTrace();
         log.error("ERROR {}", ex.getMessage());
