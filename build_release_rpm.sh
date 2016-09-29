@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION=0.2
+VERSION=1.1
 NAME=cdmi-server
 TOPDIR=`pwd`/rpm
 
