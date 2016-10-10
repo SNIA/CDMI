@@ -12,6 +12,7 @@ package edu.kit.scc;
 import org.indigo.cdmi.BackEndException;
 import org.indigo.cdmi.CdmiObjectStatus;
 import org.indigo.cdmi.ConfigurableStorageBackend;
+import org.indigo.cdmi.SubjectBasedStorageBackend;
 import org.indigo.cdmi.spi.StorageBackend;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -36,6 +37,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -45,12 +48,16 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.HandlerMapping;
 
 import java.nio.file.Paths;
+import java.security.Principal;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.annotation.PostConstruct;
+import javax.security.auth.Subject;
 import javax.servlet.http.HttpServletRequest;
 
 @RestController
@@ -225,6 +232,7 @@ public class CdmiRestController {
       //
       CdmiObject newCdmiObject = null;
       try {
+        setAuthenticatedSubject();
         CdmiObjectStatus cdmiObjectStatus = storageBackend.getCurrentStatus(path);
         log.debug("storage back-end status {}", cdmiObjectStatus.toString());
         String currentCapabilitiesUri = cdmiObjectStatus.getCurrentCapabilitiesUri();
@@ -399,6 +407,22 @@ public class CdmiRestController {
     return objectString;
   }
 
+  private void setAuthenticatedSubject() {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    Set<Principal> principals = new HashSet<>();
+    principals.add(authentication);
+    Set<Object> credentials = new HashSet<>();
+    credentials.add(authentication.getCredentials());
+    log.debug("Authentication: {}", authentication.toString());
+
+    try {
+      ((SubjectBasedStorageBackend) storageBackend)
+          .setSubject(new Subject(true, principals, credentials, credentials));
+    } catch (Exception e) {
+      log.warn("Couldn't set authenticated subject, {}", e.getClass().getName());
+    }
+  }
+
   private CdmiObject updateOrCreate(CdmiObject cdmiObject, String path, String body,
       String contentType) {
     // create or update container
@@ -414,6 +438,7 @@ public class CdmiRestController {
         if (updateJson.has("capabilitiesURI")) {
           // Change of QoS
           try {
+            setAuthenticatedSubject();
             storageBackend.updateCdmiObject(path, updateJson.getString("capabilitiesURI"));
             existingContainer.setCapabilitiesUri(updateJson.getString("capabilitiesURI"));
           } catch (Exception ex) {
@@ -444,6 +469,7 @@ public class CdmiRestController {
         if (updateJson.has("capabilitiesURI")) {
           // Change of QoS
           try {
+            setAuthenticatedSubject();
             storageBackend.updateCdmiObject(path, updateJson.getString("capabilitiesURI"));
             existingDataObject.setCapabilitiesUri(updateJson.getString("capabilitiesURI"));
           } catch (Exception ex) {
@@ -474,6 +500,7 @@ public class CdmiRestController {
     try {
       if (storageBackend != null) {
         String path = Paths.get(dataObject.getParentUri(), dataObject.getObjectName()).toString();
+        setAuthenticatedSubject();
         CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
         // update monitored attributes
         for (Entry<String, Object> entry : status.getMonitoredAttributes().entrySet()) {
@@ -497,6 +524,7 @@ public class CdmiRestController {
     try {
       if (storageBackend != null) {
         String path = Paths.get(container.getParentUri(), container.getObjectName()).toString();
+        setAuthenticatedSubject();
         CdmiObjectStatus status = storageBackend.getCurrentStatus(path);
         // update monitored attributes
         for (Entry<String, Object> entry : status.getMonitoredAttributes().entrySet()) {
