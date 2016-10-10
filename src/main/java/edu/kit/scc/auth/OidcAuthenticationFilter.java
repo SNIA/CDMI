@@ -58,7 +58,7 @@ public class OidcAuthenticationFilter extends OncePerRequestFilter {
     String authorizationHeader = request.getHeader("Authorization");
     log.debug("Authorization: {}", authorizationHeader);
     log.debug("from {}", request.getRemoteAddr());
-    
+
     verifyAuthorization(authorizationHeader);
 
     filterChain.doFilter(request, response);
@@ -86,7 +86,7 @@ public class OidcAuthenticationFilter extends OncePerRequestFilter {
           user = json.optString("sub", "user");
 
           SecurityContextHolder.getContext()
-              .setAuthentication(new UsernamePasswordAuthenticationToken(user, "N/A",
+              .setAuthentication(new UsernamePasswordAuthenticationToken(user, encodedCredentials,
                   AuthorityUtils.commaSeparatedStringToAuthorityList("ROLE_USER")));
 
           return true;
@@ -97,8 +97,8 @@ public class OidcAuthenticationFilter extends OncePerRequestFilter {
         if (response.statusCode == HttpStatus.OK.value()) {
           log.debug("Token info {}", response.getResponseString());
 
-          SecurityContextHolder.getContext()
-              .setAuthentication(new UsernamePasswordAuthenticationToken("client", "N/A",
+          SecurityContextHolder.getContext().setAuthentication(
+              new UsernamePasswordAuthenticationToken("client", encodedCredentials,
                   AuthorityUtils.commaSeparatedStringToAuthorityList("ROLE_CLIENT")));
 
           return true;

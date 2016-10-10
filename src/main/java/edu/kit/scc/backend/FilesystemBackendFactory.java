@@ -9,6 +9,7 @@
 
 package edu.kit.scc.backend;
 
+import org.indigo.cdmi.SubjectBasedStorageBackend;
 import org.indigo.cdmi.spi.StorageBackend;
 import org.indigo.cdmi.spi.StorageBackendFactory;
 
@@ -22,7 +23,7 @@ public class FilesystemBackendFactory implements StorageBackendFactory {
   @Override
   public StorageBackend createStorageBackend(Map<String, String> properties)
       throws IllegalArgumentException {
-    return new FilesystemBackend(properties);
+    return new SubjectBasedStorageBackend(new FilesystemBackend(properties));
   }
 
   @Override
