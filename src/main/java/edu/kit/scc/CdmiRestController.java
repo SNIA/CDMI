@@ -530,6 +530,10 @@ public class CdmiRestController {
         for (Entry<String, Object> entry : status.getMonitoredAttributes().entrySet()) {
           container.getMetadata().put(entry.getKey(), entry.getValue());
         }
+        // update export attributes
+        if (status.getExportAttributes() != null) {
+          container.setExports(new JSONObject(status.getExportAttributes()));
+        }
         // update capabilities URI
         container.setCapabilitiesUri(status.getCurrentCapabilitiesUri());
         // update QoS transition information
