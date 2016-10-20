@@ -10,8 +10,6 @@ rest:
   pass: restadmin
   
 cdmi:
-  data:
-    baseDirectory: /tmp/cdmi
   qos:
     backend:
       type: dummy_filesystem
@@ -21,6 +19,7 @@ spring:
 cdmi:
   data:
     objectIdPrefix: .cdmi_
+    baseDirectory: /tmp/cdmi
 ---
 spring:
   profiles: redis
