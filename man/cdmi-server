@@ -1,0 +1,45 @@
+.\" Manpage for cdmi-server.
+.TH "CDMI-SERVER" 8 "2016-11-07" "CDMI Server" "cdmi-server"
+
+.SH NAME
+cdmi-server \- Cloud Data Management Interface Server
+.SH "SYNOPSIS"
+.PP
+\fBcdmi-server-1.1.jar\fR [ --\fBspring.profiles.active\fR \fIprofile\fR ] [ --\fBserver.port\fR \fIport\fR ] [ --\fBrest.user\fR \fIuser\fR ] [ --\fBrest.pass\fR \fIpassword\fR ] [ --\fBcdmi.data.baseDirectory\fR \fIbasedirectory\fR ] [ --\fBcdmi.data.objectIdPrefix\fR \fIprefix\fR ] [ --\fBcdmi.qos.backend.type\fR \fIbackendtype\fR ] 
+.SH "SUMMARY"
+.PP
+cdmi-server is the Cloud Data Management Interface server program\&. It is designed to be run as a standalone daemon process\&.
+.PP
+In general, cdmi-server should not be invoked directly, but rahter should be
+invoked via /etc/init.d/cdmi-server\&.
+.SH "DOCUMENTATION"
+.PP
+The full documentation is available at
+https://indigo-dc.gitbooks.io/cdmi-qos/content/
+.SH "FILES"
+.I /var/lib/cdmi-server/config/application.yml
+.RS
+The system wide configuration file\&.
+.SH "OPTIONS"
+.TP
+--spring.profiles.active \fIprofile\fR
+Active configuration to use (e.g. \fIfilesystem\fR)\&.
+.TP
+--server.port \fIport\fR
+The port the server should listen for incoming connections\&.
+.TP
+--rest.user \fIuser\fR
+The HTTP Basic authentication username\&.
+.TP
+--rest.pass \fIpassword\fR
+The HTTP Basic authentication password\&.
+.TP
+--cdmi.data.baseDirectory \fIbasedirectory\fR
+Base directory where the CDMI objects can be found\&.
+.TP
+--cdmi.data.objectIdPrefix \fIprefix\fR
+Prefix for dot meta-data files to be stored on the file-system (e.g. \fI.cdmi_\fR)\&.
+.TP
+--cdmi.qos.backend.type \fIbackendtype\fR
+Back-end type as exposed by the back-end module (e.g. \fIdummy_filesystem\fR)\&.
+

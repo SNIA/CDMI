@@ -16,6 +16,10 @@ if [ $? -eq 1 ]; then
   adduser --system $USER --ingroup $USER
 fi
 
+if [ -f /usr/local/man/man8/cdmi-server.8.gz ]; then
+  chmod 0644 /usr/local/man/man8/cdmi-server.8.gz
+fi
+
 if [ -f /var/lib/$NAME/$NAME-$VERSION.jar ]; then
   chmod +x /var/lib/$NAME/$NAME-$VERSION.jar
 fi

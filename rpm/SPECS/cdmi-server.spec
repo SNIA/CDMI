@@ -26,13 +26,16 @@ Standalone Spring Boot application version.
 %build
 
 %install
+mkdir -p %{buildroot}/usr/local/man/man8
 mkdir -p %{buildroot}/var/lib/%{name}/config
 mkdir -p %{buildroot}/etc/systemd/system
+cp %{_topdir}/SOURCES/cdmi-server.8.gz %{buildroot}/usr/local/man/man8
 cp %{_topdir}/SOURCES/application.yml %{buildroot}/var/lib/%{name}/config
 cp %{_topdir}/SOURCES/%{name}-%{jarversion}.jar %{buildroot}/var/lib/%{name}
 cp %{_topdir}/SOURCES/%{name}.service %{buildroot}/etc/systemd/system
 
 %files
+/usr/local/man/man8/cdmi-server.8.gz
 /var/lib/%{name}/config/application.yml
 /var/lib/%{name}/%{name}-%{jarversion}.jar
 /etc/systemd/system/%{name}.service
@@ -47,6 +50,10 @@ fi
 
 if [ -f /var/lib/%{name}/%{name}-%{jarversion}.jar ]; then
   chmod +x /var/lib/%{name}/%{name}-%{jarversion}.jar
+fi
+
+if [ -f /usr/local/man/man8/cdmi-server.8.gz ]; then
+  chmod 0644 /usr/local/man/man8/cdmi-server.8.gz
 fi
 
 chown -R %{user}:%{user} /var/lib/%{name}
