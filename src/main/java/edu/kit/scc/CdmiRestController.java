@@ -105,7 +105,7 @@ public class CdmiRestController {
    * @param request the {@link HttpServletRequest}
    * @return a JSON serialized {@link Domain} object
    */
-  @Secured({"ROLE_ADMIN", "ROLE_USER"})
+  @Secured({"ROLE_ADMIN", "ROLE_USER", "ROLE_CLIENT"})
   @RequestMapping(path = "/cdmi_domains/**", method = RequestMethod.GET)
   public ResponseEntity<?> getDomains(HttpServletRequest request) {
 
@@ -130,7 +130,7 @@ public class CdmiRestController {
    * @param request the {@link HttpServletRequest}
    * @return a JSON serialized {@link Capability} object
    */
-  @Secured({"ROLE_ADMIN", "ROLE_USER"})
+  @Secured({"ROLE_ADMIN", "ROLE_USER", "ROLE_CLIENT"})
   @RequestMapping(path = "/cdmi_capabilities/**", method = RequestMethod.GET)
   public ResponseEntity<?> getCapabilities(HttpServletRequest request) {
 
@@ -172,7 +172,7 @@ public class CdmiRestController {
    * @param request the {@link HttpServletRequest}
    * @return a JSON serialized {@link CdmiObject}
    */
-  @Secured({"ROLE_ADMIN", "ROLE_USER"})
+  @Secured({"ROLE_ADMIN", "ROLE_USER", "ROLE_CLIENT"})
   @RequestMapping(path = "/cdmi_objectid/{objectId}", method = RequestMethod.GET)
   public ResponseEntity<?> getCdmiObjectById(@PathVariable String objectId,
       HttpServletRequest request) {
@@ -202,7 +202,7 @@ public class CdmiRestController {
    * @param request the {@link HttpServletRequest}
    * @return a JSON serialized {@link Container} or {@link DataObject}
    */
-  @Secured({"ROLE_ADMIN", "ROLE_USER"})
+  @Secured({"ROLE_ADMIN", "ROLE_USER", "ROLE_CLIENT"})
   @RequestMapping(path = "/**", method = RequestMethod.GET)
   public ResponseEntity<?> getCdmiObjectByPath(HttpServletRequest request) {
 
@@ -271,7 +271,7 @@ public class CdmiRestController {
    * @param request the {@link HttpServletRequest}
    * @return a JSON serialized {@link Container} or {@link DataObject}
    */
-  @Secured({"ROLE_ADMIN", "ROLE_USER"})
+  @Secured({"ROLE_ADMIN", "ROLE_USER", "ROLE_CLIENT"})
   @RequestMapping(path = "/**", method = RequestMethod.PUT,
       consumes = {"application/cdmi-object", "application/cdmi-container", "application/json"})
   public ResponseEntity<?> putCdmiObject(@RequestHeader("Content-Type") String contentType,
@@ -319,7 +319,7 @@ public class CdmiRestController {
    * @param request the {@link HttpServletRequest}
    * @return a {@link ResponseEntity}
    */
-  @Secured({"ROLE_ADMIN", "ROLE_USER"})
+  @Secured({"ROLE_ADMIN", "ROLE_USER", "ROLE_CLIENT"})
   @RequestMapping(path = "/**", method = RequestMethod.DELETE)
   public ResponseEntity<?> deleteCdmiObject(HttpServletRequest request) {
 
