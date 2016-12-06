@@ -54,36 +54,37 @@ public class FilesystemBackend implements StorageBackend {
   public FilesystemBackend(Map<String, String> properties) {
     this.properties = properties;
 
-    capabilities.put("cdmi_capabilities_templates", true);
-    capabilities.put("cdmi_capabilities_exact_inherit", true);
-    capabilities.put("cdmi_data_redundancy", true);
-    capabilities.put("cdmi_geographic_placement", true);
-    capabilities.put("cdmi_latency", true);
-    capabilities.put("cdmi_capabilities_allowed", "profile1 profile2");
+    capabilities.put("cdmi_capabilities_templates", "true");
+    capabilities.put("cdmi_capabilities_exact_inherit", "true");
+    capabilities.put("cdmi_data_redundancy", "true");
+    capabilities.put("cdmi_geographic_placement", "true");
+    capabilities.put("cdmi_latency", "true");
+    capabilities.put("cdmi_capabilities_allowed", "true");
 
-    metadata.put("cdmi_data_redundancy", 4);
-    metadata.put("cdmi_geographic_placement", new String[] {"DE", "FR"});
-    metadata.put("cdmi_latency", 100);
+    metadata.put("cdmi_data_redundancy", "4");
+    metadata.put("cdmi_geographic_placement", new String[] {"DE", "FR", "IT", "RO"});
+    metadata.put("cdmi_latency", "100");
 
-    monitoredAttributes.put("cdmi_data_redundancy_provided", 4);
-    monitoredAttributes.put("cdmi_geographic_placement_provided", new String[] {"DE", "FR"});
-    monitoredAttributes.put("cdmi_latency_provided", 100);
+    monitoredAttributes.put("cdmi_data_redundancy_provided", "4");
+    monitoredAttributes.put("cdmi_geographic_placement_provided",
+        new String[] {"DE", "FR", "IT", "RO"});
+    monitoredAttributes.put("cdmi_latency_provided", "100");
 
     BackendCapability containerProfile1 =
         new BackendCapability("profile1", CapabilityType.CONTAINER);
-    containerProfile1.setMetadata(metadata);
-    HashMap<String, Object> capabilitiesContainer = capabilities;
-    capabilitiesContainer.put("cdmi_capabilities_allowed",
-        "/cdmi_capabilities/container/profile1 /cdmi_capabilities/container/profile2");
-    containerProfile1.setCapabilities(capabilitiesContainer);
+    containerProfile1.setCapabilities(capabilities);
+    HashMap<String, Object> metadataContainer1 = new HashMap<String, Object>(metadata);
+    metadataContainer1.put("cdmi_capabilities_allowed",
+        new String[] {"/cdmi_capabilities/container/profile2"});
+    containerProfile1.setMetadata(metadataContainer1);
 
     BackendCapability dataobjectProfile1 =
         new BackendCapability("profile1", CapabilityType.DATAOBJECT);
-    dataobjectProfile1.setMetadata(metadata);
-    HashMap<String, Object> capabilitiesDataObject = capabilities;
-    capabilitiesDataObject.put("cdmi_capabilities_allowed",
-        "/cdmi_capabilities/dataobject/profile1 /cdmi_capabilities/dataobject/profile2");
-    dataobjectProfile1.setCapabilities(capabilitiesDataObject);
+    dataobjectProfile1.setCapabilities(capabilities);
+    HashMap<String, Object> metadataDataobject1 = new HashMap<String, Object>(metadata);
+    metadataDataobject1.put("cdmi_capabilities_allowed",
+        new String[] {"/cdmi_capabilities/dataobject/profile2"});
+    dataobjectProfile1.setMetadata(metadataDataobject1);
 
     backendCapabilities.add(containerProfile1);
     backendCapabilities.add(dataobjectProfile1);
@@ -91,13 +92,19 @@ public class FilesystemBackend implements StorageBackend {
 
     BackendCapability containerProfile2 =
         new BackendCapability("profile2", CapabilityType.CONTAINER);
-    containerProfile2.setMetadata(metadata);
-    containerProfile2.setCapabilities(capabilitiesContainer);
+    containerProfile2.setCapabilities(capabilities);
+    HashMap<String, Object> metadataContainer2 = new HashMap<String, Object>(metadata);
+    metadataContainer2.put("cdmi_capabilities_allowed",
+        new String[] {"/cdmi_capabilities/container/profile1"});
+    containerProfile2.setMetadata(metadataContainer2);
 
     BackendCapability dataobjectProfile2 =
         new BackendCapability("profile2", CapabilityType.DATAOBJECT);
-    dataobjectProfile2.setMetadata(metadata);
-    dataobjectProfile2.setCapabilities(capabilitiesDataObject);
+    dataobjectProfile2.setCapabilities(capabilities);
+    HashMap<String, Object> metadataDataobject2 = new HashMap<String, Object>(metadata);
+    metadataDataobject2.put("cdmi_capabilities_allowed",
+        new String[] {"/cdmi_capabilities/dataobject/profile1"});
+    dataobjectProfile1.setMetadata(metadataDataobject2);
 
     backendCapabilities.add(containerProfile2);
     backendCapabilities.add(dataobjectProfile2);
