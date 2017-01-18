@@ -13,6 +13,8 @@ cdmi:
   qos:
     backend:
       type: dummy_filesystem
+  data:
+    baseDirectory: /tmp/cdmi
 ---
 spring:
   profiles: filesystem
