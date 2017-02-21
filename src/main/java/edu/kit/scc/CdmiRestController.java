@@ -111,7 +111,7 @@ public class CdmiRestController {
 
     HttpHeaders responseHeaders = new HttpHeaders();
     responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
-    responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
+    responseHeaders.setContentType(new MediaType("application", "cdmi-domain+json"));
 
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
@@ -135,7 +135,7 @@ public class CdmiRestController {
   public ResponseEntity<?> getCapabilities(HttpServletRequest request) {
 
     HttpHeaders responseHeaders = new HttpHeaders();
-    responseHeaders.setContentType(new MediaType("application", "cdmi-capability"));
+    responseHeaders.setContentType(new MediaType("application", "cdmi-capability+json"));
     responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
 
     String path =
@@ -179,7 +179,7 @@ public class CdmiRestController {
 
     HttpHeaders responseHeaders = new HttpHeaders();
     responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
-    responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
+    responseHeaders.setContentType(new MediaType("application", "cdmi-object+json"));
 
     log.debug("Get objectID {}", objectId);
 
@@ -208,7 +208,7 @@ public class CdmiRestController {
 
     HttpHeaders responseHeaders = new HttpHeaders();
     responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
-    responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
+    responseHeaders.setContentType(new MediaType("application", "cdmi-object+json"));
 
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
@@ -240,12 +240,12 @@ public class CdmiRestController {
         if (currentCapabilitiesUri.contains("/cdmi_capabilities/container")) {
           log.debug("is storage back-end container ...");
           String body = "{}";
-          String contentType = "application/cdmi-container";
+          String contentType = "application/cdmi-container+json";
           newCdmiObject = updateOrCreate(null, path, body, contentType);
         } else if (currentCapabilitiesUri.contains("/cdmi_capabilities/dataobject")) {
           log.debug("is storage back-end dataobject ...");
           String body = "{}";
-          String contentType = "application/cdmi-object";
+          String contentType = "application/cdmi-object+json";
           newCdmiObject = updateOrCreate(null, path, body, contentType);
         } else {
           return new ResponseEntity<String>("Unsupported CDMI capabilities URI format",
@@ -279,7 +279,7 @@ public class CdmiRestController {
 
     HttpHeaders responseHeaders = new HttpHeaders();
     responseHeaders.add("X-CDMI-Specification-Version", "1.1.1");
-    responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
+    responseHeaders.setContentType(new MediaType("application", "cdmi-object+json"));
 
     String path =
         (String) request.getAttribute(HandlerMapping.PATH_WITHIN_HANDLER_MAPPING_ATTRIBUTE);
@@ -364,7 +364,7 @@ public class CdmiRestController {
       HttpHeaders responseHeaders) {
     String objectString = cdmiObject.toString();
     if (cdmiObject instanceof Container) {
-      responseHeaders.setContentType(new MediaType("application", "cdmi-container"));
+      responseHeaders.setContentType(new MediaType("application", "cdmi-container+json"));
       Container container = (Container) cdmiObject;
 
       // storage back-end integration
@@ -376,7 +376,7 @@ public class CdmiRestController {
         objectString = container.toJson().toString();
       }
     } else if (cdmiObject instanceof DataObject) {
-      responseHeaders.setContentType(new MediaType("application", "cdmi-object"));
+      responseHeaders.setContentType(new MediaType("application", "cdmi-object+json"));
       DataObject dataObject = (DataObject) cdmiObject;
 
       // storage back-end integration
@@ -388,7 +388,7 @@ public class CdmiRestController {
         objectString = dataObject.toJson().toString();
       }
     } else if (cdmiObject instanceof Capability) {
-      responseHeaders.setContentType(new MediaType("application", "cdmi-capability"));
+      responseHeaders.setContentType(new MediaType("application", "cdmi-capability+json"));
       Capability capability = (Capability) cdmiObject;
       if (query != null) {
         objectString = filterQueryFields(capability.toJson(), query).toString();
@@ -396,7 +396,7 @@ public class CdmiRestController {
         objectString = capability.toJson().toString();
       }
     } else if (cdmiObject instanceof Domain) {
-      responseHeaders.setContentType(new MediaType("application", "cdmi-domain"));
+      responseHeaders.setContentType(new MediaType("application", "cdmi-domain+json"));
       Domain domain = (Domain) cdmiObject;
       if (query != null) {
         objectString = filterQueryFields(domain.toJson(), query).toString();

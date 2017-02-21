@@ -23,6 +23,8 @@ public interface CdmiObjectDao {
 
   public CdmiObject createCdmiObject(CdmiObject cdmiObject, String string);
 
+  public CdmiObject createCdmiObject(CdmiObject cdmiObject, String string, Boolean override);
+
   /**
    * Gets the CDMI object identified by it's id.
    * 

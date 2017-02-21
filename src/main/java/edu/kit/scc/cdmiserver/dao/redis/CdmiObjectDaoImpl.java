@@ -62,6 +62,14 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
   }
 
   @Override
+  public CdmiObject createCdmiObject(CdmiObject cdmiObject, String path, Boolean override) {
+    redisTemplate.opsForValue().set(path, cdmiObject.toJson().toString());
+    CdmiObject object = createCdmiObject(cdmiObject);
+    log.debug("set {} {}", path, object.toJson().toString());
+    return cdmiObject;
+  }
+
+  @Override
   public CdmiObject getCdmiObject(String objectId) {
     String object = redisTemplate.opsForValue().get("objectid:" + objectId);
 
@@ -83,7 +91,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
         }
       }
     } catch (Exception ex) {
-      //ex.printStackTrace();
+      // ex.printStackTrace();
       log.error("{} {}", ex.getClass().getName(), ex.getMessage());
     }
     return null;
@@ -137,7 +145,7 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
         }
       }
     } catch (Exception ex) {
-      //ex.printStackTrace();
+      // ex.printStackTrace();
       log.error("{} {}", ex.getClass().getName(), ex.getMessage());
     }
     return null;

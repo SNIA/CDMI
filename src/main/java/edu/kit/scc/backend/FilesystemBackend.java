@@ -84,6 +84,7 @@ public class FilesystemBackend implements StorageBackend {
     HashMap<String, Object> metadataDataobject1 = new HashMap<String, Object>(metadata);
     metadataDataobject1.put("cdmi_capabilities_allowed",
         new String[] {"/cdmi_capabilities/dataobject/profile2"});
+    metadataDataobject1.put("cdmi_data_redundancy_provided", "2");
     dataobjectProfile1.setMetadata(metadataDataobject1);
 
     backendCapabilities.add(containerProfile1);
@@ -104,7 +105,8 @@ public class FilesystemBackend implements StorageBackend {
     HashMap<String, Object> metadataDataobject2 = new HashMap<String, Object>(metadata);
     metadataDataobject2.put("cdmi_capabilities_allowed",
         new String[] {"/cdmi_capabilities/dataobject/profile1"});
-    dataobjectProfile1.setMetadata(metadataDataobject2);
+    metadataDataobject2.put("cdmi_latency", 500);
+    dataobjectProfile2.setMetadata(metadataDataobject2);
 
     backendCapabilities.add(containerProfile2);
     backendCapabilities.add(dataobjectProfile2);
