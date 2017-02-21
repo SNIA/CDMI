@@ -132,6 +132,11 @@ public class CdmiObjectDaoImpl implements CdmiObjectDao {
   }
 
   @Override
+  public CdmiObject createCdmiObject(CdmiObject cdmiObject, String string, Boolean override) {
+    return createCdmiObject(cdmiObject, string);
+  }
+
+  @Override
   public CdmiObject createCdmiObject(CdmiObject object) {
     try {
 

@@ -57,11 +57,11 @@ public class CapabilityDaoImpl implements CapabilityDao {
     Capability parentCapability =
         (Capability) cdmiObjectDao.getCdmiObjectByPath(parentPath.toString());
     log.debug("parent object {}", parentCapability.toString());
-    
+
     Capability capability = new Capability(urlPath.getFileName().toString(), parentPath.toString(),
         parentCapability.getObjectId());
     log.debug("create capability {}", capability.toJson());
-    
+
     if (parentCapability.getChildren() == null) {
       parentCapability.setChildren(new JSONArray());
     }
@@ -88,7 +88,7 @@ public class CapabilityDaoImpl implements CapabilityDao {
     // return (Capability) cdmiObjectDao.deleteCdmiObjectByPath(urlPath.toString());
     // }
 
-    capability = (Capability) cdmiObjectDao.createCdmiObject(capability, urlPath.toString());
+    capability = (Capability) cdmiObjectDao.createCdmiObject(capability, urlPath.toString(), true);
     cdmiObjectDao.updateCdmiObject(parentCapability);
     cdmiObjectDao.updateCdmiObject(parentCapability, parentPath.toString());
     // capability = (Capability) cdmiObjectDao.getCdmiObjectByPath(urlPath.toString());

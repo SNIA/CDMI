@@ -17,13 +17,6 @@ cdmi:
     baseDirectory: /tmp/cdmi
 ---
 spring:
-  profiles: filesystem
-cdmi:
-  data:
-    objectIdPrefix: .cdmi_
-    baseDirectory: /tmp/cdmi
----
-spring:
   profiles: redis
   redis:
     port: 6379
