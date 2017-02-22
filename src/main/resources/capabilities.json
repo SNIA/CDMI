@@ -1,0 +1,94 @@
+{
+	"container_capabilities": {
+		"cdmi_export_container_http": true,
+		"cdmi_capabilities_templates": true,
+		"cdmi_capabilities_exact_inherit": true,
+		"cdmi_capabilities_allowed": true,
+		"cdmi_capability_lifetime": true,
+		"cdmi_capability_lifetime_action": true,
+		"cdmi_capability_association_time": true,
+		"cdmi_recommended_polling_interval": true,
+		"cdmi_default_dataobject_capability_class": true,
+		"cdmi_location": true,
+		"cdmi_data_storage_lifetime": true,
+		"cdmi_data_redundancy": true,
+		"cdmi_geographic_placement": true,
+		"cdmi_latency": true,
+		"cdmi_throughput": true
+	},
+	"container_classes": {
+		"profile1": {
+			"cdmi_data_redundancy": "3",
+			"cdmi_geographic_placement": [
+				"DE"
+			],
+			"cdmi_latency": "0",
+			"cdmi_throughput": "4194304",
+			"cdmi_capability_lifetime": "P1Y",
+			"cdmi_capability_lifetime_action": "migrate-to:/cdmi_capabilities/container/profile2",
+			"cdmi_data_storage_lifetime": "P20Y",
+			"cdmi_capabilities_allowed": [
+				"/cdmi_capabilities/container/profile2"
+			],
+			"cdmi_location": [
+				"/"
+			]
+		},
+		"profile2": {
+			"cdmi_data_redundancy": "2",
+			"cdmi_geographic_placement": [
+				"DE"
+			],
+			"cdmi_latency": "10000",
+			"cdmi_throughput": "4194304",
+			"cdmi_capability_lifetime": "P10Y",
+			"cdmi_capability_lifetime_action": "delete",
+			"cdmi_capabilities_allowed": [
+				"/cdmi_capabilities/container/profile1"
+			]
+		}
+	},
+	"dataobject_capabilities": {
+		"cdmi_capabilities_templates": true,
+		"cdmi_capabilities_exact_inherit": true,
+		"cdmi_capabilities_allowed": true,
+		"cdmi_capability_lifetime": true,
+		"cdmi_capability_lifetime_action": true,
+		"cdmi_capability_association_time": true,
+		"cdmi_recommended_polling_interval": true,
+		"cdmi_data_storage_lifetime": true,
+		"cdmi_data_redundancy": true,
+		"cdmi_geographic_placement": true,
+		"cdmi_latency": true,
+		"cdmi_throughput": true
+	},
+	"dataobject_classes": {
+		"profile1": {
+			"cdmi_data_redundancy": "3",
+			"cdmi_geographic_placement": [
+				"DE"
+			],
+			"cdmi_latency": "0",
+			"cdmi_throughput": "4194304",
+			"cdmi_capability_lifetime": "P1Y",
+			"cdmi_capability_lifetime_action": "migrate-to:/cdmi_capabilities/dataobject/profile2",
+			"cdmi_data_storage_lifetime": "P20Y",
+			"cdmi_capabilities_allowed": [
+				"/cdmi_capabilities/dataobject/profile2"
+			]
+		},
+		"profile2": {
+			"cdmi_data_redundancy": "2",
+			"cdmi_geographic_placement": [
+				"DE"
+			],
+			"cdmi_latency": "10000",
+			"cdmi_throughput": "4194304",
+			"cdmi_capability_lifetime": "P10Y",
+			"cdmi_capability_lifetime_action": "delete",
+			"cdmi_capabilities_allowed": [
+				"/cdmi_capabilities/dataobject/profile1"
+			]
+		}
+	}
+}
