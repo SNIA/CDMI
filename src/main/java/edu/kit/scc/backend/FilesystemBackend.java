@@ -14,16 +14,25 @@ import org.indigo.cdmi.BackendCapability;
 import org.indigo.cdmi.BackendCapability.CapabilityType;
 import org.indigo.cdmi.CdmiObjectStatus;
 import org.indigo.cdmi.spi.StorageBackend;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -34,17 +43,49 @@ public class FilesystemBackend implements StorageBackend {
   // simulates back-end capabilities
   private ArrayList<BackendCapability> backendCapabilities = new ArrayList<>();
 
-  // simulates monitored attributes
-  private HashMap<String, Object> monitoredAttributes = new HashMap<>();
+  // simulates monitored attributes for containers
+  private HashMap<String, Map<String, Object>> containerMonitoredAttributes = new HashMap<>();
+
+  // simulates monitored attributes for dataobjects
+  private HashMap<String, Map<String, Object>> dataobjectMonitoredAttributes = new HashMap<>();
 
   // simulates QoS support
   private HashMap<String, CdmiObjectStatus> objectMap = new HashMap<>();
 
-  // simulates storage back-end capabilities
-  private HashMap<String, Object> capabilities = new HashMap<>();
-  private HashMap<String, Object> metadata = new HashMap<>();
-
   private Map<String, String> properties;
+
+  // startup timestamp
+  private String startupTime;
+
+  /**
+   * Reads capabilities from a JSON configuration file.
+   * 
+   * @return a {@link JSONObject} with the back-end's capabilities
+   */
+  public JSONObject readCapabilitiesFromConfig() {
+    JSONObject json = new JSONObject();
+
+    try {
+
+      InputStream in = getClass().getResourceAsStream("/capabilities.json");
+      BufferedReader reader = new BufferedReader(new InputStreamReader(in));
+
+      StringBuffer stringBuffer = new StringBuffer();
+      String inputLine;
+      while ((inputLine = reader.readLine()) != null) {
+        stringBuffer.append(inputLine);
+      }
+
+      json = new JSONObject(stringBuffer.toString());
+
+      log.debug("Capabilities config {}", json.toString());
+
+    } catch (IOException ex) {
+      ex.printStackTrace();
+    }
+
+    return json;
+  }
 
   /**
    * Constructs a dummy file-system module with dummy values.
@@ -54,62 +95,81 @@ public class FilesystemBackend implements StorageBackend {
   public FilesystemBackend(Map<String, String> properties) {
     this.properties = properties;
 
-    capabilities.put("cdmi_capabilities_templates", "true");
-    capabilities.put("cdmi_capabilities_exact_inherit", "true");
-    capabilities.put("cdmi_data_redundancy", "true");
-    capabilities.put("cdmi_geographic_placement", "true");
-    capabilities.put("cdmi_latency", "true");
-    capabilities.put("cdmi_capabilities_allowed", "true");
+    TimeZone tz = TimeZone.getTimeZone("UTC");
+    DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+    df.setTimeZone(tz);
+    this.startupTime = df.format(new Date());
 
-    metadata.put("cdmi_data_redundancy", "4");
-    metadata.put("cdmi_geographic_placement", new String[] {"DE", "FR", "IT", "RO"});
-    metadata.put("cdmi_latency", "100");
+    JSONObject capabilities = readCapabilitiesFromConfig();
 
-    monitoredAttributes.put("cdmi_data_redundancy_provided", "4");
-    monitoredAttributes.put("cdmi_geographic_placement_provided",
-        new String[] {"DE", "FR", "IT", "RO"});
-    monitoredAttributes.put("cdmi_latency_provided", "100");
+    Map<String, Object> containerCapabilities = new HashMap<>();
+    JSONObject jsonCapabilities = capabilities.getJSONObject("container_capabilities");
+    for (String key : jsonCapabilities.keySet()) {
+      containerCapabilities.put(key, jsonCapabilities.get(key));
+    }
+    JSONObject containerClasses = capabilities.getJSONObject("container_classes");
+    for (String key : containerClasses.keySet()) {
+      JSONObject containerClass = containerClasses.getJSONObject(key);
+      log.debug("found {} capabilities class {}: {}", CapabilityType.CONTAINER, key,
+          containerClass.toString());
 
-    BackendCapability containerProfile1 =
-        new BackendCapability("profile1", CapabilityType.CONTAINER);
-    containerProfile1.setCapabilities(capabilities);
-    HashMap<String, Object> metadataContainer1 = new HashMap<String, Object>(metadata);
-    metadataContainer1.put("cdmi_capabilities_allowed",
-        new String[] {"/cdmi_capabilities/container/profile2"});
-    containerProfile1.setMetadata(metadataContainer1);
+      BackendCapability backendCapability = new BackendCapability(key, CapabilityType.CONTAINER);
 
-    BackendCapability dataobjectProfile1 =
-        new BackendCapability("profile1", CapabilityType.DATAOBJECT);
-    dataobjectProfile1.setCapabilities(capabilities);
-    HashMap<String, Object> metadataDataobject1 = new HashMap<String, Object>(metadata);
-    metadataDataobject1.put("cdmi_capabilities_allowed",
-        new String[] {"/cdmi_capabilities/dataobject/profile2"});
-    metadataDataobject1.put("cdmi_data_redundancy_provided", "2");
-    dataobjectProfile1.setMetadata(metadataDataobject1);
+      Map<String, Object> metadata = new HashMap<>();
+      Map<String, Object> monitored = new HashMap<>();
+      for (String capability : containerClass.keySet()) {
+        metadata.put(capability, containerClass.get(capability));
+        // TODO clarify _provided suffix for capabilities
+        if (capability.equals("cdmi_capabilities_allowed")) {
+          // monitored.put(capability, containerClass.get(capability));
+          monitored.put(capability + "_provided", containerClass.get(capability));
+        } else {
+          // monitored.put(capability, containerClass.get(capability));
+          monitored.put(capability + "_provided", containerClass.get(capability));
+        }
+      }
 
-    backendCapabilities.add(containerProfile1);
-    backendCapabilities.add(dataobjectProfile1);
+      containerMonitoredAttributes.put(key, monitored);
+      backendCapability.setMetadata(metadata);
+      backendCapability.setCapabilities(containerCapabilities);
 
+      backendCapabilities.add(backendCapability);
+    }
 
-    BackendCapability containerProfile2 =
-        new BackendCapability("profile2", CapabilityType.CONTAINER);
-    containerProfile2.setCapabilities(capabilities);
-    HashMap<String, Object> metadataContainer2 = new HashMap<String, Object>(metadata);
-    metadataContainer2.put("cdmi_capabilities_allowed",
-        new String[] {"/cdmi_capabilities/container/profile1"});
-    containerProfile2.setMetadata(metadataContainer2);
+    Map<String, Object> dataObjectCapabilities = new HashMap<>();
+    jsonCapabilities = capabilities.getJSONObject("dataobject_capabilities");
+    for (String key : jsonCapabilities.keySet()) {
+      dataObjectCapabilities.put(key, jsonCapabilities.get(key));
+    }
 
-    BackendCapability dataobjectProfile2 =
-        new BackendCapability("profile2", CapabilityType.DATAOBJECT);
-    dataobjectProfile2.setCapabilities(capabilities);
-    HashMap<String, Object> metadataDataobject2 = new HashMap<String, Object>(metadata);
-    metadataDataobject2.put("cdmi_capabilities_allowed",
-        new String[] {"/cdmi_capabilities/dataobject/profile1"});
-    metadataDataobject2.put("cdmi_latency", 500);
-    dataobjectProfile2.setMetadata(metadataDataobject2);
+    JSONObject dataObjectClasses = capabilities.getJSONObject("dataobject_classes");
+    for (String key : dataObjectClasses.keySet()) {
+      JSONObject dataObjectClass = dataObjectClasses.getJSONObject(key);
+      log.debug("found {} capabilities class {}: {}", CapabilityType.DATAOBJECT, key,
+          dataObjectClass.toString());
 
-    backendCapabilities.add(containerProfile2);
-    backendCapabilities.add(dataobjectProfile2);
+      BackendCapability backendCapability = new BackendCapability(key, CapabilityType.DATAOBJECT);
+
+      Map<String, Object> metadata = new HashMap<>();
+      Map<String, Object> monitored = new HashMap<>();
+      for (String capability : dataObjectClass.keySet()) {
+        metadata.put(capability, dataObjectClass.get(capability));
+        // TODO clarify _provided suffix for capabilities
+        if (capability.equals("cdmi_capabilities_allowed")) {
+          // monitored.put(capability, dataObjectClass.get(capability));
+          monitored.put(capability + "_provided", dataObjectClass.get(capability));
+        } else {
+          // monitored.put(capability, dataObjectClass.get(capability));
+          monitored.put(capability + "_provided", dataObjectClass.get(capability));
+        }
+      }
+
+      dataobjectMonitoredAttributes.put(key, monitored);
+      backendCapability.setMetadata(metadata);
+      backendCapability.setCapabilities(dataObjectCapabilities);
+
+      backendCapabilities.add(backendCapability);
+    }
   }
 
   private boolean isSupportedTargetCapabilitiesUri(String path, String capabilitiesUri) {
@@ -157,6 +217,27 @@ public class FilesystemBackend implements StorageBackend {
     return backendCapabilities;
   }
 
+  /**
+   * Get simulated monitoring attributes for containers and databobjects.
+   * 
+   * @param capabilitiesUri capabilities URI to lookup according attributes.
+   * @return the monitoring attributes
+   */
+  public Map<String, Object> getMonitoredAttributes(String capabilitiesUri) {
+    String[] strArr = capabilitiesUri.split("/");
+    String capabilitiesType = strArr[strArr.length - 2];
+    String capabilitiesName = strArr[strArr.length - 1];
+
+    if (capabilitiesType.equals("container")) {
+      return containerMonitoredAttributes.get(capabilitiesName);
+    } else if (capabilitiesType.equals("dataobject")) {
+      return dataobjectMonitoredAttributes.get(capabilitiesName);
+    } else {
+      log.warn("Invalid capabilities type {}", capabilitiesType);
+    }
+    return null;
+  }
+
   @Override
   public void updateCdmiObject(String path, String targetCapabilitiesUri) throws BackEndException {
     CdmiObjectStatus objectStatus = getCurrentStatus(path);
@@ -171,8 +252,11 @@ public class FilesystemBackend implements StorageBackend {
     log.debug("Simulate QoS transition for {} from {} to {}", path, currentCapabilitiesUri,
         targetCapabilitiesUri);
 
+    Map<String, Object> metadata = getMonitoredAttributes(currentCapabilitiesUri);
+    metadata.put("cdmi_capabilities_target", targetCapabilitiesUri);
+    metadata.put("cdmi_recommended_polling_interval", "10000");
     objectMap.put(path,
-        new CdmiObjectStatus(monitoredAttributes, currentCapabilitiesUri, targetCapabilitiesUri));
+        new CdmiObjectStatus(metadata, currentCapabilitiesUri, targetCapabilitiesUri));
 
     // simulates a 10 sec transition
     long delay = 10 * 1000;
@@ -184,8 +268,14 @@ public class FilesystemBackend implements StorageBackend {
             currentCapabilitiesUri, targetCapabilitiesUri);
         try {
           CdmiObjectStatus finishedStatus = getCurrentStatus(path);
-          objectMap.put(path, new CdmiObjectStatus(monitoredAttributes,
-              finishedStatus.getTargetCapabilitiesUri(), null));
+          Map<String, Object> metadata = getMonitoredAttributes(targetCapabilitiesUri);
+          TimeZone tz = TimeZone.getTimeZone("UTC");
+          DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+          df.setTimeZone(tz);
+          String now = df.format(new Date());
+          metadata.put("cdmi_capability_association_time", now);
+          objectMap.put(path,
+              new CdmiObjectStatus(metadata, finishedStatus.getTargetCapabilitiesUri(), null));
 
         } catch (BackEndException ex) {
           // TODO Auto-generated catch block
@@ -213,14 +303,26 @@ public class FilesystemBackend implements StorageBackend {
     }
 
     if (Files.isDirectory(getFileSystemPath(path))) {
-      if (!objectMap.containsKey(path)) {
-        objectMap.put(path, new CdmiObjectStatus(monitoredAttributes,
-            "/cdmi_capabilities/container/profile1", null));
-      }
+      String capabilitiesUri = "/cdmi_capabilities/container/profile1";
+      Map<String, Object> metadata = getMonitoredAttributes(capabilitiesUri);
+      metadata.put("cdmi_capability_association_time", startupTime);
+      metadata.put("cdmi_default_dataobject_capability class",
+          "/cdmi_capabilities/dataobject/profile1");
+      JSONObject exports = new JSONObject();
+      exports.put("identifier", "http://localhost/cdmi/browse");
+      exports.put("permissions", "oidc");
+      HashMap<String, Object> exportAttributes = new HashMap<>();
+      exportAttributes.put("Network/WebHTTP", exports);
+      CdmiObjectStatus status = new CdmiObjectStatus(metadata, capabilitiesUri, null);
+      status.setExportAttributes(exportAttributes);
+      objectMap.put(path, status);
     } else {
       if (!objectMap.containsKey(path)) {
-        objectMap.put(path, new CdmiObjectStatus(monitoredAttributes,
-            "/cdmi_capabilities/dataobject/profile1", null));
+        String capabilitiesUri = "/cdmi_capabilities/dataobject/profile1";
+        Map<String, Object> metadata = getMonitoredAttributes(capabilitiesUri);
+        metadata.put("cdmi_capability_association_time", startupTime);
+        objectMap.put(path,
+            new CdmiObjectStatus(metadata, "/cdmi_capabilities/dataobject/profile1", null));
       }
     }
     return objectMap.get(path);
