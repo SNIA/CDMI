@@ -267,13 +267,15 @@ public class FilesystemBackend implements StorageBackend {
         log.debug("Simulated QoS transition for {} from {} to {} finished", path,
             currentCapabilitiesUri, targetCapabilitiesUri);
         try {
-          CdmiObjectStatus finishedStatus = getCurrentStatus(path);
           Map<String, Object> metadata = getMonitoredAttributes(targetCapabilitiesUri);
           TimeZone tz = TimeZone.getTimeZone("UTC");
           DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
           df.setTimeZone(tz);
           String now = df.format(new Date());
           metadata.put("cdmi_capability_association_time", now);
+          metadata.remove("cdmi_capabilities_target");
+          metadata.remove("cdmi_recommended_polling_interval");
+          CdmiObjectStatus finishedStatus = getCurrentStatus(path);
           objectMap.put(path,
               new CdmiObjectStatus(metadata, finishedStatus.getTargetCapabilitiesUri(), null));
 
