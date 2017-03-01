@@ -14,15 +14,18 @@ import org.indigo.cdmi.BackendCapability;
 import org.indigo.cdmi.BackendCapability.CapabilityType;
 import org.indigo.cdmi.CdmiObjectStatus;
 import org.indigo.cdmi.spi.StorageBackend;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DateFormat;
@@ -57,6 +60,9 @@ public class FilesystemBackend implements StorageBackend {
   // startup timestamp
   private String startupTime;
 
+  private String defaultContainerCapabilityClass;
+  private String defaultDataobjectCapabilityClass;
+
   /**
    * Reads capabilities from a JSON configuration file.
    * 
@@ -66,8 +72,7 @@ public class FilesystemBackend implements StorageBackend {
     JSONObject json = new JSONObject();
 
     try {
-
-      InputStream in = getClass().getResourceAsStream("/capabilities.json");
+      InputStream in = new ClassPathResource("filesystem-capabilities.json").getInputStream();
       BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 
       StringBuffer stringBuffer = new StringBuffer();
@@ -83,7 +88,6 @@ public class FilesystemBackend implements StorageBackend {
     } catch (IOException ex) {
       ex.printStackTrace();
     }
-
     return json;
   }
 
@@ -101,6 +105,10 @@ public class FilesystemBackend implements StorageBackend {
     this.startupTime = df.format(new Date());
 
     JSONObject capabilities = readCapabilitiesFromConfig();
+
+    defaultContainerCapabilityClass = capabilities.getString("default_container_capability_class");
+    defaultDataobjectCapabilityClass =
+        capabilities.getString("default_dataobject_capability_class");
 
     Map<String, Object> containerCapabilities = new HashMap<>();
     JSONObject jsonCapabilities = capabilities.getJSONObject("container_capabilities");
@@ -174,40 +182,32 @@ public class FilesystemBackend implements StorageBackend {
 
   private boolean isSupportedTargetCapabilitiesUri(String path, String capabilitiesUri) {
     CdmiObjectStatus objectStatus = objectMap.get(path);
-    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/dataobject/profile1")
-        && capabilitiesUri.equals("/cdmi_capabilities/dataobject/profile2")) {
-      return true;
-    }
-    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/dataobject/profile2")
-        && capabilitiesUri.equals("/cdmi_capabilities/dataobject/profile1")) {
-      return true;
-    }
-    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/container/profile1")
-        && capabilitiesUri.equals("/cdmi_capabilities/container/profile2")) {
-      return true;
-    }
-    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/container/profile2")
-        && capabilitiesUri.equals("/cdmi_capabilities/container/profile1")) {
-      return true;
+
+    String[] strArr = objectStatus.getCurrentCapabilitiesUri().split("/");
+    String capabilitiesType = strArr[strArr.length - 2];
+    String capabilitiesName = strArr[strArr.length - 1];
+
+    BackendCapability currentCapability = null;
+
+    if (capabilitiesType.equals("container")) {
+      currentCapability = backendCapabilities.stream().filter(
+          b -> b.getType().equals(CapabilityType.CONTAINER) && b.getName().equals(capabilitiesName))
+          .findFirst().get();
+    } else if (capabilitiesType.equals("dataobject")) {
+      currentCapability =
+          backendCapabilities.stream().filter(b -> b.getType().equals(CapabilityType.DATAOBJECT)
+              && b.getName().equals(capabilitiesName)).findFirst().get();
     }
 
-    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/dataobject/profile1")
-        && capabilitiesUri.equals("/cdmi_capabilities/dataobject/profile1")) {
-      return true;
+    if (currentCapability != null) {
+      if (currentCapability.getMetadata().containsKey("cdmi_capabilities_allowed")) {
+        JSONArray allowedCapabilities =
+            (JSONArray) currentCapability.getMetadata().get("cdmi_capabilities_allowed");
+        return allowedCapabilities.toList().contains(capabilitiesUri);
+      }
+    } else {
+      log.warn("Could not get capabilities for {}", capabilitiesUri);
     }
-    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/dataobject/profile2")
-        && capabilitiesUri.equals("/cdmi_capabilities/dataobject/profile2")) {
-      return true;
-    }
-    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/container/profile1")
-        && capabilitiesUri.equals("/cdmi_capabilities/container/profile1")) {
-      return true;
-    }
-    if (objectStatus.getCurrentCapabilitiesUri().equals("/cdmi_capabilities/container/profile2")
-        && capabilitiesUri.equals("/cdmi_capabilities/container/profile2")) {
-      return true;
-    }
-
     log.warn("target capabilities URI not supported {}", capabilitiesUri);
     return false;
   }
@@ -216,6 +216,7 @@ public class FilesystemBackend implements StorageBackend {
   public List<BackendCapability> getCapabilities() {
     return backendCapabilities;
   }
+
 
   /**
    * Get simulated monitoring attributes for containers and databobjects.
@@ -228,14 +229,25 @@ public class FilesystemBackend implements StorageBackend {
     String capabilitiesType = strArr[strArr.length - 2];
     String capabilitiesName = strArr[strArr.length - 1];
 
+    log.debug("lookup capabilities {} {} for {}", capabilitiesType, capabilitiesName,
+        capabilitiesUri);
+
     if (capabilitiesType.equals("container")) {
-      return containerMonitoredAttributes.get(capabilitiesName);
+      if (containerMonitoredAttributes.containsKey(capabilitiesName)) {
+        return containerMonitoredAttributes.get(capabilitiesName);
+      } else {
+        log.warn("Unknown capabilities name {}", capabilitiesName);
+      }
     } else if (capabilitiesType.equals("dataobject")) {
-      return dataobjectMonitoredAttributes.get(capabilitiesName);
+      if (dataobjectMonitoredAttributes.containsKey(capabilitiesName)) {
+        return dataobjectMonitoredAttributes.get(capabilitiesName);
+      } else {
+        log.warn("Unknown capabilities name {}", capabilitiesName);
+      }
     } else {
       log.warn("Invalid capabilities type {}", capabilitiesType);
     }
-    return null;
+    return new HashMap<>();
   }
 
   @Override
@@ -280,21 +292,28 @@ public class FilesystemBackend implements StorageBackend {
               new CdmiObjectStatus(metadata, finishedStatus.getTargetCapabilitiesUri(), null));
 
         } catch (BackEndException ex) {
-          // TODO Auto-generated catch block
           ex.printStackTrace();
         }
       }
     }, delay);
   }
 
-  private Path getFileSystemPath(String path) {
-    String baseDirectory = properties.get("baseDirectory");
-    log.debug("Base directory {}", baseDirectory);
+  private Path getFileSystemPath(String path) throws BackEndException {
+    try {
+      if (properties.containsKey("baseDirectory")) {
+        String baseDirectory = properties.get("baseDirectory");
+        log.debug("Base directory {}", baseDirectory);
 
-    Path returnPath = Paths.get(baseDirectory, path);
-    log.debug("Filesystem path {}", returnPath.toString());
+        Path returnPath = Paths.get(baseDirectory, path);
+        log.debug("Filesystem path {}", returnPath.toString());
 
-    return returnPath;
+        return returnPath;
+      } else {
+        throw new BackEndException("Base directory path is missing.");
+      }
+    } catch (NullPointerException | InvalidPathException ex) {
+      throw new BackEndException(ex.getMessage());
+    }
   }
 
   @Override
@@ -305,26 +324,27 @@ public class FilesystemBackend implements StorageBackend {
     }
 
     if (Files.isDirectory(getFileSystemPath(path))) {
-      String capabilitiesUri = "/cdmi_capabilities/container/profile1";
+      String capabilitiesUri = defaultContainerCapabilityClass;
+
       Map<String, Object> metadata = getMonitoredAttributes(capabilitiesUri);
       metadata.put("cdmi_capability_association_time", startupTime);
-      metadata.put("cdmi_default_dataobject_capability class",
-          "/cdmi_capabilities/dataobject/profile1");
+      metadata.put("cdmi_default_dataobject_capability class", defaultDataobjectCapabilityClass);
+
       JSONObject exports = new JSONObject();
       exports.put("identifier", "http://localhost/cdmi/browse");
       exports.put("permissions", "oidc");
       HashMap<String, Object> exportAttributes = new HashMap<>();
       exportAttributes.put("Network/WebHTTP", exports);
+
       CdmiObjectStatus status = new CdmiObjectStatus(metadata, capabilitiesUri, null);
       status.setExportAttributes(exportAttributes);
       objectMap.put(path, status);
     } else {
       if (!objectMap.containsKey(path)) {
-        String capabilitiesUri = "/cdmi_capabilities/dataobject/profile1";
+        String capabilitiesUri = defaultDataobjectCapabilityClass;
         Map<String, Object> metadata = getMonitoredAttributes(capabilitiesUri);
         metadata.put("cdmi_capability_association_time", startupTime);
-        objectMap.put(path,
-            new CdmiObjectStatus(metadata, "/cdmi_capabilities/dataobject/profile1", null));
+        objectMap.put(path, new CdmiObjectStatus(metadata, capabilitiesUri, null));
       }
     }
     return objectMap.get(path);

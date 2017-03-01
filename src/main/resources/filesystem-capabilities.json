@@ -1,4 +1,6 @@
 {
+	"default_container_capability_class": "/cdmi_capabilities/container/profile1",
+	"default_dataobject_capability_class": "/cdmi_capabilities/dataobject/profile1",
 	"container_capabilities": {
 		"cdmi_export_container_http": true,
 		"cdmi_capabilities_templates": true,
@@ -27,6 +29,7 @@
 			"cdmi_capability_lifetime": "P1Y",
 			"cdmi_capability_lifetime_action": "migrate-to:/cdmi_capabilities/container/profile2",
 			"cdmi_data_storage_lifetime": "P20Y",
+			"cdmi_default_dataobject_capability_class": "/cdmi_capabilities/container/profile1",
 			"cdmi_capabilities_allowed": [
 				"/cdmi_capabilities/container/profile2"
 			],
