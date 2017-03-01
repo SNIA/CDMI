@@ -204,7 +204,11 @@ public class FilesystemBackend implements StorageBackend {
       if (currentCapability.getMetadata().containsKey("cdmi_capabilities_allowed")) {
         JSONArray allowedCapabilities =
             (JSONArray) currentCapability.getMetadata().get("cdmi_capabilities_allowed");
-        return allowedCapabilities.toList().contains(capabilitiesUri);
+        for (Object obj : allowedCapabilities) {
+          if (String.valueOf(obj).equals(capabilitiesUri)) {
+            return true;
+          }
+        }
       }
     } else {
       log.warn("Could not get capabilities for {}", capabilitiesUri);
