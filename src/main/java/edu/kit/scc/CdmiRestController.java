@@ -534,6 +534,10 @@ public class CdmiRestController {
         if (status.getExportAttributes() != null) {
           container.setExports(new JSONObject(status.getExportAttributes()));
         }
+        // update children
+        if (status.getChildren() != null) {
+          container.setChildren(new JSONArray(status.getChildren()));
+        }
         // update capabilities URI
         container.setCapabilitiesUri(status.getCurrentCapabilitiesUri());
         // update QoS transition information
