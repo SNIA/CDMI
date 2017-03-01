@@ -31,6 +31,7 @@ import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -316,6 +317,17 @@ public class FilesystemBackend implements StorageBackend {
     }
   }
 
+  private List<String> listFileSystemDir(String path) {
+    try {
+      Path filesystemPath = getFileSystemPath(path);
+
+      return Arrays.asList(filesystemPath.toFile().list());
+    } catch (BackEndException ex) {
+      log.warn("Can't get directory listing for {}", path);
+    }
+    return new ArrayList<>();
+  }
+
   @Override
   public CdmiObjectStatus getCurrentStatus(String path) throws BackEndException {
 
@@ -336,8 +348,12 @@ public class FilesystemBackend implements StorageBackend {
       HashMap<String, Object> exportAttributes = new HashMap<>();
       exportAttributes.put("Network/WebHTTP", exports);
 
+      List<String> children = listFileSystemDir(path);
+
       CdmiObjectStatus status = new CdmiObjectStatus(metadata, capabilitiesUri, null);
       status.setExportAttributes(exportAttributes);
+      status.setChildren(children);
+
       objectMap.put(path, status);
     } else {
       if (!objectMap.containsKey(path)) {

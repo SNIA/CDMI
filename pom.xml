@@ -155,7 +155,7 @@
 		<dependency>
 			<groupId>edu.kit.scc</groupId>
 			<artifactId>cdmi-spi</artifactId>
-			<version>0.3</version>
+			<version>0.4</version>
 		</dependency>
 		<!-- end::INDIGO[] -->
 
@@ -232,7 +232,7 @@
 		<dependency>
 			<groupId>org.json</groupId>
 			<artifactId>json</artifactId>
-			<version>20160810</version>
+			<version>20160810</version><!--$NO-MVN-MAN-VER$ -->
 		</dependency>
 		<!-- end::Utils[] -->
 
