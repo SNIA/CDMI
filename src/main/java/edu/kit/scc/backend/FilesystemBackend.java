@@ -32,10 +32,12 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -54,7 +56,7 @@ public class FilesystemBackend implements StorageBackend {
   private HashMap<String, Map<String, Object>> dataobjectMonitoredAttributes = new HashMap<>();
 
   // simulates QoS support
-  private HashMap<String, CdmiObjectStatus> objectMap = new HashMap<>();
+  private Map<String, CdmiObjectStatus> objectMap = Collections.synchronizedMap(new HashMap<>());
 
   private Map<String, String> properties;
 
@@ -222,7 +224,6 @@ public class FilesystemBackend implements StorageBackend {
     return backendCapabilities;
   }
 
-
   /**
    * Get simulated monitoring attributes for containers and databobjects.
    * 
@@ -257,50 +258,60 @@ public class FilesystemBackend implements StorageBackend {
 
   @Override
   public void updateCdmiObject(String path, String targetCapabilitiesUri) throws BackEndException {
-    CdmiObjectStatus objectStatus = getCurrentStatus(path);
-    log.debug("current object status {}", objectStatus.toString());
-
     if (!isSupportedTargetCapabilitiesUri(path, targetCapabilitiesUri)) {
       throw new BackEndException();
     }
 
-    String currentCapabilitiesUri = objectStatus.getCurrentCapabilitiesUri();
+    CdmiObjectStatus objectStatus = getCurrentStatus(path);
 
-    log.debug("Simulate QoS transition for {} from {} to {}", path, currentCapabilitiesUri,
-        targetCapabilitiesUri);
+    if (objectStatus.getTargetCapabilitiesUri() != null) {
+      log.debug("object {} already in transition to {}", path,
+          objectStatus.getTargetCapabilitiesUri());
+    } else {
+      log.debug("current object status {}", objectStatus.toString());
 
-    Map<String, Object> metadata = getMonitoredAttributes(currentCapabilitiesUri);
-    metadata.put("cdmi_capabilities_target", targetCapabilitiesUri);
-    metadata.put("cdmi_recommended_polling_interval", "10000");
-    objectMap.put(path,
-        new CdmiObjectStatus(metadata, currentCapabilitiesUri, targetCapabilitiesUri));
+      String currentCapabilitiesUri = objectStatus.getCurrentCapabilitiesUri();
+      log.debug("Simulate QoS transition for {} from {} to {}", path, currentCapabilitiesUri,
+          targetCapabilitiesUri);
 
-    // simulates a 10 sec transition
-    long delay = 10 * 1000;
-    Timer timer = new Timer();
-    timer.schedule(new TimerTask() {
-      @Override
-      public void run() {
-        log.debug("Simulated QoS transition for {} from {} to {} finished", path,
-            currentCapabilitiesUri, targetCapabilitiesUri);
-        try {
-          Map<String, Object> metadata = getMonitoredAttributes(targetCapabilitiesUri);
+      Map<String, Object> monitoredAttributes = getMonitoredAttributes(currentCapabilitiesUri);
+      Map<String, Object> metadata = new HashMap<>();
+      for (Entry<String, Object> entry : monitoredAttributes.entrySet()) {
+        metadata.put(entry.getKey(), entry.getValue());
+      }
+      metadata.put("cdmi_capabilities_target", targetCapabilitiesUri);
+      metadata.put("cdmi_recommended_polling_interval", "10000");
+
+      objectMap.put(path,
+          new CdmiObjectStatus(metadata, currentCapabilitiesUri, targetCapabilitiesUri));
+
+      log.debug("---- Updated status HashMap dump ----");
+      log.debug("{}", objectMap.toString());
+
+      // simulates a 10 sec transition
+      long delay = 10 * 1000;
+      Timer timer = new Timer();
+      timer.schedule(new TimerTask() {
+        @Override
+        public void run() {
+          log.debug("Simulated QoS transition for {} from {} to {} finished", path,
+              currentCapabilitiesUri, targetCapabilitiesUri);
+          Map<String, Object> monitoredAttributes = getMonitoredAttributes(targetCapabilitiesUri);
+          Map<String, Object> metadata = new HashMap<>();
+          for (Entry<String, Object> entry : monitoredAttributes.entrySet()) {
+            metadata.put(entry.getKey(), entry.getValue());
+          }
+
           TimeZone tz = TimeZone.getTimeZone("UTC");
           DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
           df.setTimeZone(tz);
           String now = df.format(new Date());
           metadata.put("cdmi_capability_association_time", now);
-          metadata.remove("cdmi_capabilities_target");
-          metadata.remove("cdmi_recommended_polling_interval");
-          CdmiObjectStatus finishedStatus = getCurrentStatus(path);
-          objectMap.put(path,
-              new CdmiObjectStatus(metadata, finishedStatus.getTargetCapabilitiesUri(), null));
 
-        } catch (BackEndException ex) {
-          ex.printStackTrace();
+          objectMap.put(path, new CdmiObjectStatus(metadata, targetCapabilitiesUri, null));
         }
-      }
-    }, delay);
+      }, delay);
+    }
   }
 
   private Path getFileSystemPath(String path) throws BackEndException {
@@ -339,34 +350,58 @@ public class FilesystemBackend implements StorageBackend {
       throw new BackEndException("no such file");
     }
 
-    if (Files.isDirectory(getFileSystemPath(path))) {
-      String capabilitiesUri = defaultContainerCapabilityClass;
+    if (!objectMap.containsKey(path)) {
 
-      Map<String, Object> metadata = getMonitoredAttributes(capabilitiesUri);
+      String capabilitiesUri = "";
+
+      String defaultDataobjectCapabilities = null;
+      HashMap<String, Object> exportAttributes = null;
+      List<String> children = null;
+
+      if (Files.isDirectory(getFileSystemPath(path))) {
+        capabilitiesUri = defaultContainerCapabilityClass;
+        defaultDataobjectCapabilities = defaultDataobjectCapabilityClass;
+
+        JSONObject exports = new JSONObject();
+        exports.put("identifier", "http://localhost/cdmi/browse");
+        exports.put("permissions", "oidc");
+        exportAttributes = new HashMap<>();
+        exportAttributes.put("Network/WebHTTP", exports);
+
+        children = listFileSystemDir(path);
+
+      } else {
+        capabilitiesUri = defaultDataobjectCapabilityClass;
+      }
+
+      Map<String, Object> monitoredAttributes = getMonitoredAttributes(capabilitiesUri);
+      Map<String, Object> metadata = new HashMap<>();
+
+      for (Entry<String, Object> entry : monitoredAttributes.entrySet()) {
+        metadata.put(entry.getKey(), entry.getValue());
+      }
       metadata.put("cdmi_capability_association_time", startupTime);
-      metadata.put("cdmi_default_dataobject_capability class", defaultDataobjectCapabilityClass);
 
-      JSONObject exports = new JSONObject();
-      exports.put("identifier", "http://localhost/cdmi/browse");
-      exports.put("permissions", "oidc");
-      HashMap<String, Object> exportAttributes = new HashMap<>();
-      exportAttributes.put("Network/WebHTTP", exports);
-
-      List<String> children = listFileSystemDir(path);
+      if (defaultDataobjectCapabilities != null) {
+        metadata.put("cdmi_default_dataobject_capability class", defaultDataobjectCapabilities);
+      }
 
       CdmiObjectStatus status = new CdmiObjectStatus(metadata, capabilitiesUri, null);
-      status.setExportAttributes(exportAttributes);
-      status.setChildren(children);
+
+      if (exportAttributes != null) {
+        status.setExportAttributes(exportAttributes);
+      }
+      if (children != null) {
+        status.setChildren(children);
+      }
 
       objectMap.put(path, status);
-    } else {
-      if (!objectMap.containsKey(path)) {
-        String capabilitiesUri = defaultDataobjectCapabilityClass;
-        Map<String, Object> metadata = getMonitoredAttributes(capabilitiesUri);
-        metadata.put("cdmi_capability_association_time", startupTime);
-        objectMap.put(path, new CdmiObjectStatus(metadata, capabilitiesUri, null));
-      }
     }
+
+    log.debug("---- Get current status HashMap dump ----");
+    log.debug("{}", objectMap.toString());
+
     return objectMap.get(path);
   }
+
 }
