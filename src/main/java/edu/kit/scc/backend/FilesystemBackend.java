@@ -66,6 +66,8 @@ public class FilesystemBackend implements StorageBackend {
   private String defaultContainerCapabilityClass;
   private String defaultDataobjectCapabilityClass;
 
+  private JSONObject exports;
+
   /**
    * Reads capabilities from a JSON configuration file.
    * 
@@ -108,6 +110,8 @@ public class FilesystemBackend implements StorageBackend {
     this.startupTime = df.format(new Date());
 
     JSONObject capabilities = readCapabilitiesFromConfig();
+
+    exports = capabilities.getJSONObject("container_exports");
 
     defaultContainerCapabilityClass = capabilities.getString("default_container_capability_class");
     defaultDataobjectCapabilityClass =
@@ -351,7 +355,6 @@ public class FilesystemBackend implements StorageBackend {
     }
 
     if (!objectMap.containsKey(path)) {
-
       String capabilitiesUri = "";
 
       String defaultDataobjectCapabilities = null;
@@ -362,11 +365,10 @@ public class FilesystemBackend implements StorageBackend {
         capabilitiesUri = defaultContainerCapabilityClass;
         defaultDataobjectCapabilities = defaultDataobjectCapabilityClass;
 
-        JSONObject exports = new JSONObject();
-        exports.put("identifier", "http://localhost/cdmi/browse");
-        exports.put("permissions", "oidc");
         exportAttributes = new HashMap<>();
-        exportAttributes.put("Network/WebHTTP", exports);
+        for (String key : exports.keySet()) {
+          exportAttributes.put(key, exports.get(key));
+        }
 
         children = listFileSystemDir(path);
 
@@ -392,6 +394,16 @@ public class FilesystemBackend implements StorageBackend {
         status.setExportAttributes(exportAttributes);
       }
       if (children != null) {
+        status.setChildren(children);
+      }
+
+      objectMap.put(path, status);
+    } else {
+      CdmiObjectStatus status = objectMap.get(path);
+
+      // update children
+      if (Files.isDirectory(getFileSystemPath(path))) {
+        List<String> children = listFileSystemDir(path);
         status.setChildren(children);
       }
 
