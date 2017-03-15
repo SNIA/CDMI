@@ -307,24 +307,28 @@ public class CdmiRestController {
 
     CdmiObject cdmiObject = cdmiObjectDao.getCdmiObjectByPath(path);
 
-    CdmiObject newCdmiObject = updateOrCreate(cdmiObject, path, body, contentType);
-
-    if (newCdmiObject instanceof Container) {
-      if (cdmiObject instanceof Container) {
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    try {
+      CdmiObject newCdmiObject = updateOrCreate(cdmiObject, path, body, contentType);
+      String objectString = generateResponse(newCdmiObject, null, responseHeaders);
+      if (objectString != null) {
+        if (newCdmiObject instanceof Container) {
+          if (cdmiObject instanceof Container) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+          }
+          // might change in the future
+          return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } else if (newCdmiObject instanceof DataObject) {
+          if (cdmiObject instanceof DataObject) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+          }
+          // might change in the future
+          return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        }
       }
-      return new ResponseEntity<String>(((Container) newCdmiObject).toJson().toString(),
-          responseHeaders, HttpStatus.CREATED);
-    } else if (newCdmiObject instanceof DataObject) {
-      if (cdmiObject instanceof DataObject) {
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-      }
-      return new ResponseEntity<String>(((DataObject) newCdmiObject).toJson().toString(),
-          responseHeaders, HttpStatus.CREATED);
-    }
-    if (newCdmiObject == null) {
-      return new ResponseEntity<String>("Object could not be created", responseHeaders,
-          HttpStatus.CONFLICT);
+    } catch (BackEndException ex) {
+      log.warn("WARNING: {} from storage back-end {} for object {}", ex.getMessage(), backendType,
+          path);
+      return new ResponseEntity<String>(ex.getMessage(), responseHeaders, HttpStatus.CONFLICT);
     }
     return new ResponseEntity<String>("Bad request", responseHeaders, HttpStatus.BAD_REQUEST);
   }
@@ -378,7 +382,7 @@ public class CdmiRestController {
 
   private String generateResponse(CdmiObject cdmiObject, String query, HttpHeaders responseHeaders)
       throws BackEndException {
-    String objectString = cdmiObject.toString();
+    String objectString = null;
     if (cdmiObject instanceof Container) {
       responseHeaders.setContentType(new MediaType("application", "cdmi-container+json"));
       Container container = (Container) cdmiObject;
@@ -419,8 +423,6 @@ public class CdmiRestController {
       } else {
         objectString = domain.toJson().toString();
       }
-    } else {
-      objectString = null;
     }
     return objectString;
   }
@@ -442,10 +444,15 @@ public class CdmiRestController {
   }
 
   private CdmiObject updateOrCreate(CdmiObject cdmiObject, String path, String body,
-      String contentType) {
+      String contentType) throws BackEndException {
     // create or update container
     if (contentType.contains(MediaTypes.CONTAINER)) {
-      if (cdmiObject != null && (cdmiObject instanceof Container)) {
+      if (cdmiObject == null) {
+        log.warn("Create container...");
+        Container containerRequest = Container.fromJson(new JSONObject(body));
+        cdmiObject = containerDao.createByPath(path, containerRequest);
+      }
+      if (cdmiObject instanceof Container) {
         log.debug("Update container...");
         Container existingContainer = (Container) cdmiObject;
         // update allowed for "metadata" and "capabilitiesURI"
@@ -459,24 +466,25 @@ public class CdmiRestController {
             setAuthenticatedSubject();
             storageBackend.updateCdmiObject(path, updateJson.getString("capabilitiesURI"));
             existingContainer.setCapabilitiesUri(updateJson.getString("capabilitiesURI"));
-          } catch (Exception ex) {
-            ex.printStackTrace();
+          } catch (BackEndException ex) {
+            // ex.printStackTrace();
             log.warn("WARNING: could not trigger QoS change for configured storage back-end {}",
                 backendType);
+            throw new BackEndException("could not trigger QoS change");
           }
         }
         Container updatedContainer = (Container) cdmiObjectDao.updateCdmiObject(existingContainer);
         return updatedContainer;
-      } else {
-        log.warn("Create container...NOT SUPPORTED");
-        // Container containerRequest = Container.fromJson(new JSONObject(body));
-        // Container createdContainer = containerDao.createByPath(path, containerRequest);
-        // return createdContainer;
       }
     }
     // create or update data object
     if (contentType.contains(MediaTypes.DATA_OBJECT)) {
-      if (cdmiObject != null && (cdmiObject instanceof DataObject)) {
+      if (cdmiObject == null) {
+        log.warn("Create data object...");
+        DataObject dataObjectRequest = DataObject.fromJson(new JSONObject(body));
+        cdmiObject = dataObjectDao.createByPath(path, dataObjectRequest);
+      }
+      if (cdmiObject instanceof DataObject) {
         log.debug("Update data object...");
         DataObject existingDataObject = (DataObject) cdmiObject;
         // update allowed for "value", "metadata" and "capabilitiesURI"
@@ -490,10 +498,11 @@ public class CdmiRestController {
             setAuthenticatedSubject();
             storageBackend.updateCdmiObject(path, updateJson.getString("capabilitiesURI"));
             existingDataObject.setCapabilitiesUri(updateJson.getString("capabilitiesURI"));
-          } catch (Exception ex) {
-            ex.printStackTrace();
+          } catch (BackEndException ex) {
+            // ex.printStackTrace();
             log.warn("WARNING: could not trigger QoS change for configured storage back-end {}",
                 backendType);
+            throw new BackEndException("could not trigger QoS change");
           }
         }
         if (updateJson.has("value")) {
@@ -503,11 +512,6 @@ public class CdmiRestController {
         DataObject updatedDataObject =
             (DataObject) cdmiObjectDao.updateCdmiObject(existingDataObject);
         return updatedDataObject;
-      } else {
-        log.warn("Create data object...NOT SUPPORTED");
-        // DataObject dataObjectRequest = DataObject.fromJson(new JSONObject(body));
-        // DataObject createdObject = dataObjectDao.createByPath(path, dataObjectRequest);
-        // return createdObject;
       }
     }
     return null;
