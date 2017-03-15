@@ -188,36 +188,40 @@ public class FilesystemBackend implements StorageBackend {
   }
 
   private boolean isSupportedTargetCapabilitiesUri(String path, String capabilitiesUri) {
-    CdmiObjectStatus objectStatus = objectMap.get(path);
+    try {
+      CdmiObjectStatus objectStatus = getCurrentStatus(path);
+      String[] strArr = objectStatus.getCurrentCapabilitiesUri().split("/");
+      String capabilitiesType = strArr[strArr.length - 2];
+      String capabilitiesName = strArr[strArr.length - 1];
 
-    String[] strArr = objectStatus.getCurrentCapabilitiesUri().split("/");
-    String capabilitiesType = strArr[strArr.length - 2];
-    String capabilitiesName = strArr[strArr.length - 1];
+      BackendCapability currentCapability = null;
 
-    BackendCapability currentCapability = null;
+      if (capabilitiesType.equals("container")) {
+        currentCapability =
+            backendCapabilities.stream().filter(b -> b.getType().equals(CapabilityType.CONTAINER)
+                && b.getName().equals(capabilitiesName)).findFirst().get();
+      } else if (capabilitiesType.equals("dataobject")) {
+        currentCapability =
+            backendCapabilities.stream().filter(b -> b.getType().equals(CapabilityType.DATAOBJECT)
+                && b.getName().equals(capabilitiesName)).findFirst().get();
+      }
 
-    if (capabilitiesType.equals("container")) {
-      currentCapability = backendCapabilities.stream().filter(
-          b -> b.getType().equals(CapabilityType.CONTAINER) && b.getName().equals(capabilitiesName))
-          .findFirst().get();
-    } else if (capabilitiesType.equals("dataobject")) {
-      currentCapability =
-          backendCapabilities.stream().filter(b -> b.getType().equals(CapabilityType.DATAOBJECT)
-              && b.getName().equals(capabilitiesName)).findFirst().get();
-    }
-
-    if (currentCapability != null) {
-      if (currentCapability.getMetadata().containsKey("cdmi_capabilities_allowed")) {
-        JSONArray allowedCapabilities =
-            (JSONArray) currentCapability.getMetadata().get("cdmi_capabilities_allowed");
-        for (Object obj : allowedCapabilities) {
-          if (String.valueOf(obj).equals(capabilitiesUri)) {
-            return true;
+      if (currentCapability != null) {
+        if (currentCapability.getMetadata().containsKey("cdmi_capabilities_allowed")) {
+          JSONArray allowedCapabilities =
+              (JSONArray) currentCapability.getMetadata().get("cdmi_capabilities_allowed");
+          for (Object obj : allowedCapabilities) {
+            if (String.valueOf(obj).equals(capabilitiesUri)) {
+              return true;
+            }
           }
         }
+      } else {
+        log.warn("Could not get capabilities for {}", capabilitiesUri);
       }
-    } else {
-      log.warn("Could not get capabilities for {}", capabilitiesUri);
+    } catch (Exception ex) {
+      ex.printStackTrace();
+      log.warn("ERROR {}", ex.getMessage());
     }
     log.warn("target capabilities URI not supported {}", capabilitiesUri);
     return false;
