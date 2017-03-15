@@ -189,9 +189,17 @@ public class CdmiRestController {
     CdmiObject cdmiObject = cdmiObjectDao.getCdmiObject(objectId);
 
     if (cdmiObject != null) {
-      String objectString = generateResponse(cdmiObject, query, responseHeaders);
-
-      return new ResponseEntity<String>(objectString, responseHeaders, HttpStatus.OK);
+      String objectString;
+      try {
+        objectString = generateResponse(cdmiObject, query, responseHeaders);
+        if (objectString != null) {
+          return new ResponseEntity<String>(objectString, responseHeaders, HttpStatus.OK);
+        }
+      } catch (BackEndException e) {
+        log.warn(
+            "WARNING: could not get current object status from storage back-end {} for object {}",
+            backendType, objectId);
+      }
     }
     return new ResponseEntity<String>("Object not found", responseHeaders, HttpStatus.NOT_FOUND);
   }
@@ -224,9 +232,17 @@ public class CdmiRestController {
     CdmiObject cdmiObject = cdmiObjectDao.getCdmiObjectByPath(path);
 
     if (cdmiObject != null) {
-      String objectString = generateResponse(cdmiObject, query, responseHeaders);
-
-      return new ResponseEntity<String>(objectString, responseHeaders, HttpStatus.OK);
+      String objectString;
+      try {
+        objectString = generateResponse(cdmiObject, query, responseHeaders);
+        if (objectString != null) {
+          return new ResponseEntity<String>(objectString, responseHeaders, HttpStatus.OK);
+        }
+      } catch (BackEndException ex) {
+        log.warn(
+            "WARNING: could not get current object status from storage back-end {} for object {}",
+            backendType, path);
+      }
     } else {
       // if object exists on storage back-end but has not been created via CDMI
       //
@@ -253,10 +269,10 @@ public class CdmiRestController {
         }
 
         String objectString = generateResponse(newCdmiObject, query, responseHeaders);
-
-        return new ResponseEntity<String>(objectString, responseHeaders, HttpStatus.OK);
+        if (objectString != null) {
+          return new ResponseEntity<String>(objectString, responseHeaders, HttpStatus.OK);
+        }
       } catch (BackEndException ex) {
-        // ex.printStackTrace();
         log.warn(
             "WARNING: could not get current object status from storage back-end {} for object {}",
             backendType, path);
@@ -360,8 +376,8 @@ public class CdmiRestController {
     return new ResponseEntity<String>("Not found", responseHeaders, HttpStatus.NOT_FOUND);
   }
 
-  private String generateResponse(CdmiObject cdmiObject, String query,
-      HttpHeaders responseHeaders) {
+  private String generateResponse(CdmiObject cdmiObject, String query, HttpHeaders responseHeaders)
+      throws BackEndException {
     String objectString = cdmiObject.toString();
     if (cdmiObject instanceof Container) {
       responseHeaders.setContentType(new MediaType("application", "cdmi-container+json"));
@@ -403,6 +419,8 @@ public class CdmiRestController {
       } else {
         objectString = domain.toJson().toString();
       }
+    } else {
+      objectString = null;
     }
     return objectString;
   }
@@ -450,10 +468,10 @@ public class CdmiRestController {
         Container updatedContainer = (Container) cdmiObjectDao.updateCdmiObject(existingContainer);
         return updatedContainer;
       } else {
-        log.debug("Create container...");
-        Container containerRequest = Container.fromJson(new JSONObject(body));
-        Container createdContainer = containerDao.createByPath(path, containerRequest);
-        return createdContainer;
+        log.warn("Create container...NOT SUPPORTED");
+        // Container containerRequest = Container.fromJson(new JSONObject(body));
+        // Container createdContainer = containerDao.createByPath(path, containerRequest);
+        // return createdContainer;
       }
     }
     // create or update data object
@@ -486,16 +504,16 @@ public class CdmiRestController {
             (DataObject) cdmiObjectDao.updateCdmiObject(existingDataObject);
         return updatedDataObject;
       } else {
-        log.debug("Create data object...");
-        DataObject dataObjectRequest = DataObject.fromJson(new JSONObject(body));
-        DataObject createdObject = dataObjectDao.createByPath(path, dataObjectRequest);
-        return createdObject;
+        log.warn("Create data object...NOT SUPPORTED");
+        // DataObject dataObjectRequest = DataObject.fromJson(new JSONObject(body));
+        // DataObject createdObject = dataObjectDao.createByPath(path, dataObjectRequest);
+        // return createdObject;
       }
     }
     return null;
   }
 
-  private void getCurrentStatusFromStorageBackend(DataObject dataObject) {
+  private void getCurrentStatusFromStorageBackend(DataObject dataObject) throws BackEndException {
     // add information from storage back-end
     try {
       if (storageBackend != null) {
@@ -516,10 +534,11 @@ public class CdmiRestController {
       }
     } catch (BackEndException ex) {
       log.warn("ERROR: {}", ex.getMessage());
+      throw ex;
     }
   }
 
-  private void getCurrentStatusFromStorageBackend(Container container) {
+  private void getCurrentStatusFromStorageBackend(Container container) throws BackEndException {
     // add information from storage back-end
     try {
       if (storageBackend != null) {
@@ -548,6 +567,7 @@ public class CdmiRestController {
       }
     } catch (BackEndException ex) {
       log.warn("ERROR: {}", ex.getMessage());
+      throw ex;
     }
   }
 
