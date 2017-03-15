@@ -561,7 +561,7 @@ public class CdmiRestController {
           if (children.length() == 1) {
             childrenrange = "0";
           } else if (children.length() > 1) {
-            childrenrange = "0-" + String.valueOf(children.length());
+            childrenrange = "0-" + String.valueOf(children.length() - 1);
           }
           container.setChildrenrange(childrenrange);
         }
