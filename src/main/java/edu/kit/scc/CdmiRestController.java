@@ -555,7 +555,15 @@ public class CdmiRestController {
         }
         // update children
         if (status.getChildren() != null) {
-          container.setChildren(new JSONArray(status.getChildren()));
+          JSONArray children = new JSONArray(status.getChildren());
+          container.setChildren(children);
+          String childrenrange = "";
+          if (children.length() == 1) {
+            childrenrange = "0";
+          } else if (children.length() > 1) {
+            childrenrange = "0-" + String.valueOf(children.length());
+          }
+          container.setChildrenrange(childrenrange);
         }
         // update capabilities URI
         container.setCapabilitiesUri(status.getCurrentCapabilitiesUri());

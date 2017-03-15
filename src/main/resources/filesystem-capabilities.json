@@ -1,6 +1,12 @@
 {
 	"default_container_capability_class": "/cdmi_capabilities/container/profile1",
 	"default_dataobject_capability_class": "/cdmi_capabilities/dataobject/profile1",
+	"container_exports": {
+		"Network/WebHTTP": {
+			"identifier": "http://localhost/cdmi/browse",
+			"permissions": "oidc"
+		}
+	},
 	"container_capabilities": {
 		"cdmi_export_container_http": true,
 		"cdmi_capabilities_templates": true,
