@@ -32,19 +32,19 @@ The (default) built jar is executable and can be linked as an init.d service scr
 
 To run the server run
 ```
-./target/cdmi-server-1.1.jar
+./target/cdmi-server-1.2.jar
 ```
 
 To specify the server port use the ```--server.port=PORT``` parameter, default "8080".
 
 ```
-./target/cdmi-server-1.1.jar --server.port=9000
+./target/cdmi-server-1.2.jar --server.port=9000
 ```
 
 To specify the data root directory use the ```--cdmi.data.baseDirectory=DIR``` parameter, default "/tmp/cdmi".
 
 ```
-./target/cdmi-server-1.1.jar --cdmi.data.baseDirectory=/cdmi/data
+./target/cdmi-server-1.2.jar --cdmi.data.baseDirectory=/cdmi/data
 ```
 
 All configuration for the application can be done either via command line parameters or in the config/application.yml file or any other supported way, see [Spring Boot](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#boot-features-external-config)

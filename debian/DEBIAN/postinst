@@ -1,7 +1,7 @@
 #!/bin/sh
 
 NAME=cdmi-server
-VERSION=1.1
+VERSION=1.2
 USER=cdmi
 
 count=`egrep -c "^${USER}:" /etc/group`
