@@ -3,7 +3,7 @@
 %define buildroot	%{_topdir}/build-rpm-root
 
 %define name            cdmi-server
-%define jarversion      1.1
+%define jarversion      1.2
 %define user            cdmi
 
 Name:		%{name}

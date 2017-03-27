@@ -4,7 +4,7 @@ After=syslog.target
 
 [Service]
 User=cdmi
-ExecStart=/var/lib/cdmi-server/cdmi-server-1.1.jar
+ExecStart=/var/lib/cdmi-server/cdmi-server-1.2.jar
 SuccessExitStatus=143
 
 [Install]
