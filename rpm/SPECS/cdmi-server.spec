@@ -29,6 +29,7 @@ Standalone Spring Boot application version.
 mkdir -p %{buildroot}/usr/local/man/man8
 mkdir -p %{buildroot}/var/lib/%{name}/config
 mkdir -p %{buildroot}/etc/systemd/system
+mkdir -p %{buildroot}/usr/lib/%{name}/plugins
 cp %{_topdir}/SOURCES/cdmi-server.8.gz %{buildroot}/usr/local/man/man8
 cp %{_topdir}/SOURCES/application.yml %{buildroot}/var/lib/%{name}/config
 cp %{_topdir}/SOURCES/%{name}-%{jarversion}.jar %{buildroot}/var/lib/%{name}
@@ -39,6 +40,7 @@ cp %{_topdir}/SOURCES/%{name}.service %{buildroot}/etc/systemd/system
 /var/lib/%{name}/config/application.yml
 /var/lib/%{name}/%{name}-%{jarversion}.jar
 /etc/systemd/system/%{name}.service
+%dir /usr/lib/%{name}/plugins
 
 %changelog
 

@@ -4,6 +4,7 @@ After=syslog.target
 
 [Service]
 User=cdmi
+Environment=JAVA_OPTS=-Dloader.path=/usr/lib/cdmi-server/plugins/
 ExecStart=/var/lib/cdmi-server/cdmi-server-1.2.jar
 SuccessExitStatus=143
 
