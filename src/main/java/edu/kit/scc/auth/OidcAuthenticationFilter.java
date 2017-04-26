@@ -85,9 +85,11 @@ public class OidcAuthenticationFilter extends OncePerRequestFilter {
           JSONObject json = new JSONObject(response.getResponseString());
           user = json.optString("sub", "user");
 
-          SecurityContextHolder.getContext()
-              .setAuthentication(new UsernamePasswordAuthenticationToken(user, encodedCredentials,
-                  AuthorityUtils.commaSeparatedStringToAuthorityList("ROLE_USER")));
+          UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(user,
+              encodedCredentials, AuthorityUtils.commaSeparatedStringToAuthorityList("ROLE_USER"));
+          auth.setDetails(json);
+
+          SecurityContextHolder.getContext().setAuthentication(auth);
 
           return true;
         }
