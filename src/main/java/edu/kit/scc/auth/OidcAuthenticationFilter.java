@@ -9,14 +9,8 @@
 
 package edu.kit.scc.auth;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Date;
-
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import edu.kit.scc.http.HttpClient;
+import edu.kit.scc.http.HttpResponse;
 
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -34,8 +28,14 @@ import org.springframework.security.jwt.JwtHelper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import edu.kit.scc.http.HttpClient;
-import edu.kit.scc.http.HttpResponse;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Date;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 @Component
 public class OidcAuthenticationFilter extends OncePerRequestFilter {
@@ -101,8 +101,6 @@ public class OidcAuthenticationFilter extends OncePerRequestFilter {
         return false;
       }
 
-      String principal = claims.getString("sub");
-      AbstractAuthenticationToken auth = null;
       JSONObject authDetails = new JSONObject();
       Collection<? extends GrantedAuthority> authorities = null;
 
@@ -145,6 +143,9 @@ public class OidcAuthenticationFilter extends OncePerRequestFilter {
         authorities = AuthorityUtils.commaSeparatedStringToAuthorityList("ROLE_USER");
 
       }
+
+      String principal = claims.getString("sub");
+      AbstractAuthenticationToken auth = null;
 
       auth = new UsernamePasswordAuthenticationToken(principal, encodedCredentials, authorities);
       auth.setDetails(authDetails);
