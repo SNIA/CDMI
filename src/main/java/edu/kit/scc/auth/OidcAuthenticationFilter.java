@@ -78,6 +78,10 @@ public class OidcAuthenticationFilter extends OncePerRequestFilter {
    */
   public boolean verifyAuthorization(String authorizationHeader) {
 
+    if (authorizationHeader == null) {
+      return false;
+    }
+
     String authorizationMethod = authorizationHeader.split(" ")[0];
     String encodedCredentials = authorizationHeader.split(" ")[1];
 
