@@ -43,20 +43,6 @@
 		</license>
 	</licenses>
 
-	<repositories>
-		<repository>
-			<releases>
-				<enabled>true</enabled>
-				<updatePolicy>always</updatePolicy>
-				<checksumPolicy>fail</checksumPolicy>
-			</releases>
-			<id>SCC-KIT</id>
-			<name>SCC</name>
-			<url>http://cdmi-qos.data.kit.edu/maven/</url>
-			<layout>default</layout>
-		</repository>
-	</repositories>
-
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
