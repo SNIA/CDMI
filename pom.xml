@@ -253,6 +253,6 @@
     <integration-test.webapp-directory>${integration-test.base-directory}/webapp</integration-test.webapp-directory>
     <integration-test.target-directory>${integration-test.base-directory}/data</integration-test.target-directory>
     <jetty.version>9.2.2.v20140723</jetty.version>
-    <logback.version>1.0.12</logback.version>
+    <logback.version>1.2.0</logback.version>
   </properties>
 </project>
